@@ -1,0 +1,29 @@
+:host {
+  .main-container {
+    display: flex;
+    flex-direction: column;
+
+    height: 100vh;
+    width: 100vw;
+
+    .wrapper {
+      display: flex;
+      flex-direction: row;
+
+      width: 100%;
+      height: 100%;
+    }
+
+    .nav-bar {
+      flex: 0 0 150px;
+      height: 100%;
+
+      border: black solid 1px;
+    }
+
+    .content {
+      flex: 1 1 100%;
+      border: black solid 1px;
+    }
+  }
+}

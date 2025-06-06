@@ -1,0 +1,30 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ewandr-workspace/header": [
+        "libs/client-shell/feature-header/src/index.ts"
+      ],
+      "@ewandr-workspace/navbar": [
+        "libs/client-shell/feature-navbar/src/index.ts"
+      ],
+      "client_products/Routes": [
+        "apps/clients/client_products/src/app/remote-entry/entry.routes.ts"
+      ]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}
