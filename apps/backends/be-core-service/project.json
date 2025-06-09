@@ -1,0 +1,62 @@
+{
+  "name": "be-core-service",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/backends/be-core-service/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "webpack-cli build",
+        "args": ["node-env=production"]
+      },
+      "configurations": {
+        "development": {
+          "args": ["node-env=development"]
+        }
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node-dev --respawn --transpile-only --project apps/backends/be-core-service/tsconfig.app.json apps/backends/be-core-service/src/main.ts"
+      },
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+
+      "configurations": {
+        "development": {
+          "buildTarget": "apps/backends/be-core-service:build:development"
+        },
+        "production": {
+          "buildTarget": "apps/backends/be-core-service:build:production"
+        }
+      }
+    },
+    "test": {
+      "options": {
+        "passWithNoTests": true
+      }
+    },
+    "docker-build": {
+      "dependsOn": ["build"],
+      "command": "docker build -f apps/backends/be-core-service/Dockerfile . -t apps/backends/be-core-service"
+    },
+    "docker-up": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose up --build",
+        "cwd": "apps/backends/be-core-service"
+      }
+    },
+    "docker-down": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose down",
+        "cwd": "apps/backends/be-core-service"
+      }
+    }
+  }
+}
