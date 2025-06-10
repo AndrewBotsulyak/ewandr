@@ -1,13 +1,19 @@
 # Makefile
 .PHONY: help start start-multi stop restart logs shell cleanup build
 
-COMPOSE := docker/docker-compose.dev.yml
+COMPOSE := docker-compose.dev.yml
+COMPOSE_SHELL := docker-compose.client-shell.dev.yml
 
 # Цвета для вывода
 YELLOW := \033[33m
 GREEN := \033[32m
 BLUE := \033[34m
 NC := \033[0m
+
+start-client-shell: ## Запустить client-shell с server-ssr
+	@echo "$(GREEN)Запуск client-shell...$(NC)"
+	docker-compose -f ${COMPOSE_SHELL} up --build
+
 
 start: ## Запустить be-core-service с hot-reload
 	@echo "$(GREEN)Запуск be-core-service...$(NC)"

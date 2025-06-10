@@ -18,7 +18,7 @@ RUN npm ci --legacy-peer-deps
 
 ## Копирование конфигурационных файлов проектов
 #COPY apps/ ./apps/
-#COPY libs/ ./libs/
+#COPY ../../../libs ./libs/
 #
 ## Копирование всего проекта
 #COPY . .

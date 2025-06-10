@@ -4,7 +4,7 @@
   "projectType": "application",
   "prefix": "app",
   "sourceRoot": "apps/clients/client-shell/src",
-  "tags": [],
+  "tags": ["scope:client-shell", "scope:client"],
   "targets": {
     "build": {
       "executor": "@nx/angular:webpack-browser",
@@ -137,14 +137,21 @@
       "configurations": {
         "development": {
           "browserTarget": "client-shell:build:development",
-          "serverTarget": "client-shell:server:development"
+          "serverTarget": "client-shell:server:development",
+          "verbose": true
         },
         "production": {
           "browserTarget": "client-shell:build:production",
           "serverTarget": "client-shell:server:production"
         }
       },
-      "defaultConfiguration": "development"
+      "defaultConfiguration": "development",
+      "dependsOn": [
+        {
+          "target": "serve-ssr",
+          "projects": "dependencies"
+        }
+      ]
     },
     "prerender": {
       "executor": "@angular-devkit/build-angular:prerender",

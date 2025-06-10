@@ -17,8 +17,7 @@ module.exports = (config, context) => {
         assets: ['./src/assets'],
         optimization: false,
         outputHashing: 'none',
-        generatePackageJson: true,
-        poll: 500
+        generatePackageJson: true
       }),
     ],
   };

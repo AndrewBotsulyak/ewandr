@@ -5,7 +5,7 @@ import {
   IsString,
   Length,
 } from 'class-validator';
-import { ProductStatusEnum } from '../models/product-status.enum';
+import {ProductStatusEnum} from "@ewandr-workspace/core";
 
 export class CreateProductDto {
   @IsNotEmpty()

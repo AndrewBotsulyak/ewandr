@@ -4,7 +4,7 @@
   "sourceRoot": "libs/client-shell/feature-header/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": [],
+  "tags": ["scope:client-shell"],
   "targets": {
     "test": {
       "executor": "@nx/jest:jest",

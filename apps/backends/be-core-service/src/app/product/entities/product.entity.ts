@@ -6,14 +6,14 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { PRODUCT_TABLE_NAME } from '../../common/models/table-names.const';
-import { ProductStatusEnum } from '../models/product-status.enum';
 import { ShopEntity } from '../../shop/entities/shop.entity';
 import { Exclude, Expose } from 'class-transformer';
 import { ProductCategoryEntity } from '../../product-categories/entities/product-category.entity';
+import {GetProductModel, ProductStatusEnum} from "@ewandr-workspace/core";
 
 @Entity({ name: PRODUCT_TABLE_NAME })
 @Exclude()
-export class ProductEntity {
+export class ProductEntity implements GetProductModel {
   @ManyToOne(() => ShopEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'shop_id' })
   shop: ShopEntity;

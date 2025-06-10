@@ -13,11 +13,11 @@ export function app(): express.Express {
   const server = express();
   const browserBundles = join(
     process.cwd(),
-    'dist/clients/client_products/browser'
+    'dist/apps/clients/client_products/browser'
   );
   const serverBundles = join(
     process.cwd(),
-    'dist/clients/client_products/server'
+    'dist/apps/clients/client_products/server'
   );
   const indexHtml = existsSync(join(browserBundles, 'index.original.html'))
     ? join(browserBundles, 'index.original.html')

@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  client-shell:
+    build:
+      context: .
+      dockerfile: apps/clients/client-shell/Dockerfile
+    ports:
+      - "4200:4200"
+      - "4201:4201"
+    volumes:
+      - .:/app
+      # Исключаем node_modules из синхронизации для производительности
+      - /app/node_modules
+      - /app/dist
+    environment:
+      - NODE_ENV=development
