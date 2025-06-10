@@ -16,7 +16,8 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withFetch()),
     {
       provide: API_URL_TOKEN,
-      useValue: 'http://localhost:3000/ums'
+      // docker container name - access to another container by networks: - app-network
+      useValue: 'http://be-core-service:3000/ums'
     }
   ],
 };

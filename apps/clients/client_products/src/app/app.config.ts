@@ -13,10 +13,10 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withEventReplay()),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(appRoutes),
-    provideHttpClient(withFetch()),
-    {
-      provide: API_URL_TOKEN,
-      useValue: 'http://localhost:3000/ums'
-    }
+    // provideHttpClient(withFetch()),
+    // {
+    //   provide: API_URL_TOKEN,
+    //   useValue: 'http://be-core-service:3000/ums'
+    // }
   ],
 };
