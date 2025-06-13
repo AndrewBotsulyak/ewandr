@@ -74,6 +74,8 @@
     "@nestjs/platform-express": "10.0.2",
     "@nestjs/swagger": "8.1.1",
     "@nestjs/typeorm": "11.0.0",
+    "@ngrx/effects": "19.2.1",
+    "@ngrx/store": "19.2.1",
     "@nx/angular": "21.1.2",
     "axios": "1.6.0",
     "class-transformer": "0.5.1",

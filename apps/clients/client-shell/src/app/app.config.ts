@@ -6,7 +6,10 @@ import {
   withEventReplay,
 } from '@angular/platform-browser';
 import {provideHttpClient, withFetch} from "@angular/common/http";
-import {API_URL_TOKEN} from "@ewandr-workspace/core";
+import {provideState, provideStore} from "@ngrx/store";
+import {provideEffects} from "@ngrx/effects";
+import {ProductsEffects, productsFeatureStore} from "@ewandr-workspace/ngrx-store";
+import {API_URL_TOKEN} from "@ewandr-workspace/client-core";
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,6 +21,9 @@ export const appConfig: ApplicationConfig = {
       provide: API_URL_TOKEN,
       // docker container name - access to another container by networks: - app-network
       useValue: 'http://be-core-service:3000/ums'
-    }
+    },
+    provideStore(),
+    provideState(productsFeatureStore),
+    provideEffects(ProductsEffects),
   ],
 };

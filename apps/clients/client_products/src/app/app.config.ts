@@ -5,8 +5,6 @@ import {
   provideClientHydration,
   withEventReplay,
 } from '@angular/platform-browser';
-import {provideHttpClient, withFetch} from "@angular/common/http";
-import {API_URL_TOKEN} from "@ewandr-workspace/core";
 
 export const appConfig: ApplicationConfig = {
   providers: [

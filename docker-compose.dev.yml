@@ -54,23 +54,23 @@ services:
     networks:
       - app-network
 
-  # Опционально: pgAdmin для управления БД
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-    ports:
-      - "8080:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - postgres
-    networks:
-      - app-network
+#  # Опционально: pgAdmin для управления БД
+#  pgadmin:
+#    image: dpage/pgadmin4:latest
+#    container_name: pgadmin
+#    restart: unless-stopped
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: admin@example.com
+#      PGADMIN_DEFAULT_PASSWORD: admin123
+#      PGADMIN_CONFIG_SERVER_MODE: 'False'
+#    ports:
+#      - "8080:80"
+#    volumes:
+#      - pgadmin_data:/var/lib/pgadmin
+#    depends_on:
+#      - postgres
+#    networks:
+#      - app-network
 
 # Создание сети для связи между контейнерами
 networks:
@@ -81,5 +81,5 @@ networks:
 volumes:
   postgres_data:
     driver: local
-  pgadmin_data:
-    driver: local
+#  pgadmin_data:
+#    driver: local
