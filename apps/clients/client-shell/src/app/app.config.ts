@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import {ApplicationConfig, inject, PLATFORM_ID, provideZoneChangeDetection} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { appRoutes } from './app.routes';
 import {
@@ -19,8 +19,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withFetch()),
     {
       provide: API_URL_TOKEN,
-      // docker container name - access to another container by networks: - app-network
-      useValue: 'http://be-core-service:3000/ums'
+      useValue: '/api',
     },
     provideStore(),
     provideState(productsFeatureStore),
