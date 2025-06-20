@@ -1,27 +1,49 @@
-import {ApplicationConfig, inject, PLATFORM_ID, provideZoneChangeDetection} from '@angular/core';
+import {
+  APP_INITIALIZER,
+  ApplicationConfig,
+  inject,
+  PLATFORM_ID,
+  provideAppInitializer,
+  provideZoneChangeDetection
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { appRoutes } from './app.routes';
 import {
   provideClientHydration,
-  withEventReplay,
+  withEventReplay, withNoHttpTransferCache,
 } from '@angular/platform-browser';
-import {provideHttpClient, withFetch} from "@angular/common/http";
+import {provideHttpClient, withFetch, withInterceptors} from "@angular/common/http";
 import {provideState, provideStore} from "@ngrx/store";
 import {provideEffects} from "@ngrx/effects";
-import {ProductsEffects, productsFeatureStore} from "@ewandr-workspace/ngrx-store";
-import {API_URL_TOKEN} from "@ewandr-workspace/client-core";
+import {
+  hydrationMetaReducer,
+  NgRxTransferStateService,
+  ProductsEffects,
+  productsFeatureStore
+} from "@ewandr-workspace/ngrx-store";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideClientHydration(withEventReplay()),
+    provideClientHydration(withEventReplay()), // withNoHttpTransferCache()
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(appRoutes),
-    provideHttpClient(withFetch()),
-    {
-      provide: API_URL_TOKEN,
-      useValue: '/api',
-    },
-    provideStore(),
+    // provideAppInitializer(() => {
+    //   const hydrationService = inject(NgRxTransferStateService);
+    //
+    //   hydrationService.restoreState();
+    // }),
+    provideHttpClient(
+      withFetch()
+    ),
+    provideStore({},
+      {
+        metaReducers: [hydrationMetaReducer],
+        runtimeChecks: {
+          strictStateSerializability: false,
+          strictActionSerializability: false
+        },
+      },
+    ),
     provideState(productsFeatureStore),
     provideEffects(ProductsEffects),
   ],

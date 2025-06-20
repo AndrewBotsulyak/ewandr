@@ -7,11 +7,13 @@ export const PRODUCTS_STATE_KEY = 'productsState';
 export type ProductsState = {
   products: GetProductModel[] | null;
   isLoading: boolean;
+  isLoaded: boolean; // this is detector that SSR loaded all required data
 };
 
 const initialState: ProductsState = {
   products: null,
   isLoading: false,
+  isLoaded: false
 };
 
 const productsReducer = createReducer(
@@ -21,6 +23,7 @@ const productsReducer = createReducer(
     return {
       ...state,
       products: data,
+      isLoaded: true, //temporary while I have only products
     };
   }),
 );

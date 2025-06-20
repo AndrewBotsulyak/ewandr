@@ -15,6 +15,20 @@ const config: ModuleFederationConfig = {
    *
    */
   remotes: ['client_products'],
+  shared: (libraryName, defaultConfig) => {
+    if (libraryName === '@angular/core' ||
+      libraryName === '@angular/common' ||
+      libraryName === '@angular/router' ||
+      libraryName === '@angular/cdk' ||
+      libraryName === '@angular/material' ||
+      libraryName === '@angular/animations') {
+      return {
+        singleton: true,
+        strictVersion: true,
+      };
+    }
+    return defaultConfig;
+  },
 };
 
 /**

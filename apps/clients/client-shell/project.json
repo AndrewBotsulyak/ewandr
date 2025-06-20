@@ -63,7 +63,9 @@
       "executor": "@nx/angular:module-federation-dev-server",
       "options": {
         "port": 4200,
-        "publicHost": "http://localhost:4200"
+        "host": "0.0.0.0",
+        "publicHost": "http://localhost:4200",
+        "devRemotes": ["client_products"]
       },
       "configurations": {
         "production": {
@@ -73,13 +75,7 @@
           "buildTarget": "client-shell:build:development"
         }
       },
-      "defaultConfiguration": "development",
-      "dependsOn": [
-        {
-          "target": "serve",
-          "projects": "dependencies"
-        }
-      ]
+      "defaultConfiguration": "development"
     },
     "extract-i18n": {
       "executor": "@angular-devkit/build-angular:extract-i18n",
@@ -146,12 +142,14 @@
         }
       },
       "defaultConfiguration": "development",
-      "dependsOn": [
-        {
-          "target": "serve-ssr",
-          "projects": "dependencies"
-        }
-      ]
+      "options": {
+        "port": 4200,
+        "host": "0.0.0.0",
+        "publicHost":"localhost",
+        "devRemotes": ["client-shell", "client_products"],
+        "progress": true,
+        "verbose": true
+      }
     },
     "prerender": {
       "executor": "@angular-devkit/build-angular:prerender",

@@ -5,12 +5,32 @@ import {
   provideClientHydration,
   withEventReplay,
 } from '@angular/platform-browser';
+import {provideState, provideStore} from "@ngrx/store";
+import {hydrationMetaReducer, ProductsEffects, productsFeatureStore} from "@ewandr-workspace/ngrx-store";
+import {provideEffects} from "@ngrx/effects";
+import {provideHttpClient, withFetch} from "@angular/common/http";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideClientHydration(withEventReplay()),
+    provideClientHydration(withEventReplay()), // withNoHttpTransferCache()
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(appRoutes),
+    provideHttpClient(
+      withFetch()
+    ),
+    // TODO check if need to add store in this app also
+    // looks like it works properly
+    // provideStore({},
+    //   {
+    //     metaReducers: [hydrationMetaReducer],
+    //     runtimeChecks: {
+    //       strictStateSerializability: false,
+    //       strictActionSerializability: false
+    //     },
+    //   },
+    // ),
+    // provideState(productsFeatureStore),
+    // provideEffects(ProductsEffects),
     // provideHttpClient(withFetch()),
     // {
     //   provide: API_URL_TOKEN,

@@ -11,7 +11,7 @@ import { ProductCategoriesModule } from './product-categories/product-categories
 
 const routes: Routes = [
   {
-    path: 'ums',
+    path: 'api',
     module: AppModule,
     children: [
       {

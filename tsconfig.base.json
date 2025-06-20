@@ -15,9 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@ewandr-workspace/client-core": [
-        "libs/client-core/src/index.ts"
-      ],
+      "@ewandr-workspace/client-core": ["libs/client-core/src/index.ts"],
       "@ewandr-workspace/core": ["libs/core/src/index.ts"],
       "@ewandr-workspace/header": [
         "libs/client-shell/feature-header/src/index.ts"
@@ -26,6 +24,7 @@
         "libs/client-shell/feature-navbar/src/index.ts"
       ],
       "@ewandr-workspace/ngrx-store": ["libs/ngrx-store/src/index.ts"],
+      "@ewandr-workspace/ui-shared-lib": ["libs/ui-shared-lib/src/index.ts"],
       "client_products/Routes": [
         "apps/clients/client_products/src/app/remote-entry/entry.routes.ts"
       ]

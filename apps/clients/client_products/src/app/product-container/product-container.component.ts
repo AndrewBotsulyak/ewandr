@@ -2,12 +2,14 @@ import {ChangeDetectionStrategy, Component, inject, OnInit, signal, WritableSign
 import { CommonModule } from '@angular/common';
 import {ProductContainerService} from "./product-container.service";
 import {ProductStatusEnum} from "@ewandr-workspace/core";
-import {ProductContainerResolver} from "./resolvers/product-container.resolver";
 import {ActivatedRoute} from "@angular/router";
+import {filter} from "rxjs";
+import {toSignal} from "@angular/core/rxjs-interop";
+import {MatButtonUI} from "@ewandr-workspace/ui-shared-lib";
 
 @Component({
   selector: 'app-product-container',
-  imports: [CommonModule],
+  imports: [CommonModule, MatButtonUI],
   providers: [],
   templateUrl: './product-container.component.html',
   styleUrl: './product-container.component.scss',
@@ -17,11 +19,17 @@ export class ProductContainerComponent implements OnInit {
   private service = inject(ProductContainerService);
   private activatedRoute = inject(ActivatedRoute);
 
-  products = signal(this.activatedRoute.snapshot.data['products']);
+  products = toSignal(this.service.products$.pipe(
+    filter(value => value != null)
+  ));
 
   status = ProductStatusEnum;
 
   ngOnInit() {
     console.log('this.activatedRoute.snapshot = ', this.activatedRoute.snapshot);
+  }
+
+  public handleGetProducts() {
+    this.service.getProducts();
   }
 }

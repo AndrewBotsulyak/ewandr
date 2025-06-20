@@ -1,21 +1,18 @@
 import {inject, Injectable, PLATFORM_ID} from '@angular/core';
 import {HttpClient, HttpParams} from '@angular/common/http';
-import {Observable} from 'rxjs';
 import {GetProductModel} from "@ewandr-workspace/core";
 import {SHOP_ID} from "../../../../../apps/clients/client_products/src/app/common/test.const";
-import {API_URL_TOKEN} from "../di-tokens";
-import {isPlatformServer} from "@angular/common";
+import {CheckPlatformService} from "./check-platform.service";
 
 @Injectable({ providedIn: 'root' })
 export class HttpToApiService {
   private http = inject(HttpClient);
-  private API_URL = inject(API_URL_TOKEN);
-  private platformId = inject(PLATFORM_ID);
+  private platformService = inject(CheckPlatformService);
 
   getApiUrl(): string {
-    if (isPlatformServer(this.platformId)) {
+    if (this.platformService.isServer()) {
       // На сервере используем внутренний Docker URL
-      return 'http://be-core-service:3000/ums';
+      return 'http://be-core-service:3000/api';
     }
     // В браузере используем относительный путь
     return '/api';
