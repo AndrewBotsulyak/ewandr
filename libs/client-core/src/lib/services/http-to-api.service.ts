@@ -1,4 +1,4 @@
-import {inject, Injectable, PLATFORM_ID} from '@angular/core';
+import {inject, Injectable} from '@angular/core';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import {GetProductModel} from "@ewandr-workspace/core";
 import {SHOP_ID} from "../../../../../apps/clients/client_products/src/app/common/test.const";
@@ -9,7 +9,9 @@ export class HttpToApiService {
   private http = inject(HttpClient);
   private platformService = inject(CheckPlatformService);
 
-  getApiUrl(): string {
+  private readonly API_URL = this.getApiUrl();
+
+  private getApiUrl(): string {
     if (this.platformService.isServer()) {
       // На сервере используем внутренний Docker URL
       return 'http://be-core-service:3000/api';
@@ -45,9 +47,8 @@ export class HttpToApiService {
   products = {
     getAll: () => {
       const params = new HttpParams().set('shopId', SHOP_ID);
-      const baseUrl = this.getApiUrl();
 
-      return this.http.get<GetProductModel[]>(`${baseUrl}/product`, { params });
+      return this.http.get<GetProductModel[]>(`${this.API_URL}/product`, { params });
     }
   }
 

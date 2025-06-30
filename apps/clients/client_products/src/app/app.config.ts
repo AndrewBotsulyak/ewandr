@@ -9,6 +9,8 @@ import {provideState, provideStore} from "@ngrx/store";
 import {hydrationMetaReducer, ProductsEffects, productsFeatureStore} from "@ewandr-workspace/ngrx-store";
 import {provideEffects} from "@ngrx/effects";
 import {provideHttpClient, withFetch} from "@angular/common/http";
+import {CheckPlatformService} from "@ewandr-workspace/client-core";
+import { ProductContainerService } from './product-container/product-container.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,19 +20,21 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(
       withFetch()
     ),
+    ProductContainerService,
+    CheckPlatformService,
     // TODO check if need to add store in this app also
     // looks like it works properly
-    // provideStore({},
-    //   {
-    //     metaReducers: [hydrationMetaReducer],
-    //     runtimeChecks: {
-    //       strictStateSerializability: false,
-    //       strictActionSerializability: false
-    //     },
-    //   },
-    // ),
-    // provideState(productsFeatureStore),
-    // provideEffects(ProductsEffects),
+    provideStore({},
+      {
+        metaReducers: [hydrationMetaReducer],
+        runtimeChecks: {
+          strictStateSerializability: false,
+          strictActionSerializability: false
+        },
+      },
+    ),
+    provideState(productsFeatureStore),
+    provideEffects(ProductsEffects),
     // provideHttpClient(withFetch()),
     // {
     //   provide: API_URL_TOKEN,

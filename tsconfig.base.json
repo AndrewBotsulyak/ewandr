@@ -28,7 +28,8 @@
       "client_products/Routes": [
         "apps/clients/client_products/src/app/remote-entry/entry.routes.ts"
       ]
-    }
+    },
+    "allowSyntheticDefaultImports": true
   },
   "exclude": ["node_modules", "tmp"]
 }

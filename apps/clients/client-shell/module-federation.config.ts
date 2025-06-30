@@ -1,5 +1,15 @@
 import { ModuleFederationConfig } from '@nx/module-federation';
 
+const sharedSingletons = [
+  '@angular/core',
+  '@angular/common',
+  '@angular/router',
+  '@angular/animations',
+  '@angular/cdk',
+  '@angular/material',
+  '@ewandr-workspace/client-core'
+];
+
 const config: ModuleFederationConfig = {
   name: 'client-shell',
   /**
@@ -14,17 +24,13 @@ const config: ModuleFederationConfig = {
    * declare module 'my-external-remote';
    *
    */
-  remotes: ['client_products'],
+  remotes: [],
   shared: (libraryName, defaultConfig) => {
-    if (libraryName === '@angular/core' ||
-      libraryName === '@angular/common' ||
-      libraryName === '@angular/router' ||
-      libraryName === '@angular/cdk' ||
-      libraryName === '@angular/material' ||
-      libraryName === '@angular/animations') {
+    if (sharedSingletons.includes(libraryName)) {
       return {
         singleton: true,
-        strictVersion: true,
+        strictVersion: false,
+        eager: true
       };
     }
     return defaultConfig;

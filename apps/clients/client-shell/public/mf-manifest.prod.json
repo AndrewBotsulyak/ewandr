@@ -1,0 +1,6 @@
+{
+  "client_products": {
+    "server": "https://cdn.ewandr.com/client_products/server/remoteEntry.js",
+    "browser": "https://cdn.ewandr.com/client_products/browser/mf-manifest.json"
+  }
+}

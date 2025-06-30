@@ -45,7 +45,13 @@
           "outputHashing": "all",
           "customWebpackConfig": {
             "path": "apps/clients/client-shell/webpack.prod.config.ts"
-          }
+          },
+          "fileReplacements": [
+            {
+              "replace": "apps/clients/client-shell/src/environments/environment.ts",
+              "with":    "apps/clients/client-shell/src/environments/environment.browser.prod.ts"
+            }
+          ]
         },
         "development": {
           "buildOptimizer": false,
@@ -112,12 +118,24 @@
         "inlineStyleLanguage": "scss",
         "customWebpackConfig": {
           "path": "apps/clients/client-shell/webpack.server.config.ts"
-        }
+        },
+        "fileReplacements": [
+          {
+            "replace": "apps/clients/client-shell/src/environments/environment.ts",
+            "with":    "apps/clients/client-shell/src/environments/environment.server.ts"
+          }
+        ]
       },
       "configurations": {
         "production": {
-          "outputHashing": "media"
-        },
+          "outputHashing": "media",
+          "fileReplacements": [
+            {
+              "replace": "apps/clients/client-shell/src/environments/environment.ts",
+              "with":    "apps/clients/client-shell/src/environments/environment.server.prod.ts"
+            }
+          ]
+      },
         "development": {
           "buildOptimizer": false,
           "optimization": false,
@@ -146,7 +164,6 @@
         "port": 4200,
         "host": "0.0.0.0",
         "publicHost":"localhost",
-        "devRemotes": ["client-shell", "client_products"],
         "progress": true,
         "verbose": true
       }
