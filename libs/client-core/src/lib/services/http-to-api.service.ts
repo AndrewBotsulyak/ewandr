@@ -3,22 +3,14 @@ import {HttpClient, HttpParams} from '@angular/common/http';
 import {GetProductModel} from "@ewandr-workspace/core";
 import {SHOP_ID} from "../../../../../apps/clients/client_products/src/app/common/test.const";
 import {CheckPlatformService} from "./check-platform.service";
+import {environment} from "../../../../../apps/clients/client-shell/src/environments/environment";
 
 @Injectable({ providedIn: 'root' })
 export class HttpToApiService {
   private http = inject(HttpClient);
   private platformService = inject(CheckPlatformService);
 
-  private readonly API_URL = this.getApiUrl();
-
-  private getApiUrl(): string {
-    if (this.platformService.isServer()) {
-      // На сервере используем внутренний Docker URL
-      return 'http://be-core-service:3000/api';
-    }
-    // В браузере используем относительный путь
-    return '/api';
-  }
+  private readonly API_URL = environment.apiUrl;
 
   // organization = {
   //   get: () => {

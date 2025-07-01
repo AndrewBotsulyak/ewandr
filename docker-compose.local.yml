@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:stable
+    container_name: my-nginx
+    ports:
+      - "80:80"         # прокидываем порт 80 на локалку (можно "8080:80", если 80 занят)
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro  # свой конфиг nginx
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: core_service_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      # Персистентное хранение данных
+      - postgres_data:/var/lib/postgresql/data
+      # Опционально: скрипты инициализации
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d core_service_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  be-core-service:
+    build:
+      context: .
+      dockerfile: apps/backends/be-core-service/Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      # Монтируем исходный код для hot-reload
+      - .:/app
+      # Исключаем node_modules из синхронизации для производительности
+      - /app/node_modules
+      - /app/dist
+    environment:
+      - NODE_ENV=development
+      # Подключение к PostgreSQL
+      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/core_service_db
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=core_service_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres123
+      - DB_SSL=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  client-shell:
+    build:
+      context: .
+      dockerfile: apps/clients/client-shell/Dockerfile
+    ports:
+      - "4200:4200"
+      - "4201:4201"
+    volumes:
+      - .:/app:cached
+      # Исключаем критичные папки
+      - /app/node_modules
+      - ./dist:/app/dist:rw
+      - /app/.nx
+    environment:
+      - NODE_ENV=development
+    networks:
+      - app-network
+
+
+networks:
+  app-network:
+    driver: bridge
+
+# Именованные тома для персистентности данных
+volumes:
+  postgres_data:
+    driver: local
+  dist_volume:
+#  pgadmin_data:
+#    driver: local

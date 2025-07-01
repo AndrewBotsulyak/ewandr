@@ -1,5 +1,6 @@
 export const environment = {
   production: false,
   ssr: true,
-  manifestUrl: 'http://localhost:4200/module-federation.local.manifest.json'
+  mfManifestURL: 'apps/clients/client-shell/public/mf-manifest.local.json',
+  apiUrl: '/api',
 };

@@ -1,7 +1,7 @@
 # Makefile
 .PHONY: help start start-multi stop restart logs shell cleanup build
 
-COMPOSE := docker-compose.dev.yml
+COMPOSE := docker-compose.local.yml
 
 # Цвета для вывода
 YELLOW := \033[33m

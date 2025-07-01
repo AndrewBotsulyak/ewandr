@@ -1,6 +1,6 @@
 {
   "client_products": {
-    "server": "https://cdn.ewandr.com/client_products/server/remoteEntry.js",
-    "browser": "https://cdn.ewandr.com/client_products/browser/mf-manifest.json"
+    "server": "http://localhost:4201/server/remoteEntry.js",
+    "browser": "http://localhost:4201/mf-manifest.json"
   }
 }

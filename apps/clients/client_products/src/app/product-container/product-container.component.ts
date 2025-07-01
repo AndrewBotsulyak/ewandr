@@ -3,9 +3,10 @@ import { CommonModule } from '@angular/common';
 import {ProductContainerService} from "./product-container.service";
 import {ProductStatusEnum} from "@ewandr-workspace/core";
 import {ActivatedRoute} from "@angular/router";
-import {filter} from "rxjs";
+import {filter, tap} from "rxjs";
 import {toSignal} from "@angular/core/rxjs-interop";
 import {MatButtonUI} from "@ewandr-workspace/ui-shared-lib";
+import {log} from "@angular-devkit/build-angular/src/builders/ssr-dev-server";
 
 @Component({
   selector: 'app-product-container',
@@ -17,16 +18,15 @@ import {MatButtonUI} from "@ewandr-workspace/ui-shared-lib";
 })
 export class ProductContainerComponent implements OnInit {
   private service = inject(ProductContainerService);
-  private activatedRoute = inject(ActivatedRoute);
 
   products = toSignal(this.service.products$.pipe(
-    filter(value => value != null)
+    filter(value => value != null),
+    tap((value) => console.log('this.service.products$ = ',value))
   ));
 
   status = ProductStatusEnum;
 
   ngOnInit() {
-    console.log('this.activatedRoute.snapshot = ', this.activatedRoute.snapshot);
   }
 
   public handleGetProducts() {

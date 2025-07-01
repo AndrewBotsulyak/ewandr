@@ -10,6 +10,7 @@ import bootstrap from './bootstrap.server';
 import { environment } from './environments/environment';
 import { init } from '@module-federation/enhanced/runtime';
 import * as fs from "node:fs";
+import {createProxyMiddleware} from "http-proxy-middleware";
 
 
 // The Express app is exported so that it can be used by serverless Functions.
@@ -19,6 +20,19 @@ export async function app(): Promise<express.Express> {
   const indexHtml = existsSync(join(distFolder, 'index.original.html'))
     ? join(distFolder, 'index.original.html')
     : join(distFolder, 'index.html');
+
+  // local development
+  if (environment.production === false) {
+    console.log('createProxyMiddleware');
+
+    server.use(
+      '/api',
+      createProxyMiddleware({
+        target: 'http://localhost:80/api',
+        changeOrigin: true,
+      })
+    );
+  }
 
   server.use(cors());
 
@@ -64,34 +78,45 @@ async function run(): Promise<void> {
   server.listen(port, async () => {
     console.log(`Node Express server listening on http://localhost:${port}`);
 
-    console.log('environment = ', environment);
+    await initModuleFederation();
+  });
+}
 
-    const manifestPath = join(process.cwd(), 'dist/apps/clients/client_products/server/mf-manifest.json');
+async function initModuleFederation() {
+  const manifestPath = environment.mfManifestURL;
 
-    console.log('manifestPath = ', manifestPath);
-    console.log('fs.existsSync(manifestPath) = ', fs.existsSync(manifestPath));
+  let mfManifest;
 
-    if (!fs.existsSync(manifestPath)) {
-      throw new Error(`Manifest не найден по пути: ${manifestPath}`);
+  console.log('environment = ', environment);
+
+  if (environment.production === false) {
+    if (!fs.existsSync(join(process.cwd(), manifestPath))) {
+      throw new Error(`Manifest doesn't exist on path: ${manifestPath}`);
     }
 
-    const response = await fetch('https://cdn.ewandr.com/client-shell/mf-manifest.prod.json')
-    const mfManifest = await response.json();
+    const data = fs.readFileSync(manifestPath, 'utf8');
+    mfManifest = JSON.parse(data);
 
-    const resultManifest = {
-      name: 'client-shell',
-      remotes: [
-        {
-          name: 'client_products',
-          // @ts-ignore
-          entry: mfManifest['client_products'].server,
-        }
-      ]
-    };
+    // mfManifest = require(join(process.cwd(), manifestPath));
 
-    console.log('resultManifest = ', resultManifest);
+    console.log('mfManifest = ', mfManifest);
+  } else {
+    const response = await fetch(manifestPath)
+    mfManifest = await response.json();
+  }
 
-    init(resultManifest);
+  const remotes: any[] = [];
+
+  Object.keys(mfManifest).forEach((remoteName) => {
+    remotes.push({
+      name: remoteName,
+      entry: mfManifest[remoteName].server,
+    });
+  });
+
+  init({
+    name: 'client-shell',
+    remotes,
   });
 }
 

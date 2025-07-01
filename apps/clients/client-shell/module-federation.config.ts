@@ -1,14 +1,5 @@
 import { ModuleFederationConfig } from '@nx/module-federation';
-
-const sharedSingletons = [
-  '@angular/core',
-  '@angular/common',
-  '@angular/router',
-  '@angular/animations',
-  '@angular/cdk',
-  '@angular/material',
-  '@ewandr-workspace/client-core'
-];
+import {mfSharedLibs} from "@ewandr-workspace/core";
 
 const config: ModuleFederationConfig = {
   name: 'client-shell',
@@ -24,9 +15,9 @@ const config: ModuleFederationConfig = {
    * declare module 'my-external-remote';
    *
    */
-  remotes: [],
+  remotes: ['client_products'],
   shared: (libraryName, defaultConfig) => {
-    if (sharedSingletons.includes(libraryName)) {
+    if (mfSharedLibs.includes(libraryName)) {
       return {
         singleton: true,
         strictVersion: false,

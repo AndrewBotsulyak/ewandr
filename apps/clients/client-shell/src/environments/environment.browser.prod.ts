@@ -1,4 +1,6 @@
 export const environment = {
   production: true,
-  ssr: false
+  ssr: false,
+  mfManifestURL: 'https://cdn.ewandr.com/client-shell/mf-manifest.prod.json',
+  apiUrl: '/api',
 };

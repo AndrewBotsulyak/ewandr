@@ -50,6 +50,10 @@
             {
               "replace": "apps/clients/client-shell/src/environments/environment.ts",
               "with":    "apps/clients/client-shell/src/environments/environment.browser.prod.ts"
+            },
+            {
+              "replace": "apps/clients/client-shell/module-federation.config.ts",
+              "with":    "apps/clients/client-shell/module-federation.config.prod.ts"
             }
           ]
         },
@@ -78,6 +82,7 @@
           "buildTarget": "client-shell:build:production"
         },
         "development": {
+          "proxyConfig": "apps/clients/client-shell/proxy.conf.json",
           "buildTarget": "client-shell:build:development"
         }
       },
@@ -133,6 +138,10 @@
             {
               "replace": "apps/clients/client-shell/src/environments/environment.ts",
               "with":    "apps/clients/client-shell/src/environments/environment.server.prod.ts"
+            },
+            {
+              "replace": "apps/clients/client-shell/module-federation.config.ts",
+              "with":    "apps/clients/client-shell/module-federation.config.prod.ts"
             }
           ]
       },
@@ -152,7 +161,8 @@
         "development": {
           "browserTarget": "client-shell:build:development",
           "serverTarget": "client-shell:server:development",
-          "verbose": true
+          "verbose": true,
+          "progress": true
         },
         "production": {
           "browserTarget": "client-shell:build:production",
@@ -165,7 +175,8 @@
         "host": "0.0.0.0",
         "publicHost":"localhost",
         "progress": true,
-        "verbose": true
+        "verbose": true,
+        "devRemotes": ["client_products"]
       }
     },
     "prerender": {

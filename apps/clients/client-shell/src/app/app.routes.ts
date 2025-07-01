@@ -7,7 +7,6 @@ export const appRoutes: Route[] = [
     loadChildren: () => {
       return loadRemote('client_products/Routes')
         .then((m) => {
-          console.log('m = ', m);
           // @ts-ignore
           return m!.remoteRoutes;
         })
