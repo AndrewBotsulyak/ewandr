@@ -1,5 +1,8 @@
 node_modules
 dist
+!dist/apps/clients/client-shell/browser
+!dist/apps/clients/client-shell/server
+!dist/apps/backends/be-core-service
 .git
 tmp
 .nx

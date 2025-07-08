@@ -8,6 +8,6 @@ COPY ../../../package*.json ../../../nx.json ../../../tsconfig.base.json ./
 RUN npm ci --legacy-peer-deps
 
 # Открытие порта
-EXPOSE 4200 4201
+EXPOSE 4200
 
-CMD ["npx", "nx", "run", "client-shell:serve-ssr"]
+CMD ["npx", "nx", "run", "client-shell:server:production", "--excludeTaskDependencies"]

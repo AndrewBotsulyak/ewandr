@@ -34,7 +34,7 @@
             {
               "type": "initial",
               "maximumWarning": "500kb",
-              "maximumError": "1mb"
+              "maximumError": "2mb"
             },
             {
               "type": "anyComponentStyle",
@@ -133,6 +133,9 @@
       },
       "configurations": {
         "production": {
+          "customWebpackConfig": {
+            "path": "apps/clients/client-shell/webpack.server.config.prod.ts"
+          },
           "outputHashing": "media",
           "fileReplacements": [
             {

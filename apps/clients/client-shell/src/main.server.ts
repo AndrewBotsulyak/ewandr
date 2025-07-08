@@ -21,18 +21,13 @@ export async function app(): Promise<express.Express> {
     ? join(distFolder, 'index.original.html')
     : join(distFolder, 'index.html');
 
-  // local development
-  if (environment.production === false) {
-    console.log('createProxyMiddleware');
-
-    server.use(
-      '/api',
-      createProxyMiddleware({
-        target: 'http://localhost:80/api',
-        changeOrigin: true,
-      })
-    );
-  }
+  server.use(
+    '/api',
+    createProxyMiddleware({
+      target: environment.apiUrl,
+      changeOrigin: true,
+    })
+  );
 
   server.use(cors());
 
@@ -106,6 +101,8 @@ async function initModuleFederation() {
   }
 
   const remotes: any[] = [];
+
+  console.log('mfManifest = ', mfManifest);
 
   Object.keys(mfManifest).forEach((remoteName) => {
     remotes.push({

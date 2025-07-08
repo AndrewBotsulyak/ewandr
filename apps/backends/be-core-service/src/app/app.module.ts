@@ -12,12 +12,17 @@ import { OrganizationUserMappingModule } from './organization-user-mapping/organ
 import { ShopUserMappingModule } from './shop-user-mapping/shop-user-mapping.module';
 import { ProductModule } from './product/product.module';
 import { ProductCategoriesModule } from './product-categories/product-categories.module';
+import { join } from 'path';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: '../../development.env',
+      envFilePath: [
+        join(process.cwd(), '.env.development'),
+        join(__dirname, '../../.env.development'),
+      ],
       isGlobal: true, // чтобы не импортировать в каждом модуле отдельно
+      expandVariables: true,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
