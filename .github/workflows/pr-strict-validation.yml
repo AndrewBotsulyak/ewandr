@@ -1,0 +1,66 @@
+name: PR Strict Validation
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  validate-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR Format
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || '';
+
+            // Check for required sections
+            const requiredSections = {
+              'Ticket Link': /🎫\s*\*\*Ticket Link\*\*:\s*\[.+\]\(.+\)/,
+              'Description': /##\s*Description/i,
+              'Type of Change': /##\s*Type of Change/i
+            };
+
+            const missingSections = [];
+
+            for (const [section, pattern] of Object.entries(requiredSections)) {
+              if (!pattern.test(prBody)) {
+                missingSections.push(section);
+              }
+            }
+
+            if (missingSections.length > 0) {
+              core.setFailed(`Missing required sections: ${missingSections.join(', ')}`);
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: `## ❌ PR Validation Failed
+
+Missing required sections: **${missingSections.join(', ')}**
+
+Please update your PR description using the template.`
+              });
+            }
+
+      - name: Add Labels Based on Type
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || '';
+            const labels = [];
+
+            if (prBody.includes('[x] Bug fix')) labels.push('bug');
+                                if (prBody.includes('[x] New feature')) labels.push('enhancement');
+                                if (prBody.includes('[x] Breaking change')) labels.push('breaking-change');
+                                if (prBody.includes('[x] Documentation update')) labels.push('documentation');
+
+                                if (labels.length > 0) {
+  await github.rest.issues.addLabels({
+  owner: context.repo.owner,
+  repo: context.repo.repo,
+  issue_number: context.payload.pull_request.number,
+  labels: labels
+});
+}

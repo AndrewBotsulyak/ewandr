@@ -1,0 +1,54 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  check-ticket-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR Description for Ticket Link
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || '';
+
+            // Patterns for different ticket systems
+            const ticketPatterns = [
+              /TICKET-\d+/i,           // TICKET-123
+              /JIRA-\d+/i,             // JIRA-456
+              /#\d+/,                  // #789
+              /https:\/\/.*\/\d+/      // Full URL to ticket
+            ];
+
+            const hasTicketReference = ticketPatterns.some(pattern =>
+              pattern.test(prBody)
+            );
+
+            if (!hasTicketReference) {
+              core.setFailed('❌ PR description must include a ticket reference!');
+
+              // Post comment on PR
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: `## ⚠️ Missing Ticket Reference
+
+  This PR is missing a ticket reference in the description.
+
+Please update the PR description to include a ticket link using one of these formats:
+  - \`TICKET-123\`
+  - \`JIRA-456\`
+  - \`#789\`
+  - Full URL to your ticket
+
+Example:
+  \`\`\`
+🎫 Ticket Link: [TICKET-123](https://your-ticket-system.com/TICKET-123)
+  \`\`\``
+  });
+  } else {
+  console.log('✅ Ticket reference found in PR description');
+  }

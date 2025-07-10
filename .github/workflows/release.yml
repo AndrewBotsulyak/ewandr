@@ -1,0 +1,86 @@
+name: Release Pipeline
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main, master]
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract Version and Ticket Info
+        id: extract_info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || '';
+
+            // Extract ticket reference
+            const ticketMatch = prBody.match(/\[?(TICKET-\d+|JIRA-\d+|#\d+)\]?/i);
+            const ticket = ticketMatch ? ticketMatch[1] : 'NO-TICKET';
+
+            // Determine version bump based on labels
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            let versionBump = 'patch';
+
+            if (labels.includes('breaking-change')) {
+              versionBump = 'major';
+            } else if (labels.includes('enhancement')) {
+              versionBump = 'minor';
+            }
+
+            core.setOutput('ticket', ticket);
+            core.setOutput('version_bump', versionBump);
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Bump version
+        id: version
+        run: |
+          npm version ${{ steps.extract_info.outputs.version_bump }} --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          release_name: Release v${{ steps.version.outputs.version }}
+          body: |
+            ## Changes in this Release
+
+            **Pull Request:** #${{ github.event.pull_request.number }}
+            **Ticket:** ${{ steps.extract_info.outputs.ticket }}
+            **Author:** @${{ github.event.pull_request.user.login }}
+
+            ### Description
+            ${{ github.event.pull_request.title }}
+
+            ### Full Changelog
+            ${{ github.event.pull_request.html_url }}
+          draft: false
+          prerelease: false
+
+      - name: Deploy to AWS
+        run: |
+          # Ваш деплой скрипт
+          ./scripts/deploy.sh v${{ steps.version.outputs.version }}
