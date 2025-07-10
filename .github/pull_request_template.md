@@ -2,7 +2,7 @@
 Brief description of changes
 
 ## Ticket Reference
-🎫 **Ticket Link**: [TICKET-XXX](https://your-ticket-system.com/TICKET-XXX)
+[TICKET-XXX](https://your-ticket-system.com/TICKET-XXX)
 <!-- ⚠️ REQUIRED: Replace TICKET-XXX with actual ticket number -->
 
 ## Type of Change
