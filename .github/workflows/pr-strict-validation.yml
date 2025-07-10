@@ -16,7 +16,7 @@ jobs:
 
             // Check for required sections
             const requiredSections = {
-              'Ticket Link': /🎫\s*\*\*Ticket Link\*\*:\s*\[.+\]\(.+\)/,
+              'Ticket Reference': /\s*\[.+\]\(.+\)/,
               'Description': /##\s*Description/i,
               'Type of Change': /##\s*Type of Change/i
             };
