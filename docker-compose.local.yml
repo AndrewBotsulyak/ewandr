@@ -53,23 +53,23 @@ services:
     networks:
       - app-network
 
-  client-shell:
-    build:
-      context: .
-      dockerfile: apps/clients/client-shell/Dockerfile
-    ports:
-      - "4200:4200"
-      - "4201:4201"
-    volumes:
-      - .:/app:cached
-      # Исключаем критичные папки
-      - /app/node_modules
-      - ./dist:/app/dist:rw
-      - /app/.nx
-    environment:
-      - NODE_ENV=development
-    networks:
-      - app-network
+#  client-shell:
+#    build:
+#      context: .
+#      dockerfile: apps/clients/client-shell/Dockerfile
+#    ports:
+#      - "4200:4200"
+#      - "4201:4201"
+#    volumes:
+#      - .:/app:cached
+#      # Исключаем критичные папки
+#      - /app/node_modules
+#      - ./dist:/app/dist:rw
+#      - /app/.nx
+#    environment:
+#      - NODE_ENV=development
+#    networks:
+#      - app-network
 
 
 networks:
