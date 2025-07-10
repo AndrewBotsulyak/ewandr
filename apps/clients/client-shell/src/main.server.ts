@@ -21,13 +21,13 @@ export async function app(): Promise<express.Express> {
     ? join(distFolder, 'index.original.html')
     : join(distFolder, 'index.html');
 
-  server.use(
-    '/api',
-    createProxyMiddleware({
-      target: environment.apiUrl,
-      changeOrigin: true,
-    })
-  );
+  // server.use(
+  //   '/api',
+  //   createProxyMiddleware({
+  //     target: environment.apiUrl,
+  //     changeOrigin: true,
+  //   })
+  // );
 
   server.use(cors());
 
