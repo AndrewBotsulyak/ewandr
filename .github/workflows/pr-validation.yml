@@ -34,21 +34,21 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.payload.pull_request.number,
-                body: `## ⚠️ Missing Ticket Reference
+                body: \`## ⚠️ Missing Ticket Reference
 
-  This PR is missing a ticket reference in the description.
+                This PR is missing a ticket reference in the description.
 
-Please update the PR description to include a ticket link using one of these formats:
-  - \`TICKET-123\`
-  - \`JIRA-456\`
-  - \`#789\`
-  - Full URL to your ticket
+                Please update the PR description to include a ticket link using one of these formats:
+                - \\\`TICKET-123\\\`
+                - \\\`JIRA-456\\\`
+                - \\\`#789\\\`
+                - Full URL to your ticket
 
-Example:
-  \`\`\`
-🎫 Ticket Link: [TICKET-123](https://your-ticket-system.com/TICKET-123)
-  \`\`\``
-  });
-  } else {
-  console.log('✅ Ticket reference found in PR description');
-  }
+                Example:
+                \\\`\\\`\\\`
+                🎫 Ticket Link: [TICKET-123](https://your-ticket-system.com/TICKET-123)
+                \\\`\\\`\\\`\`
+              });
+            } else {
+              console.log('✅ Ticket reference found in PR description');
+            }

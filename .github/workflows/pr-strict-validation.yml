@@ -38,9 +38,9 @@ jobs:
                 issue_number: context.payload.pull_request.number,
                 body: `## ❌ PR Validation Failed
 
-Missing required sections: **${missingSections.join(', ')}**
+                Missing required sections: **${missingSections.join(', ')}**
 
-Please update your PR description using the template.`
+                Please update your PR description using the template.`
               });
             }
 
@@ -52,15 +52,15 @@ Please update your PR description using the template.`
             const labels = [];
 
             if (prBody.includes('[x] Bug fix')) labels.push('bug');
-                                if (prBody.includes('[x] New feature')) labels.push('enhancement');
-                                if (prBody.includes('[x] Breaking change')) labels.push('breaking-change');
-                                if (prBody.includes('[x] Documentation update')) labels.push('documentation');
+            if (prBody.includes('[x] New feature')) labels.push('enhancement');
+            if (prBody.includes('[x] Breaking change')) labels.push('breaking-change');
+            if (prBody.includes('[x] Documentation update')) labels.push('documentation');
 
-                                if (labels.length > 0) {
-  await github.rest.issues.addLabels({
-  owner: context.repo.owner,
-  repo: context.repo.repo,
-  issue_number: context.payload.pull_request.number,
-  labels: labels
-});
-}
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                labels: labels
+              });
+            }
