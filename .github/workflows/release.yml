@@ -45,7 +45,16 @@ jobs:
       - name: Detect affected projects
         id: affected
         run: |
-          AFFECTED=$(npx nx show projects --affected --type=app --base=$NX_BASE --head=$NX_HEAD)
+          echo "Base SHA: ${{ steps.setSHAs.outputs.base }}"
+          echo "Head SHA: ${{ steps.setSHAs.outputs.head }}"
+
+          # Для PR используем base и head из action
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            AFFECTED=$(npx nx show projects --affected --type=app --base=${{ steps.setSHAs.outputs.base }} --head=${{ steps.setSHAs.outputs.head }})
+          else
+            # Для push в main сравниваем с предыдущим коммитом
+            AFFECTED=$(npx nx show projects --affected --type=app --base=HEAD~1 --head=HEAD)
+          fi
           echo "Affected projects: $AFFECTED"
 
           # Convert to JSON array
