@@ -39,37 +39,69 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Derive SHAs for base and head
-        uses: nrwl/nx-set-shas@v4
-
       - name: Detect affected projects
         id: affected
         run: |
-          echo "Base SHA: ${{ steps.setSHAs.outputs.base }}"
-          echo "Head SHA: ${{ steps.setSHAs.outputs.head }}"
-
-          # Для PR используем base и head из action
+          # Определяем базовый и целевой коммиты
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            AFFECTED=$(npx nx show projects --affected --type=app --base=${{ steps.setSHAs.outputs.base }} --head=${{ steps.setSHAs.outputs.head }})
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           else
-            # Для push в main сравниваем с предыдущим коммитом
-            AFFECTED=$(npx nx show projects --affected --type=app --base=HEAD~1 --head=HEAD)
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+            if [[ "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+              BASE_SHA="HEAD~1"
+            fi
           fi
+
+          echo "Comparing BASE: $BASE_SHA with HEAD: $HEAD_SHA"
+
+          # Получаем список измененных файлов
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA || git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Стратегия 1: Используем Nx affected, но только если изменены значимые файлы
+          TRIGGER_FULL_BUILD=false
+          if echo "$CHANGED_FILES" | grep -E "(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|nx\.json|tsconfig\.base\.json|workspace\.json)$"; then
+            echo "Critical configuration files changed, using Nx affected detection"
+            TRIGGER_FULL_BUILD=true
+            AFFECTED=$(npx nx show projects --affected --type=app --base=$BASE_SHA --head=$HEAD_SHA)
+          else
+            # Стратегия 2: Проверяем только прямые изменения в папках приложений
+            echo "Checking for direct app changes only"
+            AFFECTED=""
+
+            # Получаем список всех приложений
+            ALL_APPS=$(npx nx show projects --type=app)
+
+            for app in $ALL_APPS; do
+              # Проверяем изменения в папке приложения
+              if echo "$CHANGED_FILES" | grep -q "^apps/$app/"; then
+                AFFECTED="$AFFECTED$app"$'\n'
+              fi
+            done
+
+            # Удаляем дубликаты и пустые строки
+            AFFECTED=$(echo "$AFFECTED" | sort -u | grep -v '^$')
+          fi
+
           echo "Affected projects: $AFFECTED"
 
           # Convert to JSON array
           AFFECTED_JSON=$(echo "$AFFECTED" | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
 
-          # Filter remote apps (assuming they have a specific naming pattern)
-          REMOTES=$(echo "$AFFECTED" | grep -E "^client-" | grep -v "client-shell" || true)
+          # Filter remote apps (all apps starting with "client_")
+          REMOTES=$(echo "$AFFECTED" | grep -E "^client_" || true)
           REMOTES_JSON=$(echo "$REMOTES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
 
       - name: Check for server changes
         id: check-server
         run: |
-          if echo "${{ steps.affected.outputs.apps }}" | jq -r '.[]' | grep -E "(client-shell|be-core-service)" > /dev/null; then
+          # Проверяем только server приложения (client-shell и be-core-service)
+          if echo "${{ steps.affected.outputs.apps }}" | jq -r '.[]' | grep -E "^(client-shell|be-core-service)$" > /dev/null; then
             echo "has-changes=true" >> $GITHUB_OUTPUT
           else
             echo "has-changes=false" >> $GITHUB_OUTPUT
@@ -113,12 +145,12 @@ jobs:
 #          BUILD_PATH="dist/apps/$APP_NAME"
 #
 #          # Upload versioned build
-#          aws s3 sync $BUILD_PATH s3://$CDN_BUCKET/$APP_NAME/$VERSION/ \
+#          aws s3 sync $BUILD_PATH $CDN_BUCKET/$APP_NAME/$VERSION/ \
 #            --delete \
 #            --cache-control "public, max-age=31536000"
 #
 #          # Upload as latest
-#          aws s3 sync $BUILD_PATH s3://$CDN_BUCKET/$APP_NAME/latest/ \
+#          aws s3 sync $BUILD_PATH $CDN_BUCKET/$APP_NAME/latest/ \
 #            --delete \
 #            --cache-control "public, max-age=300"
 #
@@ -128,7 +160,7 @@ jobs:
 #          VERSION="${{ steps.version.outputs.version }}"
 #
 #          # Download current manifest
-#          aws s3 cp s3://$CDN_BUCKET/mf-manifest.json ./mf-manifest.json || echo '{}' > ./mf-manifest.json
+#          aws s3 cp $CDN_BUCKET/mf-manifest.json ./mf-manifest.json || echo '{}' > ./mf-manifest.json
 #
 #          # Update manifest with new version
 #          jq --arg app "$APP_NAME" \
@@ -138,7 +170,7 @@ jobs:
 #             ./mf-manifest.json > ./mf-manifest-updated.json
 #
 #          # Upload updated manifest
-#          aws s3 cp ./mf-manifest-updated.json s3://$CDN_BUCKET/mf-manifest.json \
+#          aws s3 cp ./mf-manifest-updated.json $CDN_BUCKET/mf-manifest.json \
 #            --cache-control "public, max-age=60"
 #
 #      - name: Invalidate CloudFront
@@ -146,7 +178,7 @@ jobs:
 #          aws cloudfront create-invalidation \
 #            --distribution-id $CDN_DISTRIBUTION_ID \
 #            --paths "/mf-manifest.json" "/${{ matrix.app }}/latest/*"
-#
+
 #  build-and-push-server:
 #    needs: detect-changes
 #    if: needs.detect-changes.outputs.has-server-changes == 'true'
@@ -200,7 +232,7 @@ jobs:
 #          # Push to ECR
 #          docker push $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX/${{ matrix.app }}:$IMAGE_TAG
 #          docker push $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX/${{ matrix.app }}:latest
-
+#
 #  deploy-server:
 #    needs: [build-and-push-server]
 #    if: github.ref == 'refs/heads/main'
