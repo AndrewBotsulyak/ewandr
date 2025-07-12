@@ -172,7 +172,7 @@ jobs:
              ./$MF_MANIFEST_FILE_NAME > ./mf-manifest-updated.json
 
           # Upload updated manifest
-          aws s3 cp ./mf-manifest-updated.json $CDN_BUCKET/$MF_MANIFEST_FILE_NAME \
+          aws s3 cp ./mf-manifest-updated.json $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME \
             --cache-control "public, max-age=60"
 
       - name: Invalidate CloudFront
