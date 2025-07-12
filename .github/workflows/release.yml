@@ -1,86 +1,220 @@
-name: Release Pipeline
+name: Release Workflow
 
 on:
+  push:
+    branches:
+      - main
+      - develop
   pull_request:
-    types: [closed]
-    branches: [main, master]
+    branches:
+      - main
+
+env:
+  NODE_VERSION: '20'
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ECR_REPOSITORY_PREFIX: ${{ secrets.ECR_REPOSITORY_PREFIX }}
+  CDN_BUCKET: ${{ secrets.CDN_BUCKET }}
+  CDN_DISTRIBUTION_ID: ${{ secrets.CDN_DISTRIBUTION_ID }}
 
 jobs:
-  release:
-    if: github.event.pull_request.merged == true
+  detect-changes:
     runs-on: ubuntu-latest
-
+    outputs:
+      affected-apps: ${{ steps.affected.outputs.apps }}
+      has-server-changes: ${{ steps.check-server.outputs.has-changes }}
+      affected-remotes: ${{ steps.affected.outputs.remotes }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Extract Version and Ticket Info
-        id: extract_info
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prBody = context.payload.pull_request.body || '';
-
-            // Extract ticket reference
-            const ticketMatch = prBody.match(/\[?(TICKET-\d+|JIRA-\d+|#\d+)\]?/i);
-            const ticket = ticketMatch ? ticketMatch[1] : 'NO-TICKET';
-
-            // Determine version bump based on labels
-            const labels = context.payload.pull_request.labels.map(l => l.name);
-            let versionBump = 'patch';
-
-            if (labels.includes('breaking-change')) {
-              versionBump = 'major';
-            } else if (labels.includes('enhancement')) {
-              versionBump = 'minor';
-            }
-
-            core.setOutput('ticket', ticket);
-            core.setOutput('version_bump', versionBump);
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build project
-        run: npm run build
+      - name: Derive SHAs for base and head
+        uses: nrwl/nx-set-shas@v4
 
-      - name: Bump version
-        id: version
+      - name: Detect affected projects
+        id: affected
         run: |
-          npm version ${{ steps.extract_info.outputs.version_bump }} --no-git-tag-version
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          AFFECTED=$(npx nx show projects --affected --type=app --base=$NX_BASE --head=$NX_HEAD)
+          echo "Affected projects: $AFFECTED"
 
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          release_name: Release v${{ steps.version.outputs.version }}
-          body: |
-            ## Changes in this Release
+          # Convert to JSON array
+          AFFECTED_JSON=$(echo "$AFFECTED" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
 
-            **Pull Request:** #${{ github.event.pull_request.number }}
-            **Ticket:** ${{ steps.extract_info.outputs.ticket }}
-            **Author:** @${{ github.event.pull_request.user.login }}
+          # Filter remote apps (assuming they have a specific naming pattern)
+          REMOTES=$(echo "$AFFECTED" | grep -E "^client-" | grep -v "client-shell" || true)
+          REMOTES_JSON=$(echo "$REMOTES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
 
-            ### Description
-            ${{ github.event.pull_request.title }}
-
-            ### Full Changelog
-            ${{ github.event.pull_request.html_url }}
-          draft: false
-          prerelease: false
-
-      - name: Deploy to AWS
+      - name: Check for server changes
+        id: check-server
         run: |
-          # Ваш деплой скрипт
-          ./scripts/deploy.sh v${{ steps.version.outputs.version }}
+          if echo "${{ steps.affected.outputs.apps }}" | jq -r '.[]' | grep -E "(client-shell|be-core-service)" > /dev/null; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+
+#  build-and-deploy-remotes:
+#    needs: detect-changes
+#    if: needs.detect-changes.outputs.affected-remotes != '[]'
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        app: ${{ fromJson(needs.detect-changes.outputs.affected-remotes) }}
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Configure AWS credentials
+#        uses: aws-actions/configure-aws-credentials@v4
+#        with:
+#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#          aws-region: ${{ env.AWS_REGION }}
+#
+#      - name: Build in Docker
+#        run: |
+#          docker run --rm \
+#            -v ${{ github.workspace }}:/workspace \
+#            -w /workspace \
+#            node:20-alpine \
+#            sh -c "npm ci && npx nx build ${{ matrix.app }} --prod"
+#
+#      - name: Generate version
+#        id: version
+#        run: |
+#          VERSION="${{ github.sha }}-$(date +%Y%m%d%H%M%S)"
+#          echo "version=$VERSION" >> $GITHUB_OUTPUT
+#
+#      - name: Upload to S3 CDN
+#        run: |
+#          APP_NAME="${{ matrix.app }}"
+#          VERSION="${{ steps.version.outputs.version }}"
+#          BUILD_PATH="dist/apps/$APP_NAME"
+#
+#          # Upload versioned build
+#          aws s3 sync $BUILD_PATH s3://$CDN_BUCKET/$APP_NAME/$VERSION/ \
+#            --delete \
+#            --cache-control "public, max-age=31536000"
+#
+#          # Upload as latest
+#          aws s3 sync $BUILD_PATH s3://$CDN_BUCKET/$APP_NAME/latest/ \
+#            --delete \
+#            --cache-control "public, max-age=300"
+#
+#      - name: Update manifest
+#        run: |
+#          APP_NAME="${{ matrix.app }}"
+#          VERSION="${{ steps.version.outputs.version }}"
+#
+#          # Download current manifest
+#          aws s3 cp s3://$CDN_BUCKET/mf-manifest.json ./mf-manifest.json || echo '{}' > ./mf-manifest.json
+#
+#          # Update manifest with new version
+#          jq --arg app "$APP_NAME" \
+#             --arg server "https://cdn.ewandr.com/$APP_NAME/$VERSION/remoteEntry.js" \
+#             --arg browser "https://cdn.ewandr.com/$APP_NAME/$VERSION/mf-manifest.json" \
+#             '.[$app] = {server: $server, browser: $browser}' \
+#             ./mf-manifest.json > ./mf-manifest-updated.json
+#
+#          # Upload updated manifest
+#          aws s3 cp ./mf-manifest-updated.json s3://$CDN_BUCKET/mf-manifest.json \
+#            --cache-control "public, max-age=60"
+#
+#      - name: Invalidate CloudFront
+#        run: |
+#          aws cloudfront create-invalidation \
+#            --distribution-id $CDN_DISTRIBUTION_ID \
+#            --paths "/mf-manifest.json" "/${{ matrix.app }}/latest/*"
+#
+#  build-and-push-server:
+#    needs: detect-changes
+#    if: needs.detect-changes.outputs.has-server-changes == 'true'
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        app: ['client-shell', 'be-core-service']
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Configure AWS credentials
+#        uses: aws-actions/configure-aws-credentials@v4
+#        with:
+#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#          aws-region: ${{ env.AWS_REGION }}
+#
+#      - name: Login to Amazon ECR
+#        id: login-ecr
+#        uses: aws-actions/amazon-ecr-login@v2
+#
+#      - name: Check if app was affected
+#        id: check-affected
+#        run: |
+#          if echo '${{ needs.detect-changes.outputs.affected-apps }}' | jq -r '.[]' | grep -q "^${{ matrix.app }}$"; then
+#            echo "affected=true" >> $GITHUB_OUTPUT
+#          else
+#            echo "affected=false" >> $GITHUB_OUTPUT
+#          fi
+#
+#      - name: Build and push Docker image
+#        if: steps.check-affected.outputs.affected == 'true'
+#        env:
+#          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#          IMAGE_TAG: ${{ github.sha }}
+#        run: |
+#          # Build the application
+#          docker run --rm \
+#            -v ${{ github.workspace }}:/workspace \
+#            -w /workspace \
+#            node:20-alpine \
+#            sh -c "npm ci && npx nx build ${{ matrix.app }} --prod"
+#
+#          # Build Docker image
+#          docker build \
+#            -f apps/${{ matrix.app }}/Dockerfile \
+#            -t $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX/${{ matrix.app }}:$IMAGE_TAG \
+#            -t $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX/${{ matrix.app }}:latest \
+#            .
+#
+#          # Push to ECR
+#          docker push $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX/${{ matrix.app }}:$IMAGE_TAG
+#          docker push $ECR_REGISTRY/$ECR_REPOSITORY_PREFIX/${{ matrix.app }}:latest
+
+#  deploy-server:
+#    needs: [build-and-push-server]
+#    if: github.ref == 'refs/heads/main'
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Configure AWS credentials
+#        uses: aws-actions/configure-aws-credentials@v4
+#        with:
+#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#          aws-region: ${{ env.AWS_REGION }}
+#
+#      - name: Deploy to server
+#        run: |
+#          # This step depends on your deployment strategy
+#          # You might want to:
+#          # 1. SSH to your server and run docker-compose pull & up
+#          # 2. Use AWS ECS/EKS for deployment
+#          # 3. Use other deployment tools
+#
+#          echo "Deployment logic here"
+#          # Example with SSH:
+#          # ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+#          #   "cd /path/to/app && docker-compose pull && docker-compose up -d"
