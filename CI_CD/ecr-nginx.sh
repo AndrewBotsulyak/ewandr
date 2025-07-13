@@ -9,7 +9,7 @@ export DOCKER_FILE=prod.Dockerfile
 export SERVICE_PATH=../$SERVICE_NAME
 
 # 1) Login to ECR
-source ./ecr-login.sh
+source CI_CD/ecr-login.sh
 
 # 2) Build
 docker build --platform linux/amd64,linux/arm64 -f $SERVICE_PATH/$DOCKER_FILE \

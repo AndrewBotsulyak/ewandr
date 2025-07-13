@@ -7,7 +7,7 @@ export IMAGE_TAG=latest
 export DOCKER_FILE=prod.Dockerfile
 
 # 1) Login to ECR
-source ./ecr-login.sh
+source CI_CD/ecr-login.sh
 
 # 2) Build
 docker build --platform linux/amd64,linux/arm64 -f ../apps/clients/client-shell/$DOCKER_FILE \
