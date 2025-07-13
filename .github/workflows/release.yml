@@ -65,7 +65,7 @@ jobs:
           if echo "$CHANGED_FILES" | grep -E "(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|nx\.json|tsconfig\.base\.json|workspace\.json)$"; then
             echo "Critical configuration files changed, using Nx affected detection"
             TRIGGER_FULL_BUILD=true
-            AFFECTED=$(npx nx show projects --affected --type=app --base=$BASE_SHA --head=$HEAD_SHA)
+            AFFECTED=$(npx nx show projects --affected --type=app --base=HEAD~1 --head=HEAD)
           else
             # Стратегия 2: Проверяем только прямые изменения в папках приложений
             echo "Checking for direct app changes only"
