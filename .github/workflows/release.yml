@@ -129,12 +129,12 @@ jobs:
           # Проверяем каждое приложение отдельно
           if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell")' > /dev/null 2>&1; then
             echo "client_shell_affected=true" >> $GITHUB_OUTPUT
-            echo "client_shell_affectedl=true"
-            echo ${{toJson(steps.affected.outputs)}}
+            echo "client_shell_affected=true"
+            echo "All outputs: ${{toJson(steps.affected.outputs)}}"
           else
             echo "client_shell_affected=false" >> $GITHUB_OUTPUT
             echo "client_shell_affected=false"
-            echo ${{toJson(steps.affected.outputs)}}
+            echo "All outputs: ${{toJson(steps.affected.outputs)}}"
           fi
 
           if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "be-core-service")' > /dev/null 2>&1; then
