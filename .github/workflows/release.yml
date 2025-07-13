@@ -143,6 +143,10 @@ jobs:
             echo "be_core_service_affected=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Debug check-apps outputs
+        run: |
+          echo "All outputs: ${{toJson(steps.affected.outputs)}}"
+
   build-and-deploy-remotes:
     needs: detect-changes
     if: needs.detect-changes.outputs.affected-remotes != '[]'
@@ -221,11 +225,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - app: client-shell
-            affected: ${{ needs.detect-changes.outputs.client_shell_affected }}
-          - app: be-core-service
-            affected: ${{ needs.detect-changes.outputs.be_core_service_affected }}
+        app: ['client-shell', 'be-core-service']
     steps:
       - uses: actions/checkout@v4
 
