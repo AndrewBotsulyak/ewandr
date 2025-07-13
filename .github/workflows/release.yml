@@ -81,7 +81,32 @@ jobs:
               # Проверяем изменения в папке приложения
               # Учитываем разные пути: apps/clients/*, apps/backends/*
               if echo "$CHANGED_FILES" | grep -qE "^apps/(clients|backends)/$app/"; then
-                AFFECTED="$AFFECTED$app"
+                AFFECTED="${AFFECTED}${app}"$'\n'
+              fi
+            done
+
+            # Удаляем дубликаты и пустые строки
+            AFFECTED=$(echo "$AFFECTED" | sort -u | grep -v '^$' || true)
+          fi
+
+          echo "Affected projects: $AFFECTED"
+
+          # Convert to JSON array
+          if [[ -z "$AFFECTED" ]]; then
+            AFFECTED_JSON="[]"
+          else
+            AFFECTED_JSON=$(echo "$AFFECTED" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          fi
+          echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
+
+          # Filter remote apps (all apps starting with "client_")
+          REMOTES=$(echo "$AFFECTED" | grep -E "^client_" || true)
+          if [[ -z "$REMOTES" ]]; then
+            REMOTES_JSON="[]"
+          else
+            REMOTES_JSON=$(echo "$REMOTES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          fi
+          echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
 
       - name: Check for server changes
         id: check-server
