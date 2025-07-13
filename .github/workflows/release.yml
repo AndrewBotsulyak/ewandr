@@ -225,6 +225,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Check if app was affected
+        id: check-affected
+        run: |
+          if echo '${{ needs.detect-changes.outputs.affected-apps }}' | jq -r '.[]' | grep -q "^${{ matrix.app }}$"; then
+            echo "affected=true" >> $GITHUB_OUTPUT
+          else
+            echo "affected=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build be-core-service application
+        if: needs.detect-changes.outputs.be-core-service-affected == 'true'
+        run: npx nx run be-core-service:build:production
+
+      - name: Build application
+        if: needs.detect-changes.outputs.be-core-service-affected == 'true'
+        run: npx nx run client-shell:build:production --excludeTaskDependencies && npx nx run client-shell:server:production --excludeTaskDependencies
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -241,15 +267,6 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Check if app was affected
-        id: check-affected
-        run: |
-          if echo '${{ needs.detect-changes.outputs.affected-apps }}' | jq -r '.[]' | grep -q "^${{ matrix.app }}$"; then
-            echo "affected=true" >> $GITHUB_OUTPUT
-          else
-            echo "affected=false" >> $GITHUB_OUTPUT
-          fi
 
       - name: Build and push Docker image
         if: steps.check-affected.outputs.affected == 'true'
