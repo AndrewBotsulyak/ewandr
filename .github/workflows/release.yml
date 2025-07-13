@@ -108,14 +108,35 @@ jobs:
           fi
           echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
 
+
       - name: Check for server changes
         id: check-server
         run: |
-          # Проверяем только server приложения (client-shell и be-core-service)
-          if echo "${{ steps.affected.outputs.apps }}" | jq -r '.[]' | grep -E "^(client-shell|be-core-service)$" > /dev/null; then
+          echo "Checking affected apps: ${{ steps.affected.outputs.apps }}"
+
+          # Проверяем только server приложения
+          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell" or . == "be-core-service")' > /dev/null 2>&1; then
+            echo "Server applications are affected"
             echo "has-changes=true" >> $GITHUB_OUTPUT
           else
+            echo "No server applications affected"
             echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check individual apps
+        id: check-apps
+        run: |
+          # Проверяем каждое приложение отдельно
+          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell")' > /dev/null 2>&1; then
+            echo "client-shell=true" >> $GITHUB_OUTPUT
+          else
+            echo "client-shell=false" >> $GITHUB_OUTPUT
+          fi
+
+          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "be-core-service")' > /dev/null 2>&1; then
+            echo "be-core-service=true" >> $GITHUB_OUTPUT
+          else
+            echo "be-core-service=false" >> $GITHUB_OUTPUT
           fi
 
   build-and-deploy-remotes:
@@ -192,11 +213,15 @@ jobs:
 
   build-and-push-server:
     needs: detect-changes
-    if: needs.detect-changes.outputs.has-server-changes == 'true'
+#    if: needs.detect-changes.outputs.has-server-changes == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: ['client-shell', 'be-core-service']
+        include:
+          - app: client-shell
+            affected: ${{ needs.detect-changes.outputs.client-shell-affected }}
+          - app: be-core-service
+            affected: ${{ needs.detect-changes.outputs.be-core-service-affected }}
     steps:
       - uses: actions/checkout@v4
 
