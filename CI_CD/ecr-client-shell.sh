@@ -10,8 +10,12 @@ export DOCKER_FILE=prod.Dockerfile
 source CI_CD/ecr-login.sh
 
 # 2) Build
-docker buildx build --platform linux/amd64,linux/arm64 -f apps/clients/client-shell/$DOCKER_FILE \
+docker build --platform linux/amd64 -f apps/clients/client-shell/$DOCKER_FILE \
   -t $REPO_NAME:$IMAGE_TAG ./
+
+## 2) Build
+#docker buildx build --platform linux/amd64,linux/arm64 -f apps/clients/client-shell/$DOCKER_FILE \
+#  -t $REPO_NAME:$IMAGE_TAG ./
 
 # 3) Add ECR-tag
 docker tag $REPO_NAME:$IMAGE_TAG \
