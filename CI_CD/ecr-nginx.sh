@@ -12,7 +12,7 @@ export SERVICE_PATH=$SERVICE_NAME
 source CI_CD/ecr-login.sh
 
 # 2) Build
-docker build --platform linux/amd64,linux/arm64 -f $SERVICE_PATH/$DOCKER_FILE \
+docker buildx build --platform linux/amd64,linux/arm64 -f $SERVICE_PATH/$DOCKER_FILE \
   -t $REPO_NAME:$IMAGE_TAG ./
 
 # 3) Add ECR-tag
