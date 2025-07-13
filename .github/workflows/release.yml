@@ -128,15 +128,19 @@ jobs:
         run: |
           # Проверяем каждое приложение отдельно
           if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell")' > /dev/null 2>&1; then
-            echo "client-shell=true" >> $GITHUB_OUTPUT
+            echo "client_shell_affected=true" >> $GITHUB_OUTPUT
+            echo "client_shell_affectedl=true"
+            echo ${{toJson(steps.affected.outputs)}}
           else
-            echo "client-shell=false" >> $GITHUB_OUTPUT
+            echo "client_shell_affected=false" >> $GITHUB_OUTPUT
+            echo "client_shell_affected=false"
+            echo ${{toJson(steps.affected.outputs)}}
           fi
 
           if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "be-core-service")' > /dev/null 2>&1; then
-            echo "be-core-service=true" >> $GITHUB_OUTPUT
+            echo "be_core_service_affected=true" >> $GITHUB_OUTPUT
           else
-            echo "be-core-service=false" >> $GITHUB_OUTPUT
+            echo "be_core_service_affected=false" >> $GITHUB_OUTPUT
           fi
 
   build-and-deploy-remotes:
@@ -219,9 +223,9 @@ jobs:
       matrix:
         include:
           - app: client-shell
-            affected: ${{ needs.detect-changes.outputs.client-shell-affected }}
+            affected: ${{ needs.detect-changes.outputs.client_shell_affected }}
           - app: be-core-service
-            affected: ${{ needs.detect-changes.outputs.be-core-service-affected }}
+            affected: ${{ needs.detect-changes.outputs.be_core_service_affected }}
     steps:
       - uses: actions/checkout@v4
 
@@ -244,11 +248,11 @@ jobs:
           fi
 
       - name: Build be-core-service application
-        if: needs.detect-changes.outputs.be-core-service-affected == 'true'
+        if: needs.detect-changes.outputs.be_core_service_affected == 'true'
         run: npx nx run be-core-service:build:production
 
       - name: Build application
-        if: needs.detect-changes.outputs.be-core-service-affected == 'true'
+        if: needs.detect-changes.outputs.client_shell_affected == 'true'
         run: npx nx run client-shell:build:production --excludeTaskDependencies && npx nx run client-shell:server:production --excludeTaskDependencies
 
       - name: Set up QEMU
