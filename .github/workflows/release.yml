@@ -27,6 +27,8 @@ jobs:
       affected-apps: ${{ steps.affected.outputs.apps }}
       has-server-changes: ${{ steps.check-server.outputs.has-changes }}
       affected-remotes: ${{ steps.affected.outputs.remotes }}
+      client_shell_affected: ${{ steps.check-apps.outputs.client_shell_affected }}
+      be_core_service_affected: ${{ steps.check-apps.outputs.be_core_service_affected }}
     steps:
       - uses: actions/checkout@v4
         with:
