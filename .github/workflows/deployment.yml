@@ -45,7 +45,6 @@ jobs:
       client_shell_affected: ${{ steps.load.outputs.client_shell_affected }}
       be_core_service_affected: ${{ steps.load.outputs.be_core_service_affected }}
     steps:
-      # Вариант 1: Использовать GitHub API для получения артефактов
       - name: Download artifact via API
         env:
           GH_TOKEN: ${{ github.token }}
@@ -115,11 +114,11 @@ jobs:
 
   build-and-deploy-remotes:
     needs: load-detection-results
-    if: needs.load-detection-results.outputs.affected-remotes != '[]'
+    if: github.event.inputs.deploy_remotes == 'true' && needs.load-detection-results.outputs.affected-remotes != '[]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: ${{ fromJson(needs.detect-changes.outputs.affected-remotes) }}
+        app: ${{ fromJson(needs.load-detection-results.outputs.affected-remotes) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -166,7 +165,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
 
           # Download current manifest
-          aws s3 cp $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME ./$MF_MANIFEST_FILE_NAME || echo '{}' > ./MF_MANIFEST_FILE_NAME
+          aws s3 cp $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME ./$MF_MANIFEST_FILE_NAME || echo '{}' > ./$MF_MANIFEST_FILE_NAME
 
           # Update manifest with new version
           jq --arg app "$APP_NAME" \
@@ -187,11 +186,11 @@ jobs:
 
   build-and-push-server:
     needs: load-detection-results
-    #    if: needs.detect-changes.outputs.has-server-changes == 'true'
+    if: github.event.inputs.deploy_server == 'true' && needs.load-detection-results.outputs.has-server-changes == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [ 'client-shell', 'be-core-service' ]
+        app: ['client-shell', 'be-core-service']
     steps:
       - uses: actions/checkout@v4
 
@@ -207,21 +206,22 @@ jobs:
       - name: Check if app was affected
         id: check-affected
         run: |
-          if echo '${{ needs.detect-changes.outputs.affected-apps }}' | jq -r '.[]' | grep -q "^${{ matrix.app }}$"; then
+          if echo '${{ needs.load-detection-results.outputs.affected-apps }}' | jq -r '.[]' | grep -q "^${{ matrix.app }}$"; then
             echo "affected=true" >> $GITHUB_OUTPUT
           else
             echo "affected=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Build be-core-service application
-        if: needs.detect-changes.outputs.be_core_service_affected == 'true'
+        if: matrix.app == 'be-core-service' && needs.load-detection-results.outputs.be_core_service_affected == 'true'
         run: npx nx run be-core-service:build:production
 
-      - name: Build application
-        if: needs.detect-changes.outputs.client_shell_affected == 'true'
+      - name: Build client-shell application
+        if: matrix.app == 'client-shell' && needs.load-detection-results.outputs.client_shell_affected == 'true'
         run: npx nx run client-shell:build:production --excludeTaskDependencies && npx nx run client-shell:server:production --excludeTaskDependencies
 
       - name: Configure AWS credentials
+        if: steps.check-affected.outputs.affected == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -229,6 +229,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        if: steps.check-affected.outputs.affected == 'true'
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
@@ -239,6 +240,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
           AWS_REGION: ${{ env.AWS_REGION }}
+          ECR_REPOSITORY_PREFIX: ${{ env.ECR_REPOSITORY_PREFIX }}
         run: |
           # Проверяем существование скрипта
           SCRIPT_NAME="CI_CD/ecr-${{ matrix.app }}.sh"
