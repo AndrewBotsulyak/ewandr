@@ -113,4 +113,138 @@ jobs:
             exit 1
           fi
 
-  # Остальные jobs остаются без изменений...
+  build-and-deploy-remotes:
+    if: needs.detect-changes.outputs.affected-remotes != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: ${{ fromJson(needs.detect-changes.outputs.affected-remotes) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build in Docker
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            node:20-alpine \
+            sh -c "npm ci --legacy-peer-deps && npx nx run ${{ matrix.app }}:server:production"
+
+      - name: Generate version
+        id: version
+        run: |
+          VERSION="${{ github.sha }}-$(date +%Y%m%d%H%M%S)"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Upload to S3 CDN
+        run: |
+          APP_NAME="${{ matrix.app }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          BUILD_PATH="dist/apps/clients/$APP_NAME"
+
+          # Upload versioned build
+          aws s3 sync $BUILD_PATH $CDN_BUCKET/$APP_NAME/$VERSION/ \
+            --delete \
+            --cache-control "public, max-age=31536000"
+
+          # Upload as latest
+          aws s3 sync $BUILD_PATH $CDN_BUCKET/$APP_NAME/latest/ \
+            --delete \
+            --cache-control "public, max-age=300"
+
+      - name: Update manifest
+        run: |
+          APP_NAME="${{ matrix.app }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Download current manifest
+          aws s3 cp $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME ./$MF_MANIFEST_FILE_NAME || echo '{}' > ./MF_MANIFEST_FILE_NAME
+
+          # Update manifest with new version
+          jq --arg app "$APP_NAME" \
+             --arg server "https://cdn.ewandr.com/$APP_NAME/$VERSION/server/remoteEntry.js" \
+             --arg browser "https://cdn.ewandr.com/$APP_NAME/$VERSION/browser/mf-manifest.json" \
+             '.[$app] = {server: $server, browser: $browser}' \
+             ./$MF_MANIFEST_FILE_NAME > ./mf-manifest-updated.json
+
+          # Upload updated manifest
+          aws s3 cp ./mf-manifest-updated.json $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME \
+            --cache-control "public, max-age=60"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id $CDN_DISTRIBUTION_ID \
+            --paths "/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME" "/${{ matrix.app }}/latest/*"
+
+  build-and-push-server:
+#    if: github.event.inputs.deploy_remotes == 'true' && needs.load-detection-results.outputs.affected-remotes != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [ 'client-shell', 'be-core-service' ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Check if app was affected
+        id: check-affected
+        run: |
+          if echo '${{ needs.detect-changes.outputs.affected-apps }}' | jq -r '.[]' | grep -q "^${{ matrix.app }}$"; then
+            echo "affected=true" >> $GITHUB_OUTPUT
+          else
+            echo "affected=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build be-core-service application
+        if: needs.detect-changes.outputs.be_core_service_affected == 'true'
+        run: npx nx run be-core-service:build:production
+
+      - name: Build application
+        if: needs.detect-changes.outputs.client_shell_affected == 'true'
+        run: npx nx run client-shell:build:production --excludeTaskDependencies && npx nx run client-shell:server:production --excludeTaskDependencies
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        if: steps.check-affected.outputs.affected == 'true'
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          # Проверяем существование скрипта
+          SCRIPT_NAME="CI_CD/ecr-${{ matrix.app }}.sh"
+          if [ -f "./$SCRIPT_NAME" ]; then
+            echo "Running $SCRIPT_NAME"
+            chmod +x ./$SCRIPT_NAME
+            ./$SCRIPT_NAME
+          else
+            echo "Script $SCRIPT_NAME not found!"
+            exit 1
+          fi
