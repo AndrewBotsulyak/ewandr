@@ -1,294 +1,159 @@
-name: Release Workflow
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-env:
-  NODE_VERSION: '20'
-  NX_NO_CLOUD: true
-  MF_MANIFEST_PATH: 'client-shell'
-  MF_MANIFEST_FILE_NAME: 'mf-manifest.prod.json'
-  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-  ECR_REPOSITORY_PREFIX: ${{ secrets.ECR_REPOSITORY_PREFIX }}
-  CDN_BUCKET: ${{ secrets.CDN_BUCKET }}
-  CDN_DISTRIBUTION_ID: ${{ secrets.CDN_DISTRIBUTION_ID }}
-
-jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      affected-apps: ${{ steps.affected.outputs.apps }}
-      has-server-changes: ${{ steps.check-server.outputs.has-changes }}
-      affected-remotes: ${{ steps.affected.outputs.remotes }}
-      client_shell_affected: ${{ steps.check-apps.outputs.client_shell_affected }}
-      be_core_service_affected: ${{ steps.check-apps.outputs.be_core_service_affected }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Detect affected projects
-        id: affected
-        run: |
-          # Определяем базовый и целевой коммиты
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          else
-            BASE_SHA="${{ github.event.before }}"
-            HEAD_SHA="${{ github.sha }}"
-            if [[ "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
-              BASE_SHA="HEAD~1"
-            fi
-          fi
-
-          echo "Comparing BASE: $BASE_SHA with HEAD: $HEAD_SHA"
-
-          # Получаем список измененных файлов
-          CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA || git diff --name-only HEAD~1 HEAD)
-          echo "Changed files:"
-          echo "$CHANGED_FILES"
-
-          # Стратегия 1: Используем Nx affected, но только если изменены значимые файлы
-          TRIGGER_FULL_BUILD=false
-          if echo "$CHANGED_FILES" | grep -E "(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|nx\.json|tsconfig\.base\.json|workspace\.json)$"; then
-            echo "Critical configuration files changed, using Nx affected detection"
-            TRIGGER_FULL_BUILD=true
-            AFFECTED=$(npx nx show projects --affected --type=app --base=HEAD~1 --head=HEAD)
-          else
-            # Стратегия 2: Проверяем только прямые изменения в папках приложений
-            echo "Checking for direct app changes only"
-            AFFECTED=""
-
-            # Получаем список всех приложений
-            ALL_APPS=$(npx nx show projects --type=app)
-
-            for app in $ALL_APPS; do
-              # Проверяем изменения в папке приложения
-              # Учитываем разные пути: apps/clients/*, apps/backends/*
-              if echo "$CHANGED_FILES" | grep -qE "^apps/(clients|backends)/$app/"; then
-                AFFECTED="${AFFECTED}${app}"$'\n'
-              fi
-            done
-
-            # Удаляем дубликаты и пустые строки
-            AFFECTED=$(echo "$AFFECTED" | sort -u | grep -v '^$' || true)
-          fi
-
-          echo "Affected projects: $AFFECTED"
-
-          # Convert to JSON array
-          if [[ -z "$AFFECTED" ]]; then
-            AFFECTED_JSON="[]"
-          else
-            AFFECTED_JSON=$(echo "$AFFECTED" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          fi
-          echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
-
-          # Filter remote apps (all apps starting with "client_")
-          REMOTES=$(echo "$AFFECTED" | grep -E "^client_" || true)
-          if [[ -z "$REMOTES" ]]; then
-            REMOTES_JSON="[]"
-          else
-            REMOTES_JSON=$(echo "$REMOTES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          fi
-          echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
-
-
-      - name: Check for server changes
-        id: check-server
-        run: |
-          echo "Checking affected apps: ${{ steps.affected.outputs.apps }}"
-
-          # Проверяем только server приложения
-          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell" or . == "be-core-service")' > /dev/null 2>&1; then
-            echo "Server applications are affected"
-            echo "has-changes=true" >> $GITHUB_OUTPUT
-          else
-            echo "No server applications affected"
-            echo "has-changes=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Check individual apps
-        id: check-apps
-        run: |
-          # Проверяем каждое приложение отдельно
-          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell")' > /dev/null 2>&1; then
-            echo "client_shell_affected=true" >> $GITHUB_OUTPUT
-            echo "client_shell_affected=true"
-            echo "All outputs: ${{toJson(steps.affected.outputs)}}"
-          else
-            echo "client_shell_affected=false" >> $GITHUB_OUTPUT
-            echo "client_shell_affected=false"
-            echo "All outputs: ${{toJson(steps.affected.outputs)}}"
-          fi
-
-          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "be-core-service")' > /dev/null 2>&1; then
-            echo "be_core_service_affected=true" >> $GITHUB_OUTPUT
-          else
-            echo "be_core_service_affected=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Debug check-apps outputs
-        run: |
-          echo "All outputs: ${{toJson(steps.affected.outputs)}}"
-
-  build-and-deploy-remotes:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.affected-remotes != '[]'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        app: ${{ fromJson(needs.detect-changes.outputs.affected-remotes) }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Build in Docker
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            node:20-alpine \
-            sh -c "npm ci --legacy-peer-deps && npx nx run ${{ matrix.app }}:server:production"
-
-      - name: Generate version
-        id: version
-        run: |
-          VERSION="${{ github.sha }}-$(date +%Y%m%d%H%M%S)"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Upload to S3 CDN
-        run: |
-          APP_NAME="${{ matrix.app }}"
-          VERSION="${{ steps.version.outputs.version }}"
-          BUILD_PATH="dist/apps/clients/$APP_NAME"
-
-          # Upload versioned build
-          aws s3 sync $BUILD_PATH $CDN_BUCKET/$APP_NAME/$VERSION/ \
-            --delete \
-            --cache-control "public, max-age=31536000"
-
-          # Upload as latest
-          aws s3 sync $BUILD_PATH $CDN_BUCKET/$APP_NAME/latest/ \
-            --delete \
-            --cache-control "public, max-age=300"
-
-      - name: Update manifest
-        run: |
-          APP_NAME="${{ matrix.app }}"
-          VERSION="${{ steps.version.outputs.version }}"
-
-          # Download current manifest
-          aws s3 cp $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME ./$MF_MANIFEST_FILE_NAME || echo '{}' > ./MF_MANIFEST_FILE_NAME
-
-          # Update manifest with new version
-          jq --arg app "$APP_NAME" \
-             --arg server "https://cdn.ewandr.com/$APP_NAME/$VERSION/server/remoteEntry.js" \
-             --arg browser "https://cdn.ewandr.com/$APP_NAME/$VERSION/browser/mf-manifest.json" \
-             '.[$app] = {server: $server, browser: $browser}' \
-             ./$MF_MANIFEST_FILE_NAME > ./mf-manifest-updated.json
-
-          # Upload updated manifest
-          aws s3 cp ./mf-manifest-updated.json $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME \
-            --cache-control "public, max-age=60"
-
-      - name: Invalidate CloudFront
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id $CDN_DISTRIBUTION_ID \
-            --paths "/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME" "/${{ matrix.app }}/latest/*"
-
-  build-and-push-server:
-    needs: detect-changes
-#    if: needs.detect-changes.outputs.has-server-changes == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        app: ['client-shell', 'be-core-service']
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Check if app was affected
-        id: check-affected
-        run: |
-          if echo '${{ needs.detect-changes.outputs.affected-apps }}' | jq -r '.[]' | grep -q "^${{ matrix.app }}$"; then
-            echo "affected=true" >> $GITHUB_OUTPUT
-          else
-            echo "affected=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build be-core-service application
-        if: needs.detect-changes.outputs.be_core_service_affected == 'true'
-        run: npx nx run be-core-service:build:production
-
-      - name: Build application
-        if: needs.detect-changes.outputs.client_shell_affected == 'true'
-        run: npx nx run client-shell:build:production --excludeTaskDependencies && npx nx run client-shell:server:production --excludeTaskDependencies
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and push Docker image
-        if: steps.check-affected.outputs.affected == 'true'
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-        run: |
-          # Проверяем существование скрипта
-          SCRIPT_NAME="CI_CD/ecr-${{ matrix.app }}.sh"
-          if [ -f "./$SCRIPT_NAME" ]; then
-            echo "Running $SCRIPT_NAME"
-            chmod +x ./$SCRIPT_NAME
-            ./$SCRIPT_NAME
-          else
-            echo "Script $SCRIPT_NAME not found!"
-            exit 1
-          fi
-
-#  deploy-server:
-#    needs: [build-and-push-server]
-#    if: github.ref == 'refs/heads/main'
+#name: Release Workflow
+#
+#on:
+#  push:
+#    branches:
+#      - main
+#  workflow_dispatch:
+#
+#env:
+#  NODE_VERSION: '20'
+#  NX_NO_CLOUD: true
+#  MF_MANIFEST_PATH: 'client-shell'
+#  MF_MANIFEST_FILE_NAME: 'mf-manifest.prod.json'
+#  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+#  AWS_REGION: ${{ secrets.AWS_REGION }}
+#  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+#  ECR_REPOSITORY_PREFIX: ${{ secrets.ECR_REPOSITORY_PREFIX }}
+#  CDN_BUCKET: ${{ secrets.CDN_BUCKET }}
+#  CDN_DISTRIBUTION_ID: ${{ secrets.CDN_DISTRIBUTION_ID }}
+#
+#jobs:
+#  detect-changes:
 #    runs-on: ubuntu-latest
+#    outputs:
+#      affected-apps: ${{ steps.affected.outputs.apps }}
+#      has-server-changes: ${{ steps.check-server.outputs.has-changes }}
+#      affected-remotes: ${{ steps.affected.outputs.remotes }}
+#      client_shell_affected: ${{ steps.check-apps.outputs.client_shell_affected }}
+#      be_core_service_affected: ${{ steps.check-apps.outputs.be_core_service_affected }}
+#    steps:
+#      - uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#
+#      - name: Setup Node.js
+#        uses: actions/setup-node@v4
+#        with:
+#          node-version: ${{ env.NODE_VERSION }}
+#          cache: 'npm'
+#
+#      - name: Install dependencies
+#        run: npm ci --legacy-peer-deps
+#
+#      - name: Detect affected projects
+#        id: affected
+#        run: |
+#          # Определяем базовый и целевой коммиты
+#          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+#            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+#            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+#          else
+#            BASE_SHA="${{ github.event.before }}"
+#            HEAD_SHA="${{ github.sha }}"
+#            if [[ "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+#              BASE_SHA="HEAD~1"
+#            fi
+#          fi
+#
+#          echo "Comparing BASE: $BASE_SHA with HEAD: $HEAD_SHA"
+#
+#          # Получаем список измененных файлов
+#          CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA || git diff --name-only HEAD~1 HEAD)
+#          echo "Changed files:"
+#          echo "$CHANGED_FILES"
+#
+#          # Стратегия 1: Используем Nx affected, но только если изменены значимые файлы
+#          TRIGGER_FULL_BUILD=false
+#          if echo "$CHANGED_FILES" | grep -E "(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|nx\.json|tsconfig\.base\.json|workspace\.json)$"; then
+#            echo "Critical configuration files changed, using Nx affected detection"
+#            TRIGGER_FULL_BUILD=true
+#            AFFECTED=$(npx nx show projects --affected --type=app --base=HEAD~1 --head=HEAD)
+#          else
+#            # Стратегия 2: Проверяем только прямые изменения в папках приложений
+#            echo "Checking for direct app changes only"
+#            AFFECTED=""
+#
+#            # Получаем список всех приложений
+#            ALL_APPS=$(npx nx show projects --type=app)
+#
+#            for app in $ALL_APPS; do
+#              # Проверяем изменения в папке приложения
+#              # Учитываем разные пути: apps/clients/*, apps/backends/*
+#              if echo "$CHANGED_FILES" | grep -qE "^apps/(clients|backends)/$app/"; then
+#                AFFECTED="${AFFECTED}${app}"$'\n'
+#              fi
+#            done
+#
+#            # Удаляем дубликаты и пустые строки
+#            AFFECTED=$(echo "$AFFECTED" | sort -u | grep -v '^$' || true)
+#          fi
+#
+#          echo "Affected projects: $AFFECTED"
+#
+#          # Convert to JSON array
+#          if [[ -z "$AFFECTED" ]]; then
+#            AFFECTED_JSON="[]"
+#          else
+#            AFFECTED_JSON=$(echo "$AFFECTED" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+#          fi
+#          echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
+#
+#          # Filter remote apps (all apps starting with "client_")
+#          REMOTES=$(echo "$AFFECTED" | grep -E "^client_" || true)
+#          if [[ -z "$REMOTES" ]]; then
+#            REMOTES_JSON="[]"
+#          else
+#            REMOTES_JSON=$(echo "$REMOTES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+#          fi
+#          echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
+#
+#
+#      - name: Check for server changes
+#        id: check-server
+#        run: |
+#          echo "Checking affected apps: ${{ steps.affected.outputs.apps }}"
+#
+#          # Проверяем только server приложения
+#          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell" or . == "be-core-service")' > /dev/null 2>&1; then
+#            echo "Server applications are affected"
+#            echo "has-changes=true" >> $GITHUB_OUTPUT
+#          else
+#            echo "No server applications affected"
+#            echo "has-changes=false" >> $GITHUB_OUTPUT
+#          fi
+#
+#      - name: Check individual apps
+#        id: check-apps
+#        run: |
+#          # Проверяем каждое приложение отдельно
+#          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell")' > /dev/null 2>&1; then
+#            echo "client_shell_affected=true" >> $GITHUB_OUTPUT
+#            echo "client_shell_affected=true"
+#            echo "All outputs: ${{toJson(steps.affected.outputs)}}"
+#          else
+#            echo "client_shell_affected=false" >> $GITHUB_OUTPUT
+#            echo "client_shell_affected=false"
+#            echo "All outputs: ${{toJson(steps.affected.outputs)}}"
+#          fi
+#
+#          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "be-core-service")' > /dev/null 2>&1; then
+#            echo "be_core_service_affected=true" >> $GITHUB_OUTPUT
+#          else
+#            echo "be_core_service_affected=false" >> $GITHUB_OUTPUT
+#          fi
+#
+#      - name: Debug check-apps outputs
+#        run: |
+#          echo "All outputs: ${{toJson(steps.affected.outputs)}}"
+#
+#  build-and-deploy-remotes:
+#    needs: detect-changes
+#    if: needs.detect-changes.outputs.affected-remotes != '[]'
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        app: ${{ fromJson(needs.detect-changes.outputs.affected-remotes) }}
 #    steps:
 #      - uses: actions/checkout@v4
 #
@@ -299,15 +164,150 @@ jobs:
 #          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 #          aws-region: ${{ env.AWS_REGION }}
 #
-#      - name: Deploy to server
+#      - name: Build in Docker
 #        run: |
-#          # This step depends on your deployment strategy
-#          # You might want to:
-#          # 1. SSH to your server and run docker-compose pull & up
-#          # 2. Use AWS ECS/EKS for deployment
-#          # 3. Use other deployment tools
+#          docker run --rm \
+#            -v ${{ github.workspace }}:/workspace \
+#            -w /workspace \
+#            node:20-alpine \
+#            sh -c "npm ci --legacy-peer-deps && npx nx run ${{ matrix.app }}:server:production"
 #
-#          echo "Deployment logic here"
-#          # Example with SSH:
-#          # ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-#          #   "cd /path/to/app && docker-compose pull && docker-compose up -d"
+#      - name: Generate version
+#        id: version
+#        run: |
+#          VERSION="${{ github.sha }}-$(date +%Y%m%d%H%M%S)"
+#          echo "version=$VERSION" >> $GITHUB_OUTPUT
+#
+#      - name: Upload to S3 CDN
+#        run: |
+#          APP_NAME="${{ matrix.app }}"
+#          VERSION="${{ steps.version.outputs.version }}"
+#          BUILD_PATH="dist/apps/clients/$APP_NAME"
+#
+#          # Upload versioned build
+#          aws s3 sync $BUILD_PATH $CDN_BUCKET/$APP_NAME/$VERSION/ \
+#            --delete \
+#            --cache-control "public, max-age=31536000"
+#
+#          # Upload as latest
+#          aws s3 sync $BUILD_PATH $CDN_BUCKET/$APP_NAME/latest/ \
+#            --delete \
+#            --cache-control "public, max-age=300"
+#
+#      - name: Update manifest
+#        run: |
+#          APP_NAME="${{ matrix.app }}"
+#          VERSION="${{ steps.version.outputs.version }}"
+#
+#          # Download current manifest
+#          aws s3 cp $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME ./$MF_MANIFEST_FILE_NAME || echo '{}' > ./MF_MANIFEST_FILE_NAME
+#
+#          # Update manifest with new version
+#          jq --arg app "$APP_NAME" \
+#             --arg server "https://cdn.ewandr.com/$APP_NAME/$VERSION/server/remoteEntry.js" \
+#             --arg browser "https://cdn.ewandr.com/$APP_NAME/$VERSION/browser/mf-manifest.json" \
+#             '.[$app] = {server: $server, browser: $browser}' \
+#             ./$MF_MANIFEST_FILE_NAME > ./mf-manifest-updated.json
+#
+#          # Upload updated manifest
+#          aws s3 cp ./mf-manifest-updated.json $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME \
+#            --cache-control "public, max-age=60"
+#
+#      - name: Invalidate CloudFront
+#        run: |
+#          aws cloudfront create-invalidation \
+#            --distribution-id $CDN_DISTRIBUTION_ID \
+#            --paths "/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME" "/${{ matrix.app }}/latest/*"
+#
+#  build-and-push-server:
+#    needs: detect-changes
+##    if: needs.detect-changes.outputs.has-server-changes == 'true'
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        app: ['client-shell', 'be-core-service']
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Setup Node.js
+#        uses: actions/setup-node@v4
+#        with:
+#          node-version: ${{ env.NODE_VERSION }}
+#          cache: 'npm'
+#
+#      - name: Install dependencies
+#        run: npm ci --legacy-peer-deps
+#
+#      - name: Check if app was affected
+#        id: check-affected
+#        run: |
+#          if echo '${{ needs.detect-changes.outputs.affected-apps }}' | jq -r '.[]' | grep -q "^${{ matrix.app }}$"; then
+#            echo "affected=true" >> $GITHUB_OUTPUT
+#          else
+#            echo "affected=false" >> $GITHUB_OUTPUT
+#          fi
+#
+#      - name: Build be-core-service application
+#        if: needs.detect-changes.outputs.be_core_service_affected == 'true'
+#        run: npx nx run be-core-service:build:production
+#
+#      - name: Build application
+#        if: needs.detect-changes.outputs.client_shell_affected == 'true'
+#        run: npx nx run client-shell:build:production --excludeTaskDependencies && npx nx run client-shell:server:production --excludeTaskDependencies
+#
+#      - name: Configure AWS credentials
+#        uses: aws-actions/configure-aws-credentials@v4
+#        with:
+#          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#          aws-region: ${{ env.AWS_REGION }}
+#
+#      - name: Login to Amazon ECR
+#        id: login-ecr
+#        uses: aws-actions/amazon-ecr-login@v2
+#
+#      - name: Build and push Docker image
+#        if: steps.check-affected.outputs.affected == 'true'
+#        env:
+#          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#          IMAGE_TAG: ${{ github.sha }}
+#          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
+#          AWS_REGION: ${{ env.AWS_REGION }}
+#        run: |
+#          # Проверяем существование скрипта
+#          SCRIPT_NAME="CI_CD/ecr-${{ matrix.app }}.sh"
+#          if [ -f "./$SCRIPT_NAME" ]; then
+#            echo "Running $SCRIPT_NAME"
+#            chmod +x ./$SCRIPT_NAME
+#            ./$SCRIPT_NAME
+#          else
+#            echo "Script $SCRIPT_NAME not found!"
+#            exit 1
+#          fi
+#
+##  deploy-server:
+##    needs: [build-and-push-server]
+##    if: github.ref == 'refs/heads/main'
+##    runs-on: ubuntu-latest
+##    steps:
+##      - uses: actions/checkout@v4
+##
+##      - name: Configure AWS credentials
+##        uses: aws-actions/configure-aws-credentials@v4
+##        with:
+##          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+##          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+##          aws-region: ${{ env.AWS_REGION }}
+##
+##      - name: Deploy to server
+##        run: |
+##          # This step depends on your deployment strategy
+##          # You might want to:
+##          # 1. SSH to your server and run docker-compose pull & up
+##          # 2. Use AWS ECS/EKS for deployment
+##          # 3. Use other deployment tools
+##
+##          echo "Deployment logic here"
+##          # Example with SSH:
+##          # ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+##          #   "cd /path/to/app && docker-compose pull && docker-compose up -d"
