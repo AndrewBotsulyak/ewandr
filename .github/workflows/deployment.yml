@@ -40,11 +40,43 @@ jobs:
       client_shell_affected: ${{ steps.load.outputs.client_shell_affected }}
       be_core_service_affected: ${{ steps.load.outputs.be_core_service_affected }}
     steps:
-      - name: Download detection results
-        uses: actions/download-artifact@v4
-        with:
-          name: detection-results-pr-${{ github.event.inputs.pr_number }}
-          path: ./
+      # Вариант 1: Использовать GitHub API для получения артефактов
+      - name: Download artifact via API
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Searching for artifact from PR #${{ github.event.inputs.pr_number }}..."
+
+          # Получаем список артефактов
+          ARTIFACTS=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/artifacts \
+            --jq '.artifacts[] | select(.name == "detection-results-pr-${{ github.event.inputs.pr_number }}") | {id, name, expired, created_at}')
+
+          if [ -z "$ARTIFACTS" ]; then
+            echo "❌ No artifact found for PR #${{ github.event.inputs.pr_number }}"
+            echo "Please ensure the PR detection workflow has completed successfully."
+            exit 1
+          fi
+
+          echo "Found artifact:"
+          echo "$ARTIFACTS"
+
+          # Получаем ID последнего артефакта
+          ARTIFACT_ID=$(echo "$ARTIFACTS" | jq -r '.id' | head -n1)
+
+          # Скачиваем артефакт
+          echo "Downloading artifact ID: $ARTIFACT_ID"
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID/zip \
+            > artifact.zip
+
+          # Распаковываем
+          unzip artifact.zip
+          ls -la
 
       - name: Load and display detection results
         id: load
@@ -72,13 +104,11 @@ jobs:
             echo "client_shell_affected=$(jq -r '.client_shell_affected' detection-results.json)" >> $GITHUB_OUTPUT
             echo "be_core_service_affected=$(jq -r '.be_core_service_affected' detection-results.json)" >> $GITHUB_OUTPUT
           else
-            echo "❌ No detection results found for PR #${{ github.event.inputs.pr_number }}!"
-            echo "Please make sure the PR detection workflow has run for this PR."
+            echo "❌ No detection results found in artifact!"
             exit 1
           fi
 
   build-and-deploy-remotes:
-    needs: load-detection-results
     if: needs.detect-changes.outputs.affected-remotes != '[]'
     runs-on: ubuntu-latest
     strategy:
@@ -150,7 +180,6 @@ jobs:
             --paths "/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME" "/${{ matrix.app }}/latest/*"
 
   build-and-push-server:
-    needs: load-detection-results
 #    if: github.event.inputs.deploy_remotes == 'true' && needs.load-detection-results.outputs.affected-remotes != '[]'
     runs-on: ubuntu-latest
     strategy:
