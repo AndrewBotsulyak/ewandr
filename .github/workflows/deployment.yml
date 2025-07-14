@@ -1,0 +1,216 @@
+# .github/workflows/manual-deployment.yml
+name: Manual Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to deploy (required)'
+        required: true
+        type: string
+      deploy_remotes:
+        description: 'Deploy remote applications'
+        required: true
+        default: true
+        type: boolean
+      deploy_server:
+        description: 'Deploy server applications'
+        required: true
+        default: true
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  NX_NO_CLOUD: true
+  MF_MANIFEST_PATH: 'client-shell'
+  MF_MANIFEST_FILE_NAME: 'mf-manifest.prod.json'
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ECR_REPOSITORY_PREFIX: ${{ secrets.ECR_REPOSITORY_PREFIX }}
+  CDN_BUCKET: ${{ secrets.CDN_BUCKET }}
+  CDN_DISTRIBUTION_ID: ${{ secrets.CDN_DISTRIBUTION_ID }}
+
+jobs:
+  load-detection-results:
+    runs-on: ubuntu-latest
+    outputs:
+      affected-apps: ${{ steps.load.outputs.affected_apps }}
+      has-server-changes: ${{ steps.load.outputs.has_server_changes }}
+      affected-remotes: ${{ steps.load.outputs.affected_remotes }}
+      client_shell_affected: ${{ steps.load.outputs.client_shell_affected }}
+      be_core_service_affected: ${{ steps.load.outputs.be_core_service_affected }}
+    steps:
+      - name: Download detection results
+        uses: actions/download-artifact@v4
+        with:
+          name: detection-results-pr-${{ github.event.inputs.pr_number }}
+          path: ./
+
+      - name: Load and display detection results
+        id: load
+        run: |
+          if [ -f detection-results.json ]; then
+            echo "📋 Deployment Summary for PR #${{ github.event.inputs.pr_number }}:"
+            echo "================================"
+            cat detection-results.json | jq -r '
+              "PR Title: \(.pr_title)",
+              "PR URL: \(.pr_url)",
+              "Detection Time: \(.timestamp)",
+              "",
+              "Affected Applications:",
+              (.affected_apps | map("  - " + .) | join("\n")),
+              "",
+              "Remote Applications: \(.affected_remotes | length)",
+              "Server Changes: \(.has_server_changes)"
+            '
+            echo "================================"
+
+            # Загружаем все outputs
+            echo "affected_apps=$(jq -c '.affected_apps' detection-results.json)" >> $GITHUB_OUTPUT
+            echo "affected_remotes=$(jq -c '.affected_remotes' detection-results.json)" >> $GITHUB_OUTPUT
+            echo "has_server_changes=$(jq -r '.has_server_changes' detection-results.json)" >> $GITHUB_OUTPUT
+            echo "client_shell_affected=$(jq -r '.client_shell_affected' detection-results.json)" >> $GITHUB_OUTPUT
+            echo "be_core_service_affected=$(jq -r '.be_core_service_affected' detection-results.json)" >> $GITHUB_OUTPUT
+          else
+            echo "❌ No detection results found for PR #${{ github.event.inputs.pr_number }}!"
+            echo "Please make sure the PR detection workflow has run for this PR."
+            exit 1
+          fi
+
+  build-and-deploy-remotes:
+    needs: load-detection-results
+    if: needs.detect-changes.outputs.affected-remotes != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: ${{ fromJson(needs.detect-changes.outputs.affected-remotes) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build in Docker
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            node:20-alpine \
+            sh -c "npm ci --legacy-peer-deps && npx nx run ${{ matrix.app }}:server:production"
+
+      - name: Generate version
+        id: version
+        run: |
+          VERSION="${{ github.sha }}-$(date +%Y%m%d%H%M%S)"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Upload to S3 CDN
+        run: |
+          APP_NAME="${{ matrix.app }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          BUILD_PATH="dist/apps/clients/$APP_NAME"
+
+          # Upload versioned build
+          aws s3 sync $BUILD_PATH $CDN_BUCKET/$APP_NAME/$VERSION/ \
+            --delete \
+            --cache-control "public, max-age=31536000"
+
+          # Upload as latest
+          aws s3 sync $BUILD_PATH $CDN_BUCKET/$APP_NAME/latest/ \
+            --delete \
+            --cache-control "public, max-age=300"
+
+      - name: Update manifest
+        run: |
+          APP_NAME="${{ matrix.app }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Download current manifest
+          aws s3 cp $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME ./$MF_MANIFEST_FILE_NAME || echo '{}' > ./MF_MANIFEST_FILE_NAME
+
+          # Update manifest with new version
+          jq --arg app "$APP_NAME" \
+             --arg server "https://cdn.ewandr.com/$APP_NAME/$VERSION/server/remoteEntry.js" \
+             --arg browser "https://cdn.ewandr.com/$APP_NAME/$VERSION/browser/mf-manifest.json" \
+             '.[$app] = {server: $server, browser: $browser}' \
+             ./$MF_MANIFEST_FILE_NAME > ./mf-manifest-updated.json
+
+          # Upload updated manifest
+          aws s3 cp ./mf-manifest-updated.json $CDN_BUCKET/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME \
+            --cache-control "public, max-age=60"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id $CDN_DISTRIBUTION_ID \
+            --paths "/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME" "/${{ matrix.app }}/latest/*"
+
+  build-and-push-server:
+    needs: load-detection-results
+#    if: github.event.inputs.deploy_remotes == 'true' && needs.load-detection-results.outputs.affected-remotes != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [ 'client-shell', 'be-core-service' ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Check if app was affected
+        id: check-affected
+        run: |
+          if echo '${{ needs.detect-changes.outputs.affected-apps }}' | jq -r '.[]' | grep -q "^${{ matrix.app }}$"; then
+            echo "affected=true" >> $GITHUB_OUTPUT
+          else
+            echo "affected=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build be-core-service application
+        if: needs.detect-changes.outputs.be_core_service_affected == 'true'
+        run: npx nx run be-core-service:build:production
+
+      - name: Build application
+        if: needs.detect-changes.outputs.client_shell_affected == 'true'
+        run: npx nx run client-shell:build:production --excludeTaskDependencies && npx nx run client-shell:server:production --excludeTaskDependencies
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        if: steps.check-affected.outputs.affected == 'true'
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: |
+          # Проверяем существование скрипта
+          SCRIPT_NAME="CI_CD/ecr-${{ matrix.app }}.sh"
+          if [ -f "./$SCRIPT_NAME" ]; then
+            echo "Running $SCRIPT_NAME"
+            chmod +x ./$SCRIPT_NAME
+            ./$SCRIPT_NAME
+          else
+            echo "Script $SCRIPT_NAME not found!"
+            exit 1
+          fi

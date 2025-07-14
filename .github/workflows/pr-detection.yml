@@ -1,0 +1,180 @@
+# .github/workflows/pr-detection.yml
+name: PR Change Detection
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+env:
+  NODE_VERSION: '20'
+  NX_NO_CLOUD: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Detect affected projects
+        id: affected
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          echo "Comparing BASE: $BASE_SHA with HEAD: $HEAD_SHA"
+
+          # Получаем список измененных файлов
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Стратегия 1: Используем Nx affected, но только если изменены значимые файлы
+          TRIGGER_FULL_BUILD=false
+          if echo "$CHANGED_FILES" | grep -E "(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|nx\.json|tsconfig\.base\.json|workspace\.json)$"; then
+            echo "Critical configuration files changed, using Nx affected detection"
+            TRIGGER_FULL_BUILD=true
+            AFFECTED=$(npx nx show projects --affected --type=app --base=$BASE_SHA --head=$HEAD_SHA)
+          else
+            # Стратегия 2: Проверяем только прямые изменения в папках приложений
+            echo "Checking for direct app changes only"
+            AFFECTED=""
+
+            # Получаем список всех приложений
+            ALL_APPS=$(npx nx show projects --type=app)
+
+            for app in $ALL_APPS; do
+              # Проверяем изменения в папке приложения
+              if echo "$CHANGED_FILES" | grep -qE "^apps/(clients|backends)/$app/"; then
+                AFFECTED="${AFFECTED}${app}"$'\n'
+              fi
+            done
+
+            # Удаляем дубликаты и пустые строки
+            AFFECTED=$(echo "$AFFECTED" | sort -u | grep -v '^$' || true)
+          fi
+
+          echo "Affected projects: $AFFECTED"
+
+          # Convert to JSON array
+          if [[ -z "$AFFECTED" ]]; then
+            AFFECTED_JSON="[]"
+          else
+            AFFECTED_JSON=$(echo "$AFFECTED" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          fi
+          echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
+
+          # Filter remote apps (all apps starting with "client_")
+          REMOTES=$(echo "$AFFECTED" | grep -E "^client_" || true)
+          if [[ -z "$REMOTES" ]]; then
+            REMOTES_JSON="[]"
+          else
+            REMOTES_JSON=$(echo "$REMOTES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          fi
+          echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
+
+      - name: Check for server changes
+        id: check-server
+        run: |
+          echo "Checking affected apps: ${{ steps.affected.outputs.apps }}"
+
+          # Проверяем только server приложения
+          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell" or . == "be-core-service")' > /dev/null 2>&1; then
+            echo "Server applications are affected"
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "No server applications affected"
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check individual apps
+        id: check-apps
+        run: |
+          # Проверяем каждое приложение отдельно
+          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell")' > /dev/null 2>&1; then
+            echo "client_shell_affected=true" >> $GITHUB_OUTPUT
+          else
+            echo "client_shell_affected=false" >> $GITHUB_OUTPUT
+          fi
+
+          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "be-core-service")' > /dev/null 2>&1; then
+            echo "be_core_service_affected=true" >> $GITHUB_OUTPUT
+          else
+            echo "be_core_service_affected=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Save detection results
+        run: |
+          # Сохраняем результаты в JSON файл
+          cat > detection-results.json << EOF
+          {
+            "pr_number": "${{ github.event.pull_request.number }}",
+            "pr_title": "${{ github.event.pull_request.title }}",
+            "pr_url": "${{ github.event.pull_request.html_url }}",
+            "base_sha": "${{ github.event.pull_request.base.sha }}",
+            "head_sha": "${{ github.event.pull_request.head.sha }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "affected_apps": ${{ steps.affected.outputs.apps }},
+            "affected_remotes": ${{ steps.affected.outputs.remotes }},
+            "has_server_changes": ${{ steps.check-server.outputs.has-changes }},
+            "client_shell_affected": ${{ steps.check-apps.outputs.client_shell_affected }},
+            "be_core_service_affected": ${{ steps.check-apps.outputs.be_core_service_affected }}
+          }
+          EOF
+
+          echo "Detection results:"
+          cat detection-results.json | jq '.'
+
+      - name: Upload detection results
+        uses: actions/upload-artifact@v4
+        with:
+          name: detection-results-pr-${{ github.event.pull_request.number }}
+          path: detection-results.json
+          retention-days: 7
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('detection-results.json', 'utf8'));
+
+            const affectedApps = results.affected_apps.length > 0
+              ? results.affected_apps.map(app => `- ${app}`).join('\n')
+              : 'No applications affected';
+
+            const comment = `## 🔍 Change Detection Results
+
+            **Affected Applications:**
+            ${affectedApps}
+
+            **Server Changes:** ${results.has_server_changes ? '✅ Yes' : '❌ No'}
+            **Remote Apps:** ${results.affected_remotes.length} affected
+
+            ---
+            *This detection result has been saved and can be used for manual deployment.*
+            *Artifact: \`detection-results-pr-${{ github.event.pull_request.number }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
