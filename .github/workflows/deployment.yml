@@ -19,6 +19,11 @@ on:
         default: true
         type: boolean
 
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
 env:
   NODE_VERSION: '20'
   NX_NO_CLOUD: true
