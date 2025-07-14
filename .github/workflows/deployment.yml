@@ -114,7 +114,8 @@ jobs:
           fi
 
   build-and-deploy-remotes:
-    if: needs.detect-changes.outputs.affected-remotes != '[]'
+    needs: load-detection-results
+    if: needs.load-detection-results.outputs.affected-remotes != '[]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -185,7 +186,8 @@ jobs:
             --paths "/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME" "/${{ matrix.app }}/latest/*"
 
   build-and-push-server:
-#    if: github.event.inputs.deploy_remotes == 'true' && needs.load-detection-results.outputs.affected-remotes != '[]'
+    needs: load-detection-results
+    #    if: needs.detect-changes.outputs.has-server-changes == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
