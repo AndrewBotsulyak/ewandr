@@ -252,3 +252,204 @@ jobs:
             echo "Script $SCRIPT_NAME not found!"
             exit 1
           fi
+
+  pull-latest-images:
+    needs: [load-detection-results, build-and-push-server]
+    if: |
+      github.event.inputs.deploy_server == 'true' &&
+      needs.build-and-push-server.result == 'success' &&
+      (needs.load-detection-results.outputs.client_shell_affected == 'true' ||
+       needs.load-detection-results.outputs.be_core_service_affected == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Pull latest images on server
+        run: |
+          echo "🔄 Pulling latest images on Lightsail server..."
+
+          SERVICES_TO_PULL=""
+
+          # Определяем какие сервисы нужно обновить
+          if [[ "${{ needs.load-detection-results.outputs.client_shell_affected }}" == "true" ]]; then
+            SERVICES_TO_PULL="client-shell"
+            echo "📦 Will pull latest client-shell image"
+          fi
+
+          if [[ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" ]]; then
+            if [[ -n "$SERVICES_TO_PULL" ]]; then
+              SERVICES_TO_PULL="$SERVICES_TO_PULL be-core-service"
+            else
+              SERVICES_TO_PULL="be-core-service"
+            fi
+            echo "📦 Will pull latest be-core-service image"
+          fi
+
+          # Выполняем pull на сервере
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
+            "cd ~/ewandr && \
+             echo 'Pulling images for: $SERVICES_TO_PULL' && \
+             docker-compose -f docker-compose.prod.yml pull $SERVICES_TO_PULL && \
+             echo '✅ Images pulled successfully!'"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/lightsail_key
+
+  restart-lightsail-services:
+    needs: [ load-detection-results, build-and-push-server, build-and-deploy-remotes ]
+    if: |
+      always() &&
+      (needs.build-and-push-server.result == 'success' ||
+       needs.build-and-push-server.result == 'skipped') &&
+      (needs.build-and-deploy-remotes.result == 'success' ||
+       needs.build-and-deploy-remotes.result == 'skipped') &&
+      (needs.load-detection-results.outputs.has-server-changes == 'true' ||
+       needs.load-detection-results.outputs.affected-remotes != '[]')
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [ 'client-shell', 'be-core-service' ]
+    steps:
+      - name: Check if app needs restart
+        id: check-restart
+        run: |
+          NEEDS_RESTART="false"
+
+          # be-core-service перезапускается только если он сам был изменен И deploy_server == true
+          if [[ "${{ matrix.app }}" == "be-core-service" &&
+                "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" &&
+                "${{ github.event.inputs.deploy_server }}" == "true" ]]; then
+            NEEDS_RESTART="true"
+            echo "🔄 be-core-service was affected and server deployment enabled, needs restart"
+          fi
+
+          # client-shell перезапускается если:
+          # 1. Он сам был изменен И deploy_server == true
+          # 2. Любые remote приложения были изменены И deploy_remotes == true
+          if [[ "${{ matrix.app }}" == "client-shell" ]]; then
+            if [[ "${{ needs.load-detection-results.outputs.client_shell_affected }}" == "true" &&
+                  "${{ github.event.inputs.deploy_server }}" == "true" ]]; then
+              NEEDS_RESTART="true"
+              echo "🔄 client-shell was directly affected and server deployment enabled, needs restart"
+            elif [[ "${{ needs.load-detection-results.outputs.affected-remotes }}" != "[]" &&
+                    "${{ github.event.inputs.deploy_remotes }}" == "true" ]]; then
+              NEEDS_RESTART="true"
+              echo "🔄 Remote apps were updated and remote deployment enabled, client-shell (host) needs restart to pick up new remotes"
+            fi
+          fi
+
+          echo "needs_restart=$NEEDS_RESTART" >> $GITHUB_OUTPUT
+          echo "Decision for ${{ matrix.app }}: $NEEDS_RESTART"
+
+      # Остальные шаги остаются без изменений...
+  deployment-summary:
+    needs: [ load-detection-results, build-and-deploy-remotes, build-and-push-server, restart-lightsail-services ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create deployment summary
+        run: |
+          echo "# 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR Number:** #${{ github.event.inputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Time:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Remote Applications Section
+          if [[ "${{ github.event.inputs.deploy_remotes }}" == "true" ]]; then
+            echo "## 📦 Remote Applications" >> $GITHUB_STEP_SUMMARY
+
+            REMOTE_APPS='${{ needs.load-detection-results.outputs.affected-remotes }}'
+            if [[ "$REMOTE_APPS" != "[]" && "$REMOTE_APPS" != "" ]]; then
+              echo "**Status:** ${{ needs.build-and-deploy-remotes.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+              echo "**Updated Apps:**" >> $GITHUB_STEP_SUMMARY
+              echo "$REMOTE_APPS" | jq -r '.[]' | while read app; do
+                echo "- ✅ $app" >> $GITHUB_STEP_SUMMARY
+              done
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "ℹ️ *Note: client-shell will be restarted to load updated remote applications*" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "**Status:** No remote applications to deploy" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Server Applications Section
+          if [[ "${{ github.event.inputs.deploy_server }}" == "true" ]]; then
+            echo "## 🖥️ Server Applications" >> $GITHUB_STEP_SUMMARY
+            echo "**Build Status:** ${{ needs.build-and-push-server.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Restart Status:** ${{ needs.restart-lightsail-services.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Детали по каждому серверному приложению
+            if [[ "${{ needs.load-detection-results.outputs.client_shell_affected }}" == "true" ]]; then
+              echo "### client-shell" >> $GITHUB_STEP_SUMMARY
+              echo "- 🔄 Direct changes detected" >> $GITHUB_STEP_SUMMARY
+              echo "- 🐳 Docker image updated" >> $GITHUB_STEP_SUMMARY
+              echo "- ♻️ Service restarted" >> $GITHUB_STEP_SUMMARY
+            elif [[ "${{ needs.load-detection-results.outputs.affected-remotes }}" != "[]" ]]; then
+              echo "### client-shell" >> $GITHUB_STEP_SUMMARY
+              echo "- 🔗 Restarted due to remote apps updates" >> $GITHUB_STEP_SUMMARY
+              echo "- ♻️ Service restarted to load new remotes" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            if [[ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" ]]; then
+              echo "### be-core-service" >> $GITHUB_STEP_SUMMARY
+              echo "- 🔄 Direct changes detected" >> $GITHUB_STEP_SUMMARY
+              echo "- 🐳 Docker image updated" >> $GITHUB_STEP_SUMMARY
+              echo "- ♻️ Service restarted" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Summary Statistics
+          echo "## 📊 Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Подсчет обновленных приложений
+          TOTAL_APPS=0
+          REMOTE_COUNT=0
+          SERVER_COUNT=0
+
+          REMOTE_APPS='${{ needs.load-detection-results.outputs.affected-remotes }}'
+          if [[ "$REMOTE_APPS" != "[]" && "$REMOTE_APPS" != "" ]]; then
+            REMOTE_COUNT=$(echo "$REMOTE_APPS" | jq 'length')
+            TOTAL_APPS=$((TOTAL_APPS + REMOTE_COUNT))
+          fi
+
+          if [[ "${{ needs.load-detection-results.outputs.client_shell_affected }}" == "true" ]]; then
+            SERVER_COUNT=$((SERVER_COUNT + 1))
+            TOTAL_APPS=$((TOTAL_APPS + 1))
+          fi
+
+          if [[ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" ]]; then
+            SERVER_COUNT=$((SERVER_COUNT + 1))
+            TOTAL_APPS=$((TOTAL_APPS + 1))
+          fi
+
+          echo "- **Total Applications Updated:** $TOTAL_APPS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Remote Applications:** $REMOTE_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server Applications:** $SERVER_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Final Status
+          echo "## 🎯 Final Status" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.build-and-deploy-remotes.result }}" == "success" || "${{ needs.build-and-deploy-remotes.result }}" == "skipped" ]] && \
+             [[ "${{ needs.build-and-push-server.result }}" == "success" || "${{ needs.build-and-push-server.result }}" == "skipped" ]] && \
+             [[ "${{ needs.restart-lightsail-services.result }}" == "success" || "${{ needs.restart-lightsail-services.result }}" == "skipped" ]]; then
+            echo "✅ **Deployment completed successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Deployment failed or partially completed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
