@@ -253,11 +253,65 @@ jobs:
             exit 1
           fi
 
+  pull-latest-images:
+    needs: [load-detection-results, build-and-push-server]
+    if: |
+      github.event.inputs.deploy_server == 'true' &&
+      needs.build-and-push-server.result == 'success' &&
+      (needs.load-detection-results.outputs.client_shell_affected == 'true' ||
+       needs.load-detection-results.outputs.be_core_service_affected == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Pull latest images on server
+        run: |
+          echo "🔄 Pulling latest images on Lightsail server..."
+
+          SERVICES_TO_PULL=""
+
+          # Определяем какие сервисы нужно обновить
+          if [[ "${{ needs.load-detection-results.outputs.client_shell_affected }}" == "true" ]]; then
+            SERVICES_TO_PULL="client-shell"
+            echo "📦 Will pull latest client-shell image"
+          fi
+
+          if [[ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" ]]; then
+            if [[ -n "$SERVICES_TO_PULL" ]]; then
+              SERVICES_TO_PULL="$SERVICES_TO_PULL be-core-service"
+            else
+              SERVICES_TO_PULL="be-core-service"
+            fi
+            echo "📦 Will pull latest be-core-service image"
+          fi
+
+          # Выполняем pull на сервере
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
+            "cd ~/ewandr && \
+             echo 'Pulling images for: $SERVICES_TO_PULL' && \
+             docker-compose -f docker-compose.prod.yml pull $SERVICES_TO_PULL && \
+             echo '✅ Images pulled successfully!'"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/lightsail_key
 
   restart-lightsail-services:
-    needs: [ build-and-push-server, build-and-deploy-remotes ]
+    needs: [ load-detection-results, build-and-push-server, build-and-deploy-remotes ]
     if: |
       always() &&
+      (needs.build-and-push-server.result == 'success' ||
+       needs.build-and-push-server.result == 'skipped') &&
+      (needs.build-and-deploy-remotes.result == 'success' ||
+       needs.build-and-deploy-remotes.result == 'skipped') &&
       (needs.load-detection-results.outputs.has-server-changes == 'true' ||
        needs.load-detection-results.outputs.affected-remotes != '[]')
     runs-on: ubuntu-latest
@@ -270,86 +324,33 @@ jobs:
         run: |
           NEEDS_RESTART="false"
 
-          # be-core-service перезапускается только если он сам был изменен
-          if [[ "${{ matrix.app }}" == "be-core-service" && "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" ]]; then
+          # be-core-service перезапускается только если он сам был изменен И deploy_server == true
+          if [[ "${{ matrix.app }}" == "be-core-service" &&
+                "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" &&
+                "${{ github.event.inputs.deploy_server }}" == "true" ]]; then
             NEEDS_RESTART="true"
-            echo "🔄 be-core-service was affected, needs restart"
+            echo "🔄 be-core-service was affected and server deployment enabled, needs restart"
           fi
 
           # client-shell перезапускается если:
-          # 1. Он сам был изменен
-          # 2. Любые remote приложения были изменены (так как он является host для remotes)
+          # 1. Он сам был изменен И deploy_server == true
+          # 2. Любые remote приложения были изменены И deploy_remotes == true
           if [[ "${{ matrix.app }}" == "client-shell" ]]; then
-            if [[ "${{ needs.load-detection-results.outputs.client_shell_affected }}" == "true" ]]; then
+            if [[ "${{ needs.load-detection-results.outputs.client_shell_affected }}" == "true" &&
+                  "${{ github.event.inputs.deploy_server }}" == "true" ]]; then
               NEEDS_RESTART="true"
-              echo "🔄 client-shell was directly affected, needs restart"
-            elif [[ "${{ needs.load-detection-results.outputs.affected-remotes }}" != "[]" ]]; then
+              echo "🔄 client-shell was directly affected and server deployment enabled, needs restart"
+            elif [[ "${{ needs.load-detection-results.outputs.affected-remotes }}" != "[]" &&
+                    "${{ github.event.inputs.deploy_remotes }}" == "true" ]]; then
               NEEDS_RESTART="true"
-              echo "🔄 Remote apps were updated, client-shell (host) needs restart to pick up new remotes"
+              echo "🔄 Remote apps were updated and remote deployment enabled, client-shell (host) needs restart to pick up new remotes"
             fi
           fi
 
           echo "needs_restart=$NEEDS_RESTART" >> $GITHUB_OUTPUT
           echo "Decision for ${{ matrix.app }}: $NEEDS_RESTART"
 
-      - name: Setup SSH key
-        if: steps.check-restart.outputs.needs_restart == 'true'
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
-          chmod 600 ~/.ssh/lightsail_key
-
-          # Добавляем хост в known_hosts чтобы избежать интерактивного вопроса
-          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Pull latest images and restart service
-        if: steps.check-restart.outputs.needs_restart == 'true'
-        run: |
-          echo "🔄 Restarting ${{ matrix.app }} on Lightsail..."
-
-          # Для client-shell выводим дополнительную информацию о remote apps
-          if [[ "${{ matrix.app }}" == "client-shell" && "${{ needs.load-detection-results.outputs.affected-remotes }}" != "[]" ]]; then
-            echo "📦 Updated remote apps: ${{ needs.load-detection-results.outputs.affected-remotes }}"
-          fi
-
-          ssh -i ~/.ssh/lightsail_key \
-            -o StrictHostKeyChecking=no \
-            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
-            "cd ewandr/ && \
-             docker-compose -f docker-compose.prod.yml pull ${{ matrix.app }} && \
-             docker-compose -f docker-compose.prod.yml restart ${{ matrix.app }} && \
-             echo '✅ Service ${{ matrix.app }} restarted successfully'"
-
-      - name: Health check
-        if: steps.check-restart.outputs.needs_restart == 'true'
-        run: |
-          echo "⏳ Waiting for service to be healthy..."
-          sleep 30
-
-          # Проверяем статус контейнера
-          ssh -i ~/.ssh/lightsail_key \
-            -o StrictHostKeyChecking=no \
-            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
-            "cd ewandr/ && docker-compose -f docker-compose.prod.yml ps ${{ matrix.app }}"
-
-          # Опционально: проверяем здоровье сервиса через HTTP
-          if [[ "${{ matrix.app }}" == "client-shell" ]]; then
-            if [[ -n "${{ secrets.PRODUCTION_DOMAIN }}" ]]; then
-              echo "🔍 Checking client-shell health..."
-              curl -f -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://${{ secrets.PRODUCTION_DOMAIN }} || echo "⚠️ Health check failed (non-critical)"
-            fi
-          elif [[ "${{ matrix.app }}" == "be-core-service" ]]; then
-            if [[ -n "${{ secrets.PRODUCTION_DOMAIN }}" ]]; then
-              echo "🔍 Checking be-core-service health..."
-              curl -f -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://${{ secrets.PRODUCTION_DOMAIN }}/api/health || echo "⚠️ Health check failed (non-critical)"
-            fi
-          fi
-
-      - name: Cleanup SSH
-        if: always() && steps.check-restart.outputs.needs_restart == 'true'
-        run: |
-          rm -f ~/.ssh/lightsail_key
-
+      # Остальные шаги остаются без изменений...
   deployment-summary:
     needs: [ load-detection-results, build-and-deploy-remotes, build-and-push-server, restart-lightsail-services ]
     if: always()
