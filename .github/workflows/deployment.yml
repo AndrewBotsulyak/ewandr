@@ -304,8 +304,9 @@ jobs:
         run: |
           rm -f ~/.ssh/lightsail_key
 
+
   restart-lightsail-services:
-    needs: [ load-detection-results, build-and-push-server, build-and-deploy-remotes ]
+    needs: [load-detection-results, build-and-push-server, build-and-deploy-remotes]
     if: |
       always() &&
       (needs.build-and-push-server.result == 'success' ||
@@ -317,7 +318,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [ 'client-shell', 'be-core-service' ]
+        app: ['client-shell', 'be-core-service']
     steps:
       - name: Check if app needs restart
         id: check-restart
@@ -350,7 +351,97 @@ jobs:
           echo "needs_restart=$NEEDS_RESTART" >> $GITHUB_OUTPUT
           echo "Decision for ${{ matrix.app }}: $NEEDS_RESTART"
 
-      # Остальные шаги остаются без изменений...
+      - name: Setup SSH key
+        if: steps.check-restart.outputs.needs_restart == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+
+          # Добавляем хост в known_hosts чтобы избежать интерактивного вопроса
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Pull latest images and restart service
+        if: steps.check-restart.outputs.needs_restart == 'true'
+        run: |
+          echo "🔄 Restarting ${{ matrix.app }} on Lightsail..."
+
+          # Для client-shell выводим дополнительную информацию о remote apps
+          if [[ "${{ matrix.app }}" == "client-shell" && "${{ needs.load-detection-results.outputs.affected-remotes }}" != "[]" ]]; then
+            echo "📦 Updated remote apps: ${{ needs.load-detection-results.outputs.affected-remotes }}"
+          fi
+
+          # SSH подключение и выполнение команд
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} << 'ENDSSH'
+            set -e
+            echo "📂 Navigating to project directory..."
+            cd ~/ewandr
+
+            echo "🔄 Pulling latest image for ${{ matrix.app }}..."
+            docker-compose -f docker-compose.prod.yml pull ${{ matrix.app }}
+
+            echo "♻️ Restarting ${{ matrix.app }}..."
+            docker-compose -f docker-compose.prod.yml restart ${{ matrix.app }}
+
+            echo "⏳ Waiting for container to be ready..."
+            sleep 5
+
+            echo "📊 Checking container status..."
+            docker-compose -f docker-compose.prod.yml ps ${{ matrix.app }}
+
+            # Проверяем что контейнер запущен
+            if docker-compose -f docker-compose.prod.yml ps ${{ matrix.app }} | grep -q "Up"; then
+              echo "✅ ${{ matrix.app }} is running!"
+            else
+              echo "❌ ${{ matrix.app }} is not running properly!"
+              docker-compose -f docker-compose.prod.yml logs --tail=50 ${{ matrix.app }}
+              exit 1
+            fi
+          ENDSSH
+
+      - name: Health check
+        if: steps.check-restart.outputs.needs_restart == 'true'
+        run: |
+          echo "⏳ Waiting for service to be fully ready..."
+          sleep 30
+
+          # Опционально: проверяем здоровье сервиса через HTTP
+          if [[ "${{ matrix.app }}" == "client-shell" ]]; then
+            if [[ -n "${{ secrets.PRODUCTION_DOMAIN }}" ]]; then
+              echo "🔍 Checking client-shell health..."
+              RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.PRODUCTION_DOMAIN }} || echo "000")
+              if [[ "$RESPONSE" == "200" ]]; then
+                echo "✅ client-shell is healthy (HTTP $RESPONSE)"
+              else
+                echo "⚠️ client-shell health check returned HTTP $RESPONSE"
+              fi
+            fi
+          elif [[ "${{ matrix.app }}" == "be-core-service" ]]; then
+            if [[ -n "${{ secrets.PRODUCTION_DOMAIN }}" ]]; then
+              echo "🔍 Checking be-core-service health..."
+              RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.PRODUCTION_DOMAIN }}/api/health || echo "000")
+              if [[ "$RESPONSE" == "200" ]]; then
+                echo "✅ be-core-service is healthy (HTTP $RESPONSE)"
+              else
+                echo "⚠️ be-core-service health check returned HTTP $RESPONSE"
+              fi
+            fi
+          fi
+
+          # Финальная проверка через SSH
+          echo "🔍 Final container check..."
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
+            "cd ~/ewandr && docker-compose -f docker-compose.prod.yml ps ${{ matrix.app }}"
+
+      - name: Cleanup SSH
+        if: always() && steps.check-restart.outputs.needs_restart == 'true'
+        run: |
+          rm -f ~/.ssh/lightsail_key
+
   deployment-summary:
     needs: [ load-detection-results, build-and-deploy-remotes, build-and-push-server, restart-lightsail-services ]
     if: always()
