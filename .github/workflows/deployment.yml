@@ -379,6 +379,9 @@ jobs:
             echo "📂 Navigating to project directory..."
             cd ~/ewandr
 
+            echo "🔐 Logging in to AWS ECR..."
+            aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin ${{env.AWS_ACCOUNT_ID}}.dkr.ecr.${{env.AWS_REGION}}.amazonaws.com
+
             echo "🔄 Pulling latest image for ${{ matrix.app }}..."
             docker-compose -f docker-compose.prod.yml pull ${{ matrix.app }}
 
