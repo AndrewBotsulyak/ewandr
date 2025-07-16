@@ -258,7 +258,6 @@ jobs:
     needs: [ build-and-push-server, build-and-deploy-remotes ]
     if: |
       always() &&
-      github.event.inputs.deploy_server == 'true' &&
       (needs.load-detection-results.outputs.has-server-changes == 'true' ||
        needs.load-detection-results.outputs.affected-remotes != '[]')
     runs-on: ubuntu-latest
