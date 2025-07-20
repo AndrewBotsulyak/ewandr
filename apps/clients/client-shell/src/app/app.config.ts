@@ -4,7 +4,7 @@ import {
   inject,
   PLATFORM_ID,
   provideAppInitializer,
-  provideZoneChangeDetection
+  provideZoneChangeDetection, provideZonelessChangeDetection
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { appRoutes } from './app.routes';
@@ -25,7 +25,8 @@ import {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideClientHydration(withEventReplay()), // withNoHttpTransferCache()
-    provideZoneChangeDetection({ eventCoalescing: true }),
+    // provideZoneChangeDetection({ eventCoalescing: true }),
+    provideZonelessChangeDetection(),
     provideRouter(appRoutes),
     // provideAppInitializer(() => {
     //   const hydrationService = inject(NgRxTransferStateService);

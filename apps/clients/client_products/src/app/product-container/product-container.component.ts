@@ -7,10 +7,11 @@ import {filter, tap} from "rxjs";
 import {toSignal} from "@angular/core/rxjs-interop";
 import {MatButtonUI} from "@ewandr-workspace/ui-shared-lib";
 import {log} from "@angular-devkit/build-angular/src/builders/ssr-dev-server";
+import {MatCardModule} from "@angular/material/card";
 
 @Component({
   selector: 'app-product-container',
-  imports: [CommonModule, MatButtonUI],
+  imports: [CommonModule, MatButtonUI, MatCardModule],
   providers: [],
   templateUrl: './product-container.component.html',
   styleUrl: './product-container.component.scss',

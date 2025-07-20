@@ -10,4 +10,5 @@ export interface GetProductModel {
   status: ProductStatusEnum;
   count: number;
   brand: string;
+  imageUrl: string;
 }
