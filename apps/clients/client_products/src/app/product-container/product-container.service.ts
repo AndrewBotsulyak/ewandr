@@ -11,7 +11,6 @@ export class ProductContainerService {
   products$ = this.store.select(selectAllProducts);
 
   getProducts() {
-    console.log('getProducts');
     this.store.dispatch(ProductsActions.getAllProducts());
   }
 }

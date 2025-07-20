@@ -10,4 +10,5 @@ export const mfSharedLibs = [
   '@angular/platform-browser',
   'rxjs',
   'rxjs/operators',
+  '@angular/core/primitives/di',
 ];

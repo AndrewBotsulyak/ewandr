@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import {ApplicationConfig, provideZoneChangeDetection, provideZonelessChangeDetection} from '@angular/core';
 import {provideRouter} from '@angular/router';
 import { appRoutes } from './app.routes';
 import {
@@ -15,7 +15,8 @@ import { ProductContainerService } from './product-container/product-container.s
 export const appConfig: ApplicationConfig = {
   providers: [
     provideClientHydration(withEventReplay()), // withNoHttpTransferCache()
-    provideZoneChangeDetection({ eventCoalescing: true }),
+    // provideZoneChangeDetection({ eventCoalescing: true }),
+    provideZonelessChangeDetection(),
     provideRouter(appRoutes),
     provideHttpClient(
       withFetch()

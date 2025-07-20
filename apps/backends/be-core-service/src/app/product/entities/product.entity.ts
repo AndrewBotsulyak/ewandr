@@ -80,4 +80,9 @@ export class ProductEntity implements GetProductModel {
     nullable: true,
   })
   brand: string;
+
+  @Column({
+    nullable: true,
+  })
+  imageUrl: string;
 }
