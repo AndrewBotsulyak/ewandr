@@ -311,7 +311,7 @@ jobs:
           REMOTE_USER: ${{ secrets.LIGHTSAIL_USER }}
           REMOTE_HOST: ${{ secrets.LIGHTSAIL_HOST }}
         run: |
-          set -euo pipefail
+          set -eo pipefail
           echo "📝 Updating server configuration with unique image tags…"
 
           # 1) Скачиваем старый .env.production
