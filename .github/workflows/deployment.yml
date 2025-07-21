@@ -334,19 +334,15 @@ jobs:
 
           # 4) Генерируем новый tag
           UNIQUE_TAG="pr-${{ github.event.inputs.pr_number }}-${{ github.run_number }}-${{ github.sha }}"
+          CLIENT_SHELL_TAG="$OLD_CLIENT_SHELL_TAG"
+          BE_CORE_SERVICE_TAG="$OLD_BE_CORE_SERVICE_TAG"
 
           # 5) Решаем, когда обновлять
           if [ "${{ needs.load-detection-results.outputs.client_shell_affected }}" = "true" ]; then
             CLIENT_SHELL_TAG="$UNIQUE_TAG"
-          else
-            CLIENT_SHELL_TAG="$OLD_CLIENT_SHELL_TAG"
-          fi
 
           if [ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" = "true" ]; then
             BE_CORE_SERVICE_TAG="$UNIQUE_TAG"
-          else
-            BE_CORE_SERVICE_TAG="$OLD_BE_CORE_SERVICE_TAG"
-          fi
 
           echo "Final tags: CLIENT_SHELL_TAG=$CLIENT_SHELL_TAG, BE_CORE_SERVICE_TAG=$BE_CORE_SERVICE_TAG"
 
