@@ -340,9 +340,11 @@ jobs:
           # 5) Решаем, когда обновлять
           if [ "${{ needs.load-detection-results.outputs.client_shell_affected }}" = "true" ]; then
             CLIENT_SHELL_TAG="$UNIQUE_TAG"
+          fi
 
           if [ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" = "true" ]; then
             BE_CORE_SERVICE_TAG="$UNIQUE_TAG"
+          fi
 
           echo "Final tags: CLIENT_SHELL_TAG=$CLIENT_SHELL_TAG, BE_CORE_SERVICE_TAG=$BE_CORE_SERVICE_TAG"
 
