@@ -492,7 +492,7 @@ jobs:
 
 
   pull-latest-images:
-    needs: [load-detection-results, build-and-push-server]
+    needs: [load-detection-results, build-and-push-server, update-server-configuration]
     if: |
       github.event.inputs.deploy_server == 'true' &&
       needs.build-and-push-server.result == 'success' &&
