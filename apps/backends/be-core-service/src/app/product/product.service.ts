@@ -68,6 +68,7 @@ export class ProductService {
       categoryId,
       search,
     } = query ?? {};
+
     const queryBuilder = this.repository
       .createQueryBuilder('p')
       .innerJoin('p.shop', 's')

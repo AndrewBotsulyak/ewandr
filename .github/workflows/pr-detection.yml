@@ -33,62 +33,33 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Detect affected projects
+      - name: Detect affected apps
         id: affected
+        shell: bash
         run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+          echo "Comparing $BASE_SHA ↔ $HEAD_SHA"
 
-          echo "Comparing BASE: $BASE_SHA with HEAD: $HEAD_SHA"
+          # Получаем JSON-массив затронутых apps
+          AFFECTED_JSON=$(
+            npx nx show projects \
+              --affected \
+              --type app \
+              --base="$BASE_SHA" \
+              --head="$HEAD_SHA" \
+              --json
+          )
 
-          # Получаем список измененных файлов
-          CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA)
-          echo "Changed files:"
-          echo "$CHANGED_FILES"
-
-          # Стратегия 1: Используем Nx affected, но только если изменены значимые файлы
-          TRIGGER_FULL_BUILD=false
-          if echo "$CHANGED_FILES" | grep -E "(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|nx\.json|tsconfig\.base\.json|workspace\.json)$"; then
-            echo "Critical configuration files changed, using Nx affected detection"
-            TRIGGER_FULL_BUILD=true
-            AFFECTED=$(npx nx show projects --affected --type=app --base=$BASE_SHA --head=$HEAD_SHA)
-          else
-            # Стратегия 2: Проверяем только прямые изменения в папках приложений
-            echo "Checking for direct app changes only"
-            AFFECTED=""
-
-            # Получаем список всех приложений
-            ALL_APPS=$(npx nx show projects --type=app)
-
-            for app in $ALL_APPS; do
-              # Проверяем изменения в папке приложения
-              if echo "$CHANGED_FILES" | grep -qE "^apps/(clients|backends)/$app/"; then
-                AFFECTED="${AFFECTED}${app}"$'\n'
-              fi
-            done
-
-            # Удаляем дубликаты и пустые строки
-            AFFECTED=$(echo "$AFFECTED" | sort -u | grep -v '^$' || true)
-          fi
-
-          echo "Affected projects: $AFFECTED"
-
-          # Convert to JSON array
-          if [[ -z "$AFFECTED" ]]; then
-            AFFECTED_JSON="[]"
-          else
-            AFFECTED_JSON=$(echo "$AFFECTED" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          fi
+          echo "Affected apps JSON: $AFFECTED_JSON"
           echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
 
-          # Filter remote apps (all apps starting with "client_")
-          REMOTES=$(echo "$AFFECTED" | grep -E "^client_" || true)
-          if [[ -z "$REMOTES" ]]; then
-            REMOTES_JSON="[]"
-          else
-            REMOTES_JSON=$(echo "$REMOTES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          fi
+          REMOTES_JSON=$(
+            echo "$AFFECTED_JSON" |
+            jq -c '[ .[] | select(startswith("client_")) ]'
+          )
           echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
+
 
       - name: Check for server changes
         id: check-server
