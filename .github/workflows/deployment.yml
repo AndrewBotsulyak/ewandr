@@ -356,7 +356,6 @@ jobs:
           # Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 
           ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
-          ECR_REPOSITORY_PREFIX=${{ env.ECR_REPOSITORY_PREFIX }}
 
           CLIENT_SHELL_TAG=${CLIENT_SHELL_TAG}
           BE_CORE_SERVICE_TAG=${BE_CORE_SERVICE_TAG}
@@ -503,7 +502,7 @@ jobs:
             ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
             "cd ~/ewandr && \
              echo 'Pulling images for: $SERVICES_TO_PULL' && \
-             docker-compose -f docker-compose.prod.yml pull $SERVICES_TO_PULL && \
+             docker-compose --env-file .env.production -f docker-compose.prod.yml pull $SERVICES_TO_PULL && \
              echo '✅ Images pulled successfully!'"
 
       - name: Cleanup
@@ -590,16 +589,16 @@ jobs:
             aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin ${{env.AWS_ACCOUNT_ID}}.dkr.ecr.${{env.AWS_REGION}}.amazonaws.com
 
             echo "🔄 Pulling latest image for ${{ matrix.app }}..."
-            docker-compose -f docker-compose.prod.yml pull ${{ matrix.app }}
+            docker-compose --env-file .env.production -f docker-compose.prod.yml pull ${{ matrix.app }}
 
             echo "♻️ Restarting ${{ matrix.app }}..."
-            docker-compose -f docker-compose.prod.yml restart ${{ matrix.app }}
+            docker-compose --env-file .env.production -f docker-compose.prod.yml restart ${{ matrix.app }}
 
             echo "⏳ Waiting for container to be ready..."
             sleep 5
 
             echo "📊 Checking container status..."
-            docker-compose -f docker-compose.prod.yml ps ${{ matrix.app }}
+            docker-compose --env-file .env.production -f docker-compose.prod.yml ps ${{ matrix.app }}
 
             # Проверяем что контейнер запущен
             if docker-compose -f docker-compose.prod.yml ps ${{ matrix.app }} | grep -q "Up"; then
