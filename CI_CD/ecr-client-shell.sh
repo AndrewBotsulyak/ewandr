@@ -2,8 +2,6 @@
 set -e
 
 export REPO_NAME=ewandr/client-shell
-#export IMAGE_TAG=$(git rev-parse --short HEAD)
-export IMAGE_TAG=latest
 export DOCKER_FILE=prod.Dockerfile
 
 # 1) Login to ECR

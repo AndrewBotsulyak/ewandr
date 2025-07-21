@@ -3,8 +3,6 @@ set -e
 
 export SERVICE_NAME=be-core-service
 export REPO_NAME=ewandr/$SERVICE_NAME
-#export IMAGE_TAG=$(git rev-parse --short HEAD)
-export IMAGE_TAG=latest
 export DOCKER_FILE=prod.Dockerfile
 export SERVICE_PATH=apps/backends/$SERVICE_NAME
 
@@ -14,10 +12,6 @@ source CI_CD/ecr-login.sh
 # 2) Build
 docker build --platform linux/amd64 -f $SERVICE_PATH/$DOCKER_FILE \
   -t $REPO_NAME:$IMAGE_TAG ./
-
-## 2) Build
-#docker buildx build --platform linux/amd64,linux/arm64 -f $SERVICE_PATH/$DOCKER_FILE \
-#  -t $REPO_NAME:$IMAGE_TAG ./
 
 # 3) Add ECR-tag
 docker tag $REPO_NAME:$IMAGE_TAG \
