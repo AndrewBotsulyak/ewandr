@@ -260,7 +260,7 @@ jobs:
         if: steps.check-affected.outputs.affected == 'true'
         env:
           # Здесь только путь внутри ECR, без домена реестра
-          REPO_NAME: ${{ matrix.app }}
+          REPO_NAME: ewandr/${{ matrix.app }}
         run: |
           echo "🧹 Cleaning up old ECR images for $REPO_NAME..."
 
