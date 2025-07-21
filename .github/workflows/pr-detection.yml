@@ -33,23 +33,32 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Detect affected apps via Nx
+      - name: Detect affected apps
         id: affected
+        shell: bash
         run: |
           BASE_SHA=${{ github.event.pull_request.base.sha }}
           HEAD_SHA=${{ github.event.pull_request.head.sha }}
-          echo "base: $BASE_SHA → head: $HEAD_SHA"
-          APPS=$(npx nx affected:apps --base=$BASE_SHA --head=$HEAD_SHA --plain)
-          echo "Affected apps: $APPS"
-          # конвертируем в JSON-массив
-          if [[ -z "$APPS" ]]; then
-            APPS_JSON="[]"
-          else
-            APPS_JSON=$(echo $APPS | jq -R -s -c 'split(" ") | map(select(length>0))')
-          fi
-          echo "apps=$APPS_JSON" >> $GITHUB_OUTPUT
-          # если нужно, отфильтровать ремоуты
-          REMOTES_JSON=$(echo $APPS_JSON | jq 'map(select(startswith("client_")))')
+          echo "Comparing $BASE_SHA ↔ $HEAD_SHA"
+
+          # Получаем JSON-массив затронутых apps
+          AFFECTED_JSON=$(
+            npx nx show projects \
+              --affected \
+              --type app \
+              --base="$BASE_SHA" \
+              --head="$HEAD_SHA" \
+              --json
+          )
+
+          echo "Affected apps JSON: $AFFECTED_JSON"
+          echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
+
+          # Из них — удалённые client_*
+          REMOTES_JSON=$(
+            echo "$AFFECTED_JSON" |
+            jq '[.[] | select(startswith("client_"))]'
+          )
           echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
 
 
