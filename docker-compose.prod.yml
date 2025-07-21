@@ -34,7 +34,7 @@ services:
       retries: 5
 
   be-core-service:
-    image: 480203687881.dkr.ecr.eu-central-1.amazonaws.com/ewandr/be-core-service:latest
+    image: ${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/be-core-service:${BE_CORE_SERVICE_TAG}
     ports:
       - "3000:3000"
     environment:
@@ -54,7 +54,7 @@ services:
       - app-network
 
   client-shell:
-    image: 480203687881.dkr.ecr.eu-central-1.amazonaws.com/ewandr/client-shell:latest
+    image: ${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}/client-shell:${CLIENT_SHELL_TAG}
     ports:
       - "4200:4200"
     depends_on:
