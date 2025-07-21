@@ -29,7 +29,3 @@ echo "📤 Pushing to ECR..."
 docker push $ECR_IMAGE
 
 echo "✅ Successfully pushed $SERVICE_NAME:$IMAGE_TAG"
-
-# Опционально: создаем локальный тег для удобства
-docker tag $ECR_IMAGE $REPO_NAME:$IMAGE_TAG
-echo "🏷️ Created local tag: $REPO_NAME:$IMAGE_TAG"
