@@ -54,10 +54,9 @@ jobs:
           echo "Affected apps JSON: $AFFECTED_JSON"
           echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
 
-          # Из них — удалённые client_*
           REMOTES_JSON=$(
             echo "$AFFECTED_JSON" |
-            jq '[.[] | select(startswith("client_"))]'
+            jq -c '[ .[] | select(startswith("client_")) ]'
           )
           echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
 
