@@ -365,7 +365,7 @@ jobs:
           # 8) Копируем и атомарно меняем конфиг на сервере
           scp -i "$SSH_KEY" .env.production "$REMOTE_USER@$REMOTE_HOST:~/ewandr/.env.production.new"
           ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" <<'ENDSSH'
-          set -euo pipefail
+          set -eo pipefail
           cd ~/ewandr
           cp .env.production .env.production.backup-$(date +%Y%m%d-%H%M%S) || true
           mv .env.production.new .env.production
