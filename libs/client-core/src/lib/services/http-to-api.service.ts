@@ -10,6 +10,7 @@ export class HttpToApiService {
   private http = inject(HttpClient);
   private platformService = inject(CheckPlatformService);
 
+  // TODO inject API_URL from provider - remove imports from client-shell and client_products
   private readonly API_URL = environment.apiUrl;
 
   // organization = {
