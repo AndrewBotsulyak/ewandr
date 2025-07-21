@@ -258,40 +258,38 @@ jobs:
 
       - name: Clean up old ECR images
         if: steps.check-affected.outputs.affected == 'true'
+        env:
+          # Здесь только путь внутри ECR, без домена реестра
+          REPO_NAME: ${{ matrix.app }}
         run: |
-          echo "🧹 Cleaning up old ECR images for ${{ matrix.app }}..."
+          echo "🧹 Cleaning up old ECR images for $REPO_NAME..."
 
-          REPO_NAME="${{ env.ECR_REPOSITORY_PREFIX }}/${{ matrix.app }}"
-
-          # Получаем все образы отсортированные по дате (новые первые)
+          # Получаем все образы, сортируем по дате (старые сначала)
           IMAGES=$(aws ecr describe-images \
             --repository-name "$REPO_NAME" \
             --query 'sort_by(imageDetails,& imagePushedAt)[*].[imageDigest, imageTags[0], imagePushedAt]' \
-            --output text | tail -r)
+            --output text)
 
-          # Считаем количество образов
           IMAGE_COUNT=$(echo "$IMAGES" | wc -l)
           echo "Found $IMAGE_COUNT images"
 
-          if [ $IMAGE_COUNT -gt 5 ]; then
-            # Оставляем только 5 последних
+          if [ "$IMAGE_COUNT" -gt 5 ]; then
+            # Оставляем всё, начиная с 6-й строки (старые образы)
             IMAGES_TO_DELETE=$(echo "$IMAGES" | tail -n +6)
 
             echo "Will delete $(echo "$IMAGES_TO_DELETE" | wc -l) old images"
 
             # Удаляем старые образы
             echo "$IMAGES_TO_DELETE" | while read -r digest tag pushed_at; do
-              if [ ! -z "$digest" ]; then
-                echo "Deleting image with digest: $digest (tag: $tag, pushed: $pushed_at)"
-                aws ecr batch-delete-image \
-                  --repository-name "$REPO_NAME" \
-                  --image-ids imageDigest=$digest || true
-              fi
+              [ -n "$digest" ] || continue
+              echo "Deleting image with digest: $digest (tag: $tag, pushed: $pushed_at)"
+              aws ecr batch-delete-image \
+                --repository-name "$REPO_NAME" \
+                --image-ids imageDigest="$digest" || true
             done
           else
             echo "No cleanup needed, only $IMAGE_COUNT images exist"
           fi
-
 
   update-server-configuration:
     needs: [ load-detection-results, build-and-push-server ]
