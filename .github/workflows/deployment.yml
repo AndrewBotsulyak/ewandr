@@ -45,6 +45,12 @@ jobs:
       client_shell_affected: ${{ steps.load.outputs.client_shell_affected }}
       be_core_service_affected: ${{ steps.load.outputs.be_core_service_affected }}
     steps:
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
       - name: Download artifact via API
         env:
           GH_TOKEN: ${{ github.token }}
@@ -277,27 +283,27 @@ jobs:
       - name: Clean up old ECR images
         if: steps.check-affected.outputs.affected == 'true'
         env:
-          # Здесь только путь внутри ECR, без домена реестра
           REPO_NAME: ewandr/${{ matrix.app }}
         run: |
           echo "🧹 Cleaning up old ECR images for $REPO_NAME..."
 
-          # Получаем все образы, сортируем по дате (старые сначала)
+          # Список образов, отсортированный от самых старых к самым новым
           IMAGES=$(aws ecr describe-images \
             --repository-name "$REPO_NAME" \
-            --query 'sort_by(imageDetails,& imagePushedAt)[*].[imageDigest, imageTags[0], imagePushedAt]' \
+            --query 'sort_by(imageDetails,&imagePushedAt)[*].[imageDigest, imageTags[0], imagePushedAt]' \
             --output text)
 
           IMAGE_COUNT=$(echo "$IMAGES" | wc -l)
           echo "Found $IMAGE_COUNT images"
 
           if [ "$IMAGE_COUNT" -gt 5 ]; then
-            # Оставляем всё, начиная с 6-й строки (старые образы)
-            IMAGES_TO_DELETE=$(echo "$IMAGES" | tail -n +6)
+            # Считаем, сколько надо удалить, чтобы осталось ровно 5
+            DELETE_COUNT=$((IMAGE_COUNT - 5))
+            echo "Will delete $DELETE_COUNT old images"
 
-            echo "Will delete $(echo "$IMAGES_TO_DELETE" | wc -l) old images"
+            # Берём первые DELETE_COUNT строк — это самые старые образы
+            IMAGES_TO_DELETE=$(echo "$IMAGES" | head -n "$DELETE_COUNT")
 
-            # Удаляем старые образы
             echo "$IMAGES_TO_DELETE" | while read -r digest tag pushed_at; do
               [ -n "$digest" ] || continue
               echo "Deleting image with digest: $digest (tag: $tag, pushed: $pushed_at)"
