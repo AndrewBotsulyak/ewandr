@@ -89,5 +89,8 @@
     "reflect-metadata": "0.1.13",
     "rxjs": "~7.8.0",
     "typeorm": "0.3.24"
+  },
+  "overrides": {
+    "stylus": "https://github.com/stylus/stylus/archive/refs/tags/0.64.0.tar.gz"
   }
 }
