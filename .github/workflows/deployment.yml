@@ -409,9 +409,78 @@ jobs:
           rm -f ~/.ssh/lightsail_key ./.env.production
 
 
+  pull-latest-images:
+    needs: [ load-detection-results, build-and-push-server, update-server-configuration ]
+    if: |
+      github.event.inputs.deploy_server == 'true' &&
+      needs.build-and-push-server.result == 'success' &&
+      needs.update-server-configuration.result == 'success' &&
+      (needs.load-detection-results.outputs.client_shell_affected == 'true' ||
+       needs.load-detection-results.outputs.be_core_service_affected == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Pull latest images on server
+        run: |
+          echo "🔄 Pulling latest images on Lightsail server..."
+
+          # SSH подключение и выполнение команд
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} << 'ENDSSH'
+            set -e
+            cd ~/ewandr
+
+            echo "📋 Current .env.production:"
+            cat .env.production
+
+            echo "🔐 Logging in to AWS ECR..."
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+              docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+            SERVICES_TO_PULL=""
+
+            # Определяем какие сервисы нужно обновить
+            if [[ "${{ needs.load-detection-results.outputs.client_shell_affected }}" == "true" ]]; then
+              SERVICES_TO_PULL="client-shell"
+              echo "📦 Will pull client-shell image"
+            fi
+
+            if [[ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" ]]; then
+              if [[ -n "$SERVICES_TO_PULL" ]]; then
+                SERVICES_TO_PULL="$SERVICES_TO_PULL be-core-service"
+              else
+                SERVICES_TO_PULL="be-core-service"
+              fi
+              echo "📦 Will pull be-core-service image"
+            fi
+
+            echo "🔄 Pulling images for: $SERVICES_TO_PULL"
+            docker-compose --env-file .env.production -f docker-compose.prod.yml pull $SERVICES_TO_PULL
+
+            echo "✅ Images pulled successfully!"
+
+            # Проверяем что образы действительно скачались
+            echo "📊 Checking downloaded images:"
+            docker images | grep -E "(client-shell|be-core-service)" | head -10
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/lightsail_key
+
+
+
   cleanup-server-docker:
-    needs: [ load-detection-results, update-server-configuration ]
-    if: always()
+    needs: [load-detection-results, update-server-configuration, pull-latest-images]
+    if: always() && needs.pull-latest-images.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Setup SSH key
@@ -488,69 +557,16 @@ jobs:
         run: |
           rm -f ~/.ssh/lightsail_key
 
-
-
-
-  pull-latest-images:
-    needs: [load-detection-results, build-and-push-server, update-server-configuration]
-    if: |
-      github.event.inputs.deploy_server == 'true' &&
-      needs.build-and-push-server.result == 'success' &&
-      (needs.load-detection-results.outputs.client_shell_affected == 'true' ||
-       needs.load-detection-results.outputs.be_core_service_affected == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
-          chmod 600 ~/.ssh/lightsail_key
-          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Pull latest images on server
-        run: |
-          echo "🔄 Pulling latest images on Lightsail server..."
-
-          SERVICES_TO_PULL=""
-
-          # Определяем какие сервисы нужно обновить
-          if [[ "${{ needs.load-detection-results.outputs.client_shell_affected }}" == "true" ]]; then
-            SERVICES_TO_PULL="client-shell"
-            echo "📦 Will pull latest client-shell image"
-          fi
-
-          if [[ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" ]]; then
-            if [[ -n "$SERVICES_TO_PULL" ]]; then
-              SERVICES_TO_PULL="$SERVICES_TO_PULL be-core-service"
-            else
-              SERVICES_TO_PULL="be-core-service"
-            fi
-            echo "📦 Will pull latest be-core-service image"
-          fi
-
-          # Выполняем pull на сервере
-          ssh -i ~/.ssh/lightsail_key \
-            -o StrictHostKeyChecking=no \
-            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
-            "cd ~/ewandr && \
-             echo 'Pulling images for: $SERVICES_TO_PULL' && \
-             docker-compose --env-file .env.production -f docker-compose.prod.yml pull $SERVICES_TO_PULL && \
-             echo '✅ Images pulled successfully!'"
-
-      - name: Cleanup
-        if: always()
-        run: |
-          rm -f ~/.ssh/lightsail_key
-
-
   restart-lightsail-services:
-    needs: [load-detection-results, build-and-push-server, build-and-deploy-remotes, update-server-configuration, cleanup-server-docker]
+    needs: [ load-detection-results, build-and-push-server, build-and-deploy-remotes, update-server-configuration, pull-latest-images, cleanup-server-docker ]
     if: |
       always() &&
       (needs.build-and-push-server.result == 'success' ||
        needs.build-and-push-server.result == 'skipped') &&
       (needs.build-and-deploy-remotes.result == 'success' ||
        needs.build-and-deploy-remotes.result == 'skipped') &&
+      (needs.pull-latest-images.result == 'success' ||
+       needs.pull-latest-images.result == 'skipped') &&
       (needs.load-detection-results.outputs.has-server-changes == 'true' ||
        needs.load-detection-results.outputs.affected-remotes != '[]')
     runs-on: ubuntu-latest
@@ -599,49 +615,50 @@ jobs:
           # Добавляем хост в known_hosts чтобы избежать интерактивного вопроса
           ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Pull latest images and restart service
+      - name: Restart service with new image
         if: steps.check-restart.outputs.needs_restart == 'true'
         run: |
           echo "🔄 Restarting ${{ matrix.app }} on Lightsail..."
-
-          # Для client-shell выводим дополнительную информацию о remote apps
-          if [[ "${{ matrix.app }}" == "client-shell" && "${{ needs.load-detection-results.outputs.affected-remotes }}" != "[]" ]]; then
-            echo "📦 Updated remote apps: ${{ needs.load-detection-results.outputs.affected-remotes }}"
-          fi
 
           # SSH подключение и выполнение команд
           ssh -i ~/.ssh/lightsail_key \
             -o StrictHostKeyChecking=no \
             ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} << 'ENDSSH'
             set -e
-            echo "📂 Navigating to project directory..."
             cd ~/ewandr
 
-            echo "🔐 Logging in to AWS ECR..."
-            aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin ${{env.AWS_ACCOUNT_ID}}.dkr.ecr.${{env.AWS_REGION}}.amazonaws.com
+            echo "📋 Using .env.production:"
+            cat .env.production | grep "_TAG="
 
-            echo "🔄 Pulling latest image for ${{ matrix.app }}..."
-            docker-compose --env-file .env.production -f docker-compose.prod.yml pull ${{ matrix.app }}
+            echo "🛑 Stopping ${{ matrix.app }}..."
+            docker-compose --env-file .env.production -f docker-compose.prod.yml stop ${{ matrix.app }}
 
-            echo "♻️ Restarting ${{ matrix.app }}..."
-            docker-compose --env-file .env.production -f docker-compose.prod.yml restart ${{ matrix.app }}
+            echo "🗑️ Removing old container..."
+            docker-compose --env-file .env.production -f docker-compose.prod.yml rm -f ${{ matrix.app }}
+
+            echo "🚀 Starting ${{ matrix.app }} with new image..."
+            docker-compose --env-file .env.production -f docker-compose.prod.yml up -d ${{ matrix.app }}
 
             echo "⏳ Waiting for container to be ready..."
-            sleep 5
+            sleep 10
 
             echo "📊 Checking container status..."
             docker-compose --env-file .env.production -f docker-compose.prod.yml ps ${{ matrix.app }}
 
             # Проверяем что контейнер запущен
-            if docker-compose -f docker-compose.prod.yml ps ${{ matrix.app }} | grep -q "Up"; then
+            if docker-compose --env-file .env.production -f docker-compose.prod.yml ps ${{ matrix.app }} | grep -q "Up"; then
               echo "✅ ${{ matrix.app }} is running!"
+
+              # Показываем какой образ используется
+              CONTAINER_ID=$(docker-compose --env-file .env.production -f docker-compose.prod.yml ps -q ${{ matrix.app }})
+              echo "📦 Running image:"
+              docker inspect $CONTAINER_ID | jq -r '.[0].Config.Image'
             else
               echo "❌ ${{ matrix.app }} is not running properly!"
-              docker-compose -f docker-compose.prod.yml logs --tail=50 ${{ matrix.app }}
+              docker-compose --env-file .env.production -f docker-compose.prod.yml logs --tail=100 ${{ matrix.app }}
               exit 1
             fi
           ENDSSH
-
       - name: Health check
         if: steps.check-restart.outputs.needs_restart == 'true'
         run: |
