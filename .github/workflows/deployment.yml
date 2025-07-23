@@ -630,6 +630,7 @@ jobs:
             echo "📋 Using .env.production:"
             cat .env.production | grep "_TAG="
 
+            # ВАЖНО: Используем --no-deps чтобы не трогать зависимые сервисы
             echo "🛑 Stopping ${{ matrix.app }}..."
             docker-compose --env-file .env.production -f docker-compose.prod.yml stop ${{ matrix.app }}
 
@@ -637,7 +638,8 @@ jobs:
             docker-compose --env-file .env.production -f docker-compose.prod.yml rm -f ${{ matrix.app }}
 
             echo "🚀 Starting ${{ matrix.app }} with new image..."
-            docker-compose --env-file .env.production -f docker-compose.prod.yml up -d ${{ matrix.app }}
+            # Используем --no-deps чтобы запустить ТОЛЬКО указанный сервис
+            docker-compose --env-file .env.production -f docker-compose.prod.yml up -d --no-deps ${{ matrix.app }}
 
             echo "⏳ Waiting for container to be ready..."
             sleep 10
@@ -653,6 +655,10 @@ jobs:
               CONTAINER_ID=$(docker-compose --env-file .env.production -f docker-compose.prod.yml ps -q ${{ matrix.app }})
               echo "📦 Running image:"
               docker inspect $CONTAINER_ID | jq -r '.[0].Config.Image'
+
+              # Проверяем логи на наличие ошибок запуска
+              echo "📜 Recent logs:"
+              docker-compose --env-file .env.production -f docker-compose.prod.yml logs --tail=20 ${{ matrix.app }}
             else
               echo "❌ ${{ matrix.app }} is not running properly!"
               docker-compose --env-file .env.production -f docker-compose.prod.yml logs --tail=100 ${{ matrix.app }}
