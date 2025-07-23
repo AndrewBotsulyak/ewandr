@@ -45,12 +45,6 @@ jobs:
       client_shell_affected: ${{ steps.load.outputs.client_shell_affected }}
       be_core_service_affected: ${{ steps.load.outputs.be_core_service_affected }}
     steps:
-
-      - name: Install jq
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-
       - name: Download artifact via API
         env:
           GH_TOKEN: ${{ github.token }}
@@ -660,7 +654,7 @@ jobs:
               # Показываем какой образ используется
               CONTAINER_ID=$(docker-compose --env-file .env.production -f docker-compose.prod.yml ps -q ${{ matrix.app }})
               echo "📦 Running image:"
-              docker inspect $CONTAINER_ID | jq -r '.[0].Config.Image'
+              docker inspect --format='{{.Config.Image}}' "$CONTAINER_ID"
 
               # Проверяем логи на наличие ошибок запуска
               echo "📜 Recent logs:"
