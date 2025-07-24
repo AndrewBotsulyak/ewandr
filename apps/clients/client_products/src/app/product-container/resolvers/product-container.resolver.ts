@@ -8,6 +8,7 @@ export function productContainerResolver(): Observable<any> {
   const platformService = inject(CheckPlatformService);
 
   if (platformService.isServer()) {
+    service.getProducts();
     return service.products$.pipe(
       filter((value) => value != null),
       take(1)

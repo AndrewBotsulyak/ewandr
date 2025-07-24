@@ -21,11 +21,36 @@ const initialState: ProductsState = {
 const productsReducer = createReducer(
   initialState,
 
+  on(ProductsActions.getAllProducts, (state) => {
+    return {
+      ...state,
+      isLoaded: false,
+      isLoading: true,
+    };
+  }),
+
   on(ProductsActions.getAllProductsSuccess, (state, {data}) => {
     return {
       ...state,
       products: data,
-      isLoaded: true, //temporary while I have only products
+      isLoaded: true,
+      isLoading: false,
+    };
+  }),
+
+  on(ProductsActions.getAllProductsFailure, (state) => {
+    return {
+      ...state,
+      isLoaded: true,
+      isLoading: false,
+    };
+  }),
+
+  on(ProductActions.getProduct, (state) => {
+    return {
+      ...state,
+      isLoading: true,
+      isLoaded: false,
     };
   }),
 
@@ -33,7 +58,16 @@ const productsReducer = createReducer(
     return {
       ...state,
       selectedProduct: data,
-      // isLoaded: true, //temporary while I have only products
+      isLoading: false,
+      isLoaded: true,
+    };
+  }),
+
+  on(ProductActions.getProductFailure, (state) => {
+    return {
+      ...state,
+      isLoading: true,
+      isLoaded: true,
     };
   }),
 
