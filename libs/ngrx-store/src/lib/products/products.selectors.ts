@@ -7,3 +7,8 @@ export const selectAllProducts = createSelector(
   selectProductsState,
   (state) => state.products,
 );
+
+export const selectedProduct = createSelector(
+  selectProductsState,
+  (state) => state.selectedProduct,
+);

@@ -11,20 +11,20 @@ Products:
   @for (product of products(); track product.id) {
     <mat-card class="product-card" appearance="outlined">
       <mat-card-header>
-        <div mat-card-avatar class="example-header-image"></div>
-        <mat-card-title>{{ product.title }}</mat-card-title>
+<!--        <div mat-card-avatar class="example-header-image"></div>-->
+        <mat-card-title><a [routerLink]="[product.id]" [relativeTo]="activatedRoute">{{ product.title }}</a></mat-card-title>
         <mat-card-subtitle>Subtitle</mat-card-subtitle>
       </mat-card-header>
       <img mat-card-image class="product-img" [src]="product.imageUrl" [alt]="product.title">
       <mat-card-content>
-        <p>
+        <p class="description">
           {{product.description}}
         </p>
       </mat-card-content>
-      <mat-card-actions>
-        <button matButton>LIKE</button>
-        <button matButton>SHARE</button>
-      </mat-card-actions>
+<!--      <mat-card-actions>-->
+<!--        <button matButton>LIKE</button>-->
+<!--        <button matButton>SHARE</button>-->
+<!--      </mat-card-actions>-->
     </mat-card>
   } @empty {
     <li>There are no items 12.</li>

@@ -42,6 +42,12 @@ export class HttpToApiService {
       const params = new HttpParams().set('shopId', SHOP_ID);
 
       return this.http.get<GetProductModel[]>(`${this.API_URL}/product`, { params });
+    },
+
+    getOne: (productId: GetProductModel['id']) => {
+      const params = new HttpParams().set('shopId', SHOP_ID);
+
+      return this.http.get<GetProductModel>(`${this.API_URL}/product/${productId}`, { params });
     }
   }
 
