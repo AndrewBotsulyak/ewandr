@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, Component, inject, OnInit, signal, WritableSign
 import { CommonModule } from '@angular/common';
 import {ProductContainerService} from "./product-container.service";
 import {ProductStatusEnum} from "@ewandr-workspace/core";
-import {ActivatedRoute} from "@angular/router";
+import {ActivatedRoute, RouterLink} from "@angular/router";
 import {filter, tap} from "rxjs";
 import {toSignal} from "@angular/core/rxjs-interop";
 import {MatButtonUI} from "@ewandr-workspace/ui-shared-lib";
@@ -11,7 +11,7 @@ import {MatCardModule} from "@angular/material/card";
 
 @Component({
   selector: 'app-product-container',
-  imports: [CommonModule, MatButtonUI, MatCardModule],
+  imports: [CommonModule, MatButtonUI, MatCardModule, RouterLink],
   providers: [],
   templateUrl: './product-container.component.html',
   styleUrl: './product-container.component.scss',
@@ -19,6 +19,7 @@ import {MatCardModule} from "@angular/material/card";
 })
 export class ProductContainerComponent implements OnInit {
   private service = inject(ProductContainerService);
+  public activatedRoute = inject(ActivatedRoute);
 
   products = toSignal(this.service.products$.pipe(
     filter(value => value != null),
@@ -28,6 +29,7 @@ export class ProductContainerComponent implements OnInit {
   status = ProductStatusEnum;
 
   ngOnInit() {
+    this.service.getProducts();
   }
 
   public handleGetProducts() {

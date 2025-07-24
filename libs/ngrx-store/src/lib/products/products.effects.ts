@@ -1,6 +1,6 @@
 import {inject, Injectable} from '@angular/core';
 import {Actions, createEffect, ofType} from '@ngrx/effects';
-import {ProductsActions} from './products.actions';
+import {ProductActions, ProductsActions} from './products.actions';
 import {catchError, exhaustMap, map, of} from 'rxjs';
 import {HttpToApiService} from "@ewandr-workspace/client-core";
 
@@ -20,6 +20,21 @@ export class ProductsEffects {
       }),
       catchError((err) => {
         return of(ProductsActions.getAllProductsFailure(new Error(err)));
+      }),
+    );
+  });
+
+  loadSelectedProduct$ = createEffect(() => {
+    return this.actions$.pipe(
+      ofType(ProductActions.getProduct),
+      exhaustMap(({id}) => {
+        return this.api.products.getOne(id);
+      }),
+      map((data) => {
+        return ProductActions.getProductSuccess({ data });
+      }),
+      catchError((err) => {
+        return of(ProductActions.getProductFailure(new Error(err)));
       }),
     );
   });
