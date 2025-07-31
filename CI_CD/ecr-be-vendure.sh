@@ -23,6 +23,9 @@ echo "📦 Building Docker image: $ECR_IMAGE"
 
 echo "Docker build context: $(pwd)"
 ls -la
+ls -la ./dist
+ls -la ./dist/apps
+ls -la ./dist/apps/backends
 docker build --platform linux/amd64 -f $SERVICE_PATH/$DOCKER_FILE \
   -t $ECR_IMAGE .
 
