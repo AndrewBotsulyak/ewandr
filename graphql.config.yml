@@ -1,0 +1,9 @@
+# .graphqlconfig.yml
+schema:
+  - http://localhost:3000/api  # Vendure Shop API
+documents:
+  - libs/data-access-graphql/src/lib/operations/**/*.graphql
+extensions:
+  endpoints:
+    vendure-shop:
+      url: http://localhost:3000/api

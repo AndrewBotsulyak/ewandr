@@ -43,7 +43,7 @@ jobs:
       has-server-changes: ${{ steps.load.outputs.has_server_changes }}
       affected-remotes: ${{ steps.load.outputs.affected_remotes }}
       client_shell_affected: ${{ steps.load.outputs.client_shell_affected }}
-      be_core_service_affected: ${{ steps.load.outputs.be_core_service_affected }}
+      be_vendure_affected: ${{ steps.load.outputs.be_vendure_affected }}
     steps:
       - name: Download artifact via API
         env:
@@ -106,7 +106,7 @@ jobs:
             echo "affected_remotes=$(jq -c '.affected_remotes' detection-results.json)" >> $GITHUB_OUTPUT
             echo "has_server_changes=$(jq -r '.has_server_changes' detection-results.json)" >> $GITHUB_OUTPUT
             echo "client_shell_affected=$(jq -r '.client_shell_affected' detection-results.json)" >> $GITHUB_OUTPUT
-            echo "be_core_service_affected=$(jq -r '.be_core_service_affected' detection-results.json)" >> $GITHUB_OUTPUT
+            echo "be_vendure_affected=$(jq -r '.be_vendure_affected' detection-results.json)" >> $GITHUB_OUTPUT
           else
             echo "❌ No detection results found in artifact!"
             exit 1
@@ -190,7 +190,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [ 'client-shell', 'be-core-service' ]
+        app: [ 'client-shell', 'be-vendure' ]
     steps:
       - uses: actions/checkout@v4
 
@@ -212,9 +212,9 @@ jobs:
             echo "affected=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build be-core-service application
-        if: matrix.app == 'be-core-service' && needs.load-detection-results.outputs.be_core_service_affected == 'true'
-        run: npx nx run be-core-service:build:production
+      - name: Build be-vendure application
+        if: matrix.app == 'be-vendure' && needs.load-detection-results.outputs.be_vendure_affected == 'true'
+        run: npx nx run be-vendure:build:production
 
       - name: Build client-shell application
         if: matrix.app == 'client-shell' && needs.load-detection-results.outputs.client_shell_affected == 'true'
@@ -338,13 +338,13 @@ jobs:
 
           # 2) Дефолтные значения
           OLD_CLIENT_SHELL_TAG="latest"
-          OLD_BE_CORE_SERVICE_TAG="latest"
+          OLD_BE_VENDURE_TAG="latest"
 
           # 3) Если скачали непустой файл — парсим из него переменные
           if [ -s old_env_prod ]; then
             OLD_CLIENT_SHELL_TAG=$(grep -E '^CLIENT_SHELL_TAG=' old_env_prod | cut -d= -f2- || echo "latest")
-            OLD_BE_CORE_SERVICE_TAG=$(grep -E '^BE_CORE_SERVICE_TAG=' old_env_prod | cut -d= -f2- || echo "latest")
-            echo "Existing tags: CLIENT_SHELL_TAG=$OLD_CLIENT_SHELL_TAG, BE_CORE_SERVICE_TAG=$OLD_BE_CORE_SERVICE_TAG"
+            OLD_BE_VENDURE_TAG=$(grep -E '^BE_VENDURE_TAG=' old_env_prod | cut -d= -f2- || echo "latest")
+            echo "Existing tags: CLIENT_SHELL_TAG=$OLD_CLIENT_SHELL_TAG, BE_VENDURE_TAG=$OLD_BE_VENDURE_TAG"
           else
             echo "No remote .env.production found, defaulting tags to 'latest'"
           fi
@@ -354,7 +354,7 @@ jobs:
 
           # 5) По умолчанию используем старые теги
           CLIENT_SHELL_TAG="$OLD_CLIENT_SHELL_TAG"
-          BE_CORE_SERVICE_TAG="$OLD_BE_CORE_SERVICE_TAG"
+          BE_VENDURE_TAG="$OLD_BE_VENDURE_TAG"
 
           # 6) Обновляем ТОЛЬКО измененные сервисы
           if [ "${{ needs.load-detection-results.outputs.client_shell_affected }}" = "true" ]; then
@@ -364,14 +364,14 @@ jobs:
             echo "⏭️ Keeping CLIENT_SHELL_TAG as $OLD_CLIENT_SHELL_TAG (not affected)"
           fi
 
-          if [ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" = "true" ]; then
-            BE_CORE_SERVICE_TAG="$UNIQUE_TAG"
-            echo "✅ Updating BE_CORE_SERVICE_TAG to $UNIQUE_TAG"
+          if [ "${{ needs.load-detection-results.outputs.be_vendure_affected }}" = "true" ]; then
+            BE_VENDURE_TAG="$UNIQUE_TAG"
+            echo "✅ Updating BE_VENDURE_TAG to $UNIQUE_TAG"
           else
-            echo "⏭️ Keeping BE_CORE_SERVICE_TAG as $OLD_BE_CORE_SERVICE_TAG (not affected)"
+            echo "⏭️ Keeping BE_VENDURE_TAG as $OLD_BE_VENDURE_TAG (not affected)"
           fi
 
-          echo "Final tags: CLIENT_SHELL_TAG=$CLIENT_SHELL_TAG, BE_CORE_SERVICE_TAG=$BE_CORE_SERVICE_TAG"
+          echo "Final tags: CLIENT_SHELL_TAG=$CLIENT_SHELL_TAG, BE_VENDURE_TAG=$BE_VENDURE_TAG"
 
           # 7) Собираем новый .env.production
           cat > .env.production <<EOF
@@ -384,7 +384,7 @@ jobs:
           ECR_REPOSITORY_PREFIX=${{ env.ECR_REPOSITORY_PREFIX }}
 
           CLIENT_SHELL_TAG=${CLIENT_SHELL_TAG}
-          BE_CORE_SERVICE_TAG=${BE_CORE_SERVICE_TAG}
+          BE_VENDURE_TAG=${BE_VENDURE_TAG}
           EOF
 
           # 8) Показываем что изменилось
@@ -416,7 +416,7 @@ jobs:
       needs.build-and-push-server.result == 'success' &&
       needs.update-server-configuration.result == 'success' &&
       (needs.load-detection-results.outputs.client_shell_affected == 'true' ||
-       needs.load-detection-results.outputs.be_core_service_affected == 'true')
+       needs.load-detection-results.outputs.be_vendure_affected == 'true')
     runs-on: ubuntu-latest
     steps:
       - name: Setup SSH key
@@ -452,13 +452,13 @@ jobs:
               echo "📦 Will pull client-shell image"
             fi
 
-            if [[ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" ]]; then
+            if [[ "${{ needs.load-detection-results.outputs.be_vendure_affected }}" == "true" ]]; then
               if [[ -n "$SERVICES_TO_PULL" ]]; then
-                SERVICES_TO_PULL="$SERVICES_TO_PULL be-core-service"
+                SERVICES_TO_PULL="$SERVICES_TO_PULL be-vendure"
               else
-                SERVICES_TO_PULL="be-core-service"
+                SERVICES_TO_PULL="be-vendure"
               fi
-              echo "📦 Will pull be-core-service image"
+              echo "📦 Will pull be-vendure image"
             fi
 
             echo "🔄 Pulling images for: $SERVICES_TO_PULL"
@@ -468,7 +468,7 @@ jobs:
 
             # Проверяем что образы действительно скачались
             echo "📊 Checking downloaded images:"
-            docker images | grep -E "(client-shell|be-core-service)" | head -10
+            docker images | grep -E "(client-shell|be-vendure)" | head -10
           ENDSSH
 
       - name: Cleanup
@@ -529,7 +529,7 @@ jobs:
 
             # Очищаем образы для каждого сервиса
             cleanup_images "client-shell"
-            cleanup_images "be-core-service"
+            cleanup_images "be-vendure"
 
             # Удаляем неиспользуемые образы
             echo "🗑️ Removing dangling images..."
@@ -572,19 +572,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: ['client-shell', 'be-core-service']
+        app: ['client-shell', 'be-vendure']
     steps:
       - name: Check if app needs restart
         id: check-restart
         run: |
           NEEDS_RESTART="false"
 
-          # be-core-service перезапускается только если он сам был изменен И deploy_server == true
-          if [[ "${{ matrix.app }}" == "be-core-service" &&
-                "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" &&
+          # be-vendure перезапускается только если он сам был изменен И deploy_server == true
+          if [[ "${{ matrix.app }}" == "be-vendure" &&
+                "${{ needs.load-detection-results.outputs.be_vendure_affected }}" == "true" &&
                 "${{ github.event.inputs.deploy_server }}" == "true" ]]; then
             NEEDS_RESTART="true"
-            echo "🔄 be-core-service was affected and server deployment enabled, needs restart"
+            echo "🔄 be-vendure was affected and server deployment enabled, needs restart"
           fi
 
           # client-shell перезапускается если:
@@ -682,14 +682,14 @@ jobs:
                 echo "⚠️ client-shell health check returned HTTP $RESPONSE"
               fi
             fi
-          elif [[ "${{ matrix.app }}" == "be-core-service" ]]; then
+          elif [[ "${{ matrix.app }}" == "be-vendure" ]]; then
             if [[ -n "${{ secrets.PRODUCTION_DOMAIN }}" ]]; then
-              echo "🔍 Checking be-core-service health..."
+              echo "🔍 Checking be-vendure health..."
               RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.PRODUCTION_DOMAIN }}/api/health || echo "000")
               if [[ "$RESPONSE" == "200" ]]; then
-                echo "✅ be-core-service is healthy (HTTP $RESPONSE)"
+                echo "✅ be-vendure is healthy (HTTP $RESPONSE)"
               else
-                echo "⚠️ be-core-service health check returned HTTP $RESPONSE"
+                echo "⚠️ be-vendure health check returned HTTP $RESPONSE"
               fi
             fi
           fi
@@ -758,8 +758,8 @@ jobs:
               echo "- ♻️ Service restarted to load new remotes" >> $GITHUB_STEP_SUMMARY
             fi
 
-            if [[ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" ]]; then
-              echo "### be-core-service" >> $GITHUB_STEP_SUMMARY
+            if [[ "${{ needs.load-detection-results.outputs.be_vendure_affected }}" == "true" ]]; then
+              echo "### be-vendure" >> $GITHUB_STEP_SUMMARY
               echo "- 🔄 Direct changes detected" >> $GITHUB_STEP_SUMMARY
               echo "- 🐳 Docker image updated" >> $GITHUB_STEP_SUMMARY
               echo "- ♻️ Service restarted" >> $GITHUB_STEP_SUMMARY
@@ -787,7 +787,7 @@ jobs:
             TOTAL_APPS=$((TOTAL_APPS + 1))
           fi
 
-          if [[ "${{ needs.load-detection-results.outputs.be_core_service_affected }}" == "true" ]]; then
+          if [[ "${{ needs.load-detection-results.outputs.be_vendure_affected }}" == "true" ]]; then
             SERVER_COUNT=$((SERVER_COUNT + 1))
             TOTAL_APPS=$((TOTAL_APPS + 1))
           fi

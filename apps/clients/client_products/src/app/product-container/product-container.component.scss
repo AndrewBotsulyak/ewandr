@@ -22,8 +22,13 @@
       -webkit-box-orient: vertical;
       height: 60px;
       width: 100%;
+      padding: 15px 0;
       overflow: hidden;
       text-overflow: ellipsis;
+
+      ::ng-deep p {
+        margin: 0;
+      }
     }
   }
 

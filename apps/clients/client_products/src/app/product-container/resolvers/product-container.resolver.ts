@@ -8,11 +8,11 @@ export function productContainerResolver(): Observable<any> {
   const platformService = inject(CheckPlatformService);
 
   if (platformService.isServer()) {
-    service.getProducts();
-    return service.products$.pipe(
+
+    service.getGqlProducts().pipe(
       filter((value) => value != null),
       take(1)
-    );
+    ).subscribe();
   }
 
   return of(true);

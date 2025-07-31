@@ -1,0 +1,12 @@
+# codegen.yml
+schema: http://localhost:3000/api     # Vendure Shop API
+documents:
+  - libs/data-access-graphql/src/lib/operations/**/*.graphql
+generates:
+  libs/data-access-graphql/src/lib/generated/graphql.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-apollo-angular
+    config:
+      skipTypename: false

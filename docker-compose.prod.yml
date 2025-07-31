@@ -9,49 +9,93 @@ services:
     networks:
       - app-network
 
-  postgres:
+  postgres-vendure:
     image: postgres:15-alpine
-    container_name: postgres-db
+    container_name: postgres-vendure-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: core_service_db
+      POSTGRES_DB: vendure
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
     volumes:
-      # Персистентное хранение данных
-      - postgres_data:/var/lib/postgresql/data
-      # Опционально: скрипты инициализации
+      - postgres_vendure_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
       - app-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d core_service_db" ]
-      interval: 10s
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
       timeout: 5s
       retries: 5
 
-  be-core-service:
-    image: ${ECR_REGISTRY}/ewandr/be-core-service:${BE_CORE_SERVICE_TAG}
+  be-vendure:
+    image: ${ECR_REGISTRY}/ewandr/be-core-service:${BE_VENDURE_TAG}
+    container_name: be-vendure
+    build:
+      context: .
+      dockerfile: apps/backends/be-vendure/Dockerfile
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      # Подключение к PostgreSQL
-      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/core_service_db
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_NAME=core_service_db
-      - DATABASE_USERNAME=postgres
-      - DATABASE_PASSWORD=postgres123
-      - DB_SSL=false
+      - "3002:3002"  # Admin UI
     depends_on:
-      postgres:
+      postgres-vendure:
         condition: service_healthy
+    env_file:
+      - ./.env.be-vendure
+    volumes:
+      - .:/app
+      # Исключаем node_modules из синхронизации для производительности
+      - /app/node_modules
+      - /app/dist
     networks:
       - app-network
+
+#  postgres:
+#    image: postgres:15-alpine
+#    container_name: postgres-db
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_DB: core_service_db
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: postgres123
+#      PGDATA: /var/lib/postgresql/data/pgdata
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      # Персистентное хранение данных
+#      - postgres_data:/var/lib/postgresql/data
+#      # Опционально: скрипты инициализации
+#      - ./init-scripts:/docker-entrypoint-initdb.d
+#    networks:
+#      - app-network
+#    healthcheck:
+#      test: [ "CMD-SHELL", "pg_isready -U postgres -d core_service_db" ]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#
+#  be-core-service:
+#    image: ${ECR_REGISTRY}/ewandr/be-core-service:${BE_CORE_SERVICE_TAG}
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - NODE_ENV=development
+#      # Подключение к PostgreSQL
+#      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/core_service_db
+#      - DATABASE_HOST=postgres
+#      - DATABASE_PORT=5432
+#      - DATABASE_NAME=core_service_db
+#      - DATABASE_USERNAME=postgres
+#      - DATABASE_PASSWORD=postgres123
+#      - DB_SSL=false
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    networks:
+#      - app-network
 
   client-shell:
     image: ${ECR_REGISTRY}/ewandr/client-shell:${CLIENT_SHELL_TAG}
@@ -72,6 +116,8 @@ networks:
 # Именованные тома для персистентности данных
 volumes:
   postgres_data:
+    driver: local
+  postgres_vendure_data:
     driver: local
   dist_volume:
 #  pgadmin_data:

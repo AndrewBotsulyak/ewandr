@@ -17,6 +17,9 @@
     "paths": {
       "@ewandr-workspace/client-core": ["libs/client-core/src/index.ts"],
       "@ewandr-workspace/core": ["libs/core/src/index.ts"],
+      "@ewandr-workspace/data-access-graphql": [
+        "libs/data-access-graphql/src/index.ts"
+      ],
       "@ewandr-workspace/header": [
         "libs/client-shell/feature-header/src/index.ts"
       ],

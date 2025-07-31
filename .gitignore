@@ -47,6 +47,6 @@ Thumbs.db
 
 .angular
 
-*.env
+*.env.*
 
-lightsail-user
+secret/*

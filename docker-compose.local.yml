@@ -11,47 +11,90 @@ services:
     networks:
       - app-network
 
-  postgres:
+  postgres-vendure:
     image: postgres:15-alpine
-    container_name: postgres-db
+    container_name: postgres-vendure-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: core_service_db
+      POSTGRES_DB: vendure
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
     volumes:
-      # Персистентное хранение данных
-      - postgres_data:/var/lib/postgresql/data
-      # Опционально: скрипты инициализации
+      - postgres_vendure_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
       - app-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d core_service_db" ]
-      interval: 10s
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
       timeout: 5s
       retries: 5
 
-  be-core-service:
+  be-vendure:
+    container_name: be-vendure
     build:
       context: .
-      dockerfile: apps/backends/be-core-service/Dockerfile
+      dockerfile: apps/backends/be-vendure/Dockerfile
     ports:
       - "3000:3000"
+      - "3002:3002"  # Admin UI
+    depends_on:
+      postgres-vendure:
+        condition: service_healthy
+    env_file:
+      - apps/backends/be-vendure/.env.docker
     volumes:
-      # Монтируем исходный код для hot-reload
       - .:/app
       # Исключаем node_modules из синхронизации для производительности
       - /app/node_modules
       - /app/dist
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - app-network
+
+#  postgres:
+#    image: postgres:15-alpine
+#    container_name: postgres-db
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_DB: core_service_db
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: postgres123
+#      PGDATA: /var/lib/postgresql/data/pgdata
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      # Персистентное хранение данных
+#      - postgres_data:/var/lib/postgresql/data
+#      # Опционально: скрипты инициализации
+#      - ./init-scripts:/docker-entrypoint-initdb.d
+#    networks:
+#      - app-network
+#    healthcheck:
+#      test: [ "CMD-SHELL", "pg_isready -U postgres -d core_service_db" ]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#
+#  be-core-service:
+#    build:
+#      context: .
+#      dockerfile: apps/backends/be-core-service/Dockerfile
+#    ports:
+#      - "3000:3000"
+#    volumes:
+#      # Монтируем исходный код для hot-reload
+#      - .:/app
+#      # Исключаем node_modules из синхронизации для производительности
+#      - /app/node_modules
+#      - /app/dist
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    networks:
+#      - app-network
 
 #  client-shell:
 #    build:
@@ -79,6 +122,8 @@ networks:
 # Именованные тома для персистентности данных
 volumes:
   postgres_data:
+    driver: local
+  postgres_vendure_data:
     driver: local
   dist_volume:
 #  pgadmin_data:

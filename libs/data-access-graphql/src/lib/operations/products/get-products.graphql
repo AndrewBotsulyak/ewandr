@@ -1,0 +1,13 @@
+query GetProducts {
+  products {
+    items {
+      id,
+      name,
+      slug,
+      description,
+      featuredAsset {
+        source
+      }
+    }
+  }
+}
