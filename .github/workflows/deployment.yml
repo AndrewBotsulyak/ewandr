@@ -214,7 +214,15 @@ jobs:
 
       - name: Build be-vendure application
         if: matrix.app == 'be-vendure' && needs.load-detection-results.outputs.be_vendure_affected == 'true'
-        run: npx nx run be-vendure:build:production
+        run: |
+          echo ">>> Running NX build for be-vendure…"
+          npx nx run be-vendure:build:production
+
+          echo ">>> Listing all dist/apps directories:"
+          ls -R dist/apps
+
+          echo ">>> Contents of the be-vendure build folder:"
+          ls -l dist/apps/backends/be-vendure || echo "Folder not found: dist/apps/backends/be-vendure"
 
       - name: Build client-shell application
         if: matrix.app == 'client-shell' && needs.load-detection-results.outputs.client_shell_affected == 'true'
