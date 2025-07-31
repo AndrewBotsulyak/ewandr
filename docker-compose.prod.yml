@@ -32,7 +32,7 @@ services:
       retries: 5
 
   be-vendure:
-    image: ${ECR_REGISTRY}/ewandr/be-core-service:${BE_VENDURE_TAG}
+    image: ${ECR_REGISTRY}/ewandr/be-vendure:${BE_VENDURE_TAG}
     ports:
       - "3000:3000"
       - "3002:3002"  # Admin UI
@@ -41,11 +41,6 @@ services:
         condition: service_healthy
     env_file:
       - ./.env.be-vendure
-    volumes:
-      - .:/app
-      # Исключаем node_modules из синхронизации для производительности
-      - /app/node_modules
-      - /app/dist
     networks:
       - app-network
 
@@ -98,7 +93,7 @@ services:
     ports:
       - "4200:4200"
     depends_on:
-      - be-core-service
+      - be-vendure
     environment:
       - NODE_ENV=development
     networks:

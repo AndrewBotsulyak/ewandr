@@ -11,4 +11,8 @@ export const mfSharedLibs = [
   'rxjs',
   'rxjs/operators',
   '@angular/core/primitives/di',
+  '@apollo/client/core',
+  '@apollo/client/link/batch',
+  '@apollo/client/link/error',
+  '@apollo/client/dev',
 ];
