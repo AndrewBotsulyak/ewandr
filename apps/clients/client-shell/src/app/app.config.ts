@@ -1,6 +1,6 @@
 import {
   APP_INITIALIZER,
-  ApplicationConfig,
+  ApplicationConfig, importProvidersFrom,
   inject,
   PLATFORM_ID,
   provideAppInitializer,
@@ -21,6 +21,8 @@ import {
   ProductsEffects,
   productsFeatureStore
 } from "@ewandr-workspace/ngrx-store";
+import {ApolloClientModule, GraphQLConfig} from "@ewandr-workspace/data-access-graphql";
+import {environment} from "../environments/environment";
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -47,5 +49,14 @@ export const appConfig: ApplicationConfig = {
     ),
     provideState(productsFeatureStore),
     provideEffects(ProductsEffects),
+
+    importProvidersFrom(
+      ApolloClientModule.forRoot({
+        shopApiUrl: environment.apiUrl,
+        errorHandler: (error) => {
+          console.error('GraphQL Error:', error);
+        },
+      } as GraphQLConfig)
+    ),
   ],
 };

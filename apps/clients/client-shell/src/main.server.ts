@@ -11,7 +11,12 @@ import { environment } from './environments/environment';
 import { init } from '@module-federation/enhanced/runtime';
 import * as fs from "node:fs";
 import {createProxyMiddleware} from "http-proxy-middleware";
+import {loadDevMessages, loadErrorMessages} from "@apollo/client/dev";
 
+if (!environment.production) {
+  loadDevMessages();
+  loadErrorMessages();
+}
 
 // The Express app is exported so that it can be used by serverless Functions.
 export async function app(): Promise<express.Express> {

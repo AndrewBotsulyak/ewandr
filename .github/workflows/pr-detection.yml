@@ -67,7 +67,7 @@ jobs:
           echo "Checking affected apps: ${{ steps.affected.outputs.apps }}"
 
           # Проверяем только server приложения
-          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell" or . == "be-core-service")' > /dev/null 2>&1; then
+          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell" or . == "be-vendure")' > /dev/null 2>&1; then
             echo "Server applications are affected"
             echo "has-changes=true" >> $GITHUB_OUTPUT
           else
@@ -85,10 +85,10 @@ jobs:
             echo "client_shell_affected=false" >> $GITHUB_OUTPUT
           fi
 
-          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "be-core-service")' > /dev/null 2>&1; then
-            echo "be_core_service_affected=true" >> $GITHUB_OUTPUT
+          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "be-vendure")' > /dev/null 2>&1; then
+            echo "be_vendure_affected=true" >> $GITHUB_OUTPUT
           else
-            echo "be_core_service_affected=false" >> $GITHUB_OUTPUT
+            echo "be_vendure_affected=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Save detection results
@@ -106,7 +106,7 @@ jobs:
             "affected_remotes": ${{ steps.affected.outputs.remotes }},
             "has_server_changes": ${{ steps.check-server.outputs.has-changes }},
             "client_shell_affected": ${{ steps.check-apps.outputs.client_shell_affected }},
-            "be_core_service_affected": ${{ steps.check-apps.outputs.be_core_service_affected }}
+            "be_vendure_affected": ${{ steps.check-apps.outputs.be_vendure_affected }}
           }
           EOF
 
