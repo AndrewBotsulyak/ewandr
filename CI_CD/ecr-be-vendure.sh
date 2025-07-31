@@ -21,8 +21,10 @@ source CI_CD/ecr-login.sh
 ECR_IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG"
 echo "📦 Building Docker image: $ECR_IMAGE"
 
+echo "Docker build context: $(pwd)"
+ls -la
 docker build --platform linux/amd64 -f $SERVICE_PATH/$DOCKER_FILE \
-  -t $ECR_IMAGE ./
+  -t $ECR_IMAGE .
 
 # 3) Push - теперь не нужен дополнительный tag
 echo "📤 Pushing to ECR..."
