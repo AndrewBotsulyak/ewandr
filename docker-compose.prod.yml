@@ -33,10 +33,6 @@ services:
 
   be-vendure:
     image: ${ECR_REGISTRY}/ewandr/be-core-service:${BE_VENDURE_TAG}
-    container_name: be-vendure
-    build:
-      context: .
-      dockerfile: apps/backends/be-vendure/Dockerfile
     ports:
       - "3000:3000"
       - "3002:3002"  # Admin UI
