@@ -5,13 +5,11 @@ import {ProductStatusEnum} from "@ewandr-workspace/core";
 import {ActivatedRoute, RouterLink} from "@angular/router";
 import {combineLatest, filter, map, take, tap} from "rxjs";
 import {toSignal} from "@angular/core/rxjs-interop";
-import {MatButtonUI} from "@ewandr-workspace/ui-shared-lib";
-import {log} from "@angular-devkit/build-angular/src/builders/ssr-dev-server";
-import {MatCardModule} from "@angular/material/card";
+import {MatCardModuleUI, MatButtonUI} from "@ewandr-workspace/ui-shared-lib";
 
 @Component({
   selector: 'app-product-container',
-  imports: [CommonModule, MatButtonUI, MatCardModule, RouterLink],
+  imports: [CommonModule, MatButtonUI, MatCardModuleUI, RouterLink],
   providers: [],
   templateUrl: './product-container.component.html',
   styleUrl: './product-container.component.scss',

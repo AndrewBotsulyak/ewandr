@@ -8,6 +8,9 @@ query GetProducts {
       featuredAsset {
         source
       }
+      customFields {
+        shortDesc
+      }
     }
   }
 }

@@ -17,7 +17,7 @@ Products:
       </mat-card-header>
       <img mat-card-image class="product-img" [src]="product.featuredAsset?.source" [alt]="product.name">
       <mat-card-content>
-        <div class="description" [innerHTML]="product.description"></div>
+        <div class="description" [innerHTML]="product.customFields?.shortDesc"></div>
       </mat-card-content>
 <!--      <mat-card-actions>-->
 <!--        <button matButton>LIKE</button>-->

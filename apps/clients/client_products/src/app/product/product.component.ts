@@ -1,26 +1,97 @@
-import {Component, inject, OnInit, signal} from '@angular/core';
-import {toSignal} from "@angular/core/rxjs-interop";
+import {
+  Component, computed,
+  inject,
+  OnInit, Signal,
+  signal,
+} from '@angular/core';
 import {ProductService} from "./product.service";
 import {ActivatedRoute} from "@angular/router";
-import {JsonPipe} from "@angular/common";
-import {map} from "rxjs";
-import {GetProductQuery} from "@ewandr-workspace/data-access-graphql";
+import {CommonModule, JsonPipe} from "@angular/common";
+import {BehaviorSubject, map, Observable} from "rxjs";
+import {GetProductQuery, ProductOptionGroup} from "@ewandr-workspace/data-access-graphql";
+import {CardSectionWrapper, MatCardModuleUI} from "@ewandr-workspace/ui-shared-lib";
+import {GalleryItem, GalleryModule, ImageItem} from "ng-gallery";
+import {DataSource} from "@angular/cdk/collections";
+import {CdkTableModule} from "@angular/cdk/table";
+import {MatTooltipModule} from "@angular/material/tooltip";
+
+interface ProductOptionsData {
+  id: ProductOptionGroup['id'],
+  title: ProductOptionGroup['name'],
+  options: ProductDataSource,
+}
+
+const ELEMENT_DATA: any[] = [
+  {position: 1, name: 'Hydrogen'},
+  {position: 2, name: 'Helium'},
+];
+
+class ProductDataSource extends DataSource<any> {
+  /** Stream of data that is provided to the table. */
+  data = new BehaviorSubject<any[]>([]);
+
+  constructor(optionsData: any[]) {
+    super();
+    this.data.next(optionsData)
+  }
+
+  /** Connect function called by the table to retrieve one stream containing the data to render. */
+  connect(): Observable<any[]> {
+    return this.data;
+  }
+
+  disconnect() {}
+}
+
 
 @Component({
   selector: 'app-product',
   imports: [
-    JsonPipe
+    CommonModule,
+    JsonPipe,
+    CardSectionWrapper,
+    MatCardModuleUI,
+    GalleryModule,
+    CdkTableModule,
+    MatTooltipModule
   ],
   templateUrl: './product.component.html',
-  styleUrl: './product.component.css'
+  styleUrl: './product.component.scss'
 })
 export class ProductComponent implements OnInit {
   private service = inject(ProductService);
   private route = inject(ActivatedRoute);
 
-  // product = toSignal(this.service.selectedProduct$);
+  displayedColumns: string[] = ['name', 'code'];
 
+  // product = toSignal(this.service.selectedProduct$);
   product = signal<GetProductQuery['product']>(null);
+
+  images: Signal<GalleryItem[]> = computed(() => {
+    const assets = this.product()?.assets ?? [];
+    return assets?.map((item) => new ImageItem({
+      src: item.source,
+      thumb: item.preview
+    }));
+  });
+
+  productOptions: Signal<ProductOptionsData[]> = computed(() => {
+    const optionGroups = this.product()?.optionGroups ?? [];
+
+    return optionGroups.map((item) => {
+      const optionsData = item.options.map(option => ({
+        name: option.name,
+        code: option.code,
+        description: option.customFields?.description
+      }))
+
+      return {
+        id: item.id,
+        title: item.name,
+        options: new ProductDataSource(optionsData)
+      }
+    });
+  });
 
   ngOnInit() {
     const productId = this.route.snapshot.paramMap.get('productId');

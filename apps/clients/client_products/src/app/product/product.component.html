@@ -1,5 +1,60 @@
-<p>product works!</p>
 
-<pre>
+<div class="container">
+  @if (product() != null) {
+    <ewd-card-section-wrapper class="gallery-card">
+      <mat-card-content>
+        <gallery [items]="images()" thumbPosition="bottom"></gallery>
+      </mat-card-content>
+    </ewd-card-section-wrapper>
+
+    <div class="">
+      <ewd-card-section-wrapper>
+        <mat-card-content>
+          <div [innerHTML]="product()?.description"></div>
+        </mat-card-content>
+      </ewd-card-section-wrapper>
+
+      <ewd-card-section-wrapper>
+        <mat-card-content>
+          @for (item of productOptions(); track item.id) {
+            <h3>{{item.title}}</h3>
+            <table cdk-table [dataSource]="item.options" class="options-table">
+              <!-- Position Column -->
+              <ng-container cdkColumnDef="name">
+                <td cdk-cell *cdkCellDef="let element">
+                  <span
+                    [matTooltip]="element.description"
+                    [class.option-description]="element.description != null"
+                  >{{element.name}}</span>
+                </td>
+              </ng-container>
+
+              <!-- Name Column -->
+              <ng-container cdkColumnDef="code">
+                <td cdk-cell *cdkCellDef="let element">
+                  <span>{{element.code}}</span>
+                </td>
+              </ng-container>
+
+              <!--            <tr cdk-header-row *cdkHeaderRowDef="displayedColumns"></tr>-->
+              <tr cdk-row *cdkRowDef="let row; columns: displayedColumns;"></tr>
+            </table>
+          }
+        </mat-card-content>
+      </ewd-card-section-wrapper>
+    </div>
+
+  } @else {
+    Product not found!
+    {{product() | json}}
+  }
+</div>
+
+
+
+<pre style="
+width: 500px;
+overflow: auto;
+">
   {{product() | json}}
 </pre>

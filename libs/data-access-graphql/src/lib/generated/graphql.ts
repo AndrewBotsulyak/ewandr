@@ -2645,7 +2645,7 @@ export type Product = Node & {
   assets: Array<Asset>;
   collections: Array<Collection>;
   createdAt: Scalars['DateTime']['output'];
-  customFields?: Maybe<Scalars['JSON']['output']>;
+  customFields?: Maybe<ProductCustomFields>;
   description: Scalars['String']['output'];
   enabled: Scalars['Boolean']['output'];
   facetValues: Array<FacetValue>;
@@ -2668,6 +2668,11 @@ export type ProductVariantListArgs = {
   options?: InputMaybe<ProductVariantListOptions>;
 };
 
+export type ProductCustomFields = {
+  __typename?: 'ProductCustomFields';
+  shortDesc?: Maybe<Scalars['String']['output']>;
+};
+
 export type ProductFilterParameter = {
   _and?: InputMaybe<Array<ProductFilterParameter>>;
   _or?: InputMaybe<Array<ProductFilterParameter>>;
@@ -2677,6 +2682,7 @@ export type ProductFilterParameter = {
   id?: InputMaybe<IdOperators>;
   languageCode?: InputMaybe<StringOperators>;
   name?: InputMaybe<StringOperators>;
+  shortDesc?: InputMaybe<StringOperators>;
   slug?: InputMaybe<StringOperators>;
   updatedAt?: InputMaybe<DateOperators>;
 };
@@ -2704,7 +2710,7 @@ export type ProductOption = Node & {
   __typename?: 'ProductOption';
   code: Scalars['String']['output'];
   createdAt: Scalars['DateTime']['output'];
-  customFields?: Maybe<Scalars['JSON']['output']>;
+  customFields?: Maybe<ProductOptionCustomFields>;
   group: ProductOptionGroup;
   groupId: Scalars['ID']['output'];
   id: Scalars['ID']['output'];
@@ -2712,6 +2718,12 @@ export type ProductOption = Node & {
   name: Scalars['String']['output'];
   translations: Array<ProductOptionTranslation>;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ProductOptionCustomFields = {
+  __typename?: 'ProductOptionCustomFields';
+  description?: Maybe<Scalars['String']['output']>;
+  isColor?: Maybe<Scalars['Boolean']['output']>;
 };
 
 export type ProductOptionGroup = Node & {
@@ -2750,6 +2762,7 @@ export type ProductSortParameter = {
   description?: InputMaybe<SortOrder>;
   id?: InputMaybe<SortOrder>;
   name?: InputMaybe<SortOrder>;
+  shortDesc?: InputMaybe<SortOrder>;
   slug?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
 };
@@ -3537,12 +3550,12 @@ export type GetProductQueryVariables = Exact<{
 }>;
 
 
-export type GetProductQuery = { __typename?: 'Query', product?: { __typename?: 'Product', id: string, name: string, slug: string, description: string, enabled: boolean, customFields?: any | null, featuredAsset?: { __typename?: 'Asset', id: string, name: string, type: AssetType, source: string, customFields?: any | null, tags: Array<{ __typename?: 'Tag', id: string, value: string }> } | null, variants: Array<{ __typename?: 'ProductVariant', id: string, productId: string, sku: string, name: string, price: any, customFields?: any | null }> } | null };
+export type GetProductQuery = { __typename?: 'Query', product?: { __typename?: 'Product', id: string, name: string, slug: string, description: string, enabled: boolean, optionGroups: Array<{ __typename?: 'ProductOptionGroup', id: string, name: string, options: Array<{ __typename?: 'ProductOption', id: string, name: string, code: string, customFields?: { __typename?: 'ProductOptionCustomFields', description?: string | null, isColor?: boolean | null } | null }> }>, assets: Array<{ __typename?: 'Asset', id: string, name: string, source: string, preview: string, width: number, height: number }>, featuredAsset?: { __typename?: 'Asset', id: string, name: string, type: AssetType, source: string, customFields?: any | null, tags: Array<{ __typename?: 'Tag', id: string, value: string }> } | null, variants: Array<{ __typename?: 'ProductVariant', id: string, productId: string, sku: string, name: string, price: any, customFields?: any | null }>, customFields?: { __typename?: 'ProductCustomFields', shortDesc?: string | null } | null } | null };
 
 export type GetProductsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetProductsQuery = { __typename?: 'Query', products: { __typename?: 'ProductList', items: Array<{ __typename?: 'Product', id: string, name: string, slug: string, description: string, featuredAsset?: { __typename?: 'Asset', source: string } | null }> } };
+export type GetProductsQuery = { __typename?: 'Query', products: { __typename?: 'ProductList', items: Array<{ __typename?: 'Product', id: string, name: string, slug: string, description: string, featuredAsset?: { __typename?: 'Asset', source: string } | null, customFields?: { __typename?: 'ProductCustomFields', shortDesc?: string | null } | null }> } };
 
 export const GetProductDocument = gql`
     query GetProduct($id: ID!) {
@@ -3552,6 +3565,27 @@ export const GetProductDocument = gql`
     slug
     description
     enabled
+    optionGroups {
+      id
+      name
+      options {
+        id
+        name
+        code
+        customFields {
+          description
+          isColor
+        }
+      }
+    }
+    assets {
+      id
+      name
+      source
+      preview
+      width
+      height
+    }
     featuredAsset {
       id
       name
@@ -3571,7 +3605,9 @@ export const GetProductDocument = gql`
       price
       customFields
     }
-    customFields
+    customFields {
+      shortDesc
+    }
   }
 }
     `;
@@ -3596,6 +3632,9 @@ export const GetProductsDocument = gql`
       description
       featuredAsset {
         source
+      }
+      customFields {
+        shortDesc
       }
     }
   }

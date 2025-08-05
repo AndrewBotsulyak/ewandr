@@ -5,6 +5,27 @@ query GetProduct($id: ID!) {
     slug,
     description,
     enabled,
+    optionGroups {
+      id,
+      name,
+      options{
+        id,
+        name,
+        code,
+        customFields {
+          description,
+          isColor
+        }
+      }
+    },
+    assets {
+      id,
+      name,
+      source,
+      preview,
+      width,
+      height
+    },
     featuredAsset {
       id,
       name,
@@ -24,6 +45,8 @@ query GetProduct($id: ID!) {
       price,
       customFields
     },
-    customFields
+    customFields {
+      shortDesc
+    }
   }
 }
