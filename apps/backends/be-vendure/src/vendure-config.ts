@@ -7,6 +7,7 @@ import { DefaultSearchPlugin } from '@vendure/core';
 import path from 'path';
 import {DbAssetsNamingStrategy} from "./plugins/db-assets-naming-strategy";
 import {GraphiqlPlugin} from "@vendure/graphiql-plugin";
+import {LanguageCode} from "@vendure/common/lib/generated-types";
 
 const BUCKET_NAME = 'cdn.ewandr.com';
 
@@ -41,7 +42,30 @@ export const config: VendureConfig = {
   paymentOptions: {
     paymentMethodHandlers: [],
   },
-  customFields: {},
+  customFields: {
+    ProductOption: [
+      {
+        name: 'description',
+        type: 'string',
+        label: [{ languageCode: LanguageCode.en, value: 'Description' }],
+        ui: { component: 'textarea-form-input' },
+      },
+      {
+        name: 'isColor',
+        type: 'boolean',
+        label: [{ languageCode: LanguageCode.en, value: 'Is color option?' }],
+        defaultValue: false,
+      },
+    ],
+    Product: [
+      {
+        name: 'shortDesc',
+        type: 'text',
+        label: [{ languageCode: LanguageCode.en, value: 'Short Description' }],
+        ui: { component: 'textarea-form-input' },
+      }
+    ]
+  },
   plugins: [
     GraphiqlPlugin.init({
       route: 'graphiql',   // будет доступно по /graphiql/shop и /graphiql/admin

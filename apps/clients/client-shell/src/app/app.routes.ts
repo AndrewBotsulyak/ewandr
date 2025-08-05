@@ -4,17 +4,17 @@ import { loadRemote } from '@module-federation/enhanced/runtime'
 export const appRoutes: Route[] = [
   {
     path: '',
-    children: [
-      {
-        path: 'products',
-        loadChildren: () => {
-          return loadRemote('client_products/Routes')
-            .then((m) => {
-              // @ts-ignore
-              return m!.remoteRoutes;
-            })
-        }
-      },
-    ]
+    redirectTo: 'products',
+    pathMatch: 'full',
+  },
+  {
+    path: 'products',
+    loadChildren: () => {
+      return loadRemote('client_products/Routes')
+        .then((m) => {
+          // @ts-ignore
+          return m!.remoteRoutes;
+        })
+    }
   },
 ];

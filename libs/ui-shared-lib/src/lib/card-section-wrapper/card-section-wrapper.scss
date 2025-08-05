@@ -1,0 +1,12 @@
+
+:host {
+
+  :root {
+    --border-radius: 8px;
+  }
+
+  .card-wrapper {
+    border-radius: var(--border-radius);
+  }
+
+}
