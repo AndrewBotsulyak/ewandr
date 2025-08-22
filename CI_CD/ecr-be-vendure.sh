@@ -22,10 +22,6 @@ ECR_IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$IMAGE_T
 echo "📦 Building Docker image: $ECR_IMAGE"
 
 echo "Docker build context: $(pwd)"
-ls -la
-ls -la ./dist
-ls -la ./dist/apps
-ls -la ./dist/apps/backends
 docker build --platform linux/amd64 -f $SERVICE_PATH/$DOCKER_FILE \
   -t $ECR_IMAGE .
 

@@ -1,5 +1,5 @@
 import { ModuleFederationConfig } from '@nx/module-federation';
-import {mfSharedLibs} from "@ewandr-workspace/core";
+import {sharedFn} from "@ewandr-workspace/core";
 
 const config: ModuleFederationConfig = {
   name: 'client-shell',
@@ -16,16 +16,7 @@ const config: ModuleFederationConfig = {
    *
    */
   remotes: [],
-  shared: (libraryName, defaultConfig) => {
-    if (mfSharedLibs.includes(libraryName)) {
-      return {
-        singleton: true,
-        strictVersion: false,
-        eager: true
-      };
-    }
-    return defaultConfig;
-  },
+  shared: sharedFn,
 };
 
 /**

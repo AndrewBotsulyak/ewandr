@@ -1,4 +1,4 @@
-import {init} from "@module-federation/enhanced/runtime";
+import {registerRemotes} from "@module-federation/enhanced/runtime";
 import {environment} from "./environments/environment";
 import {Remote} from "@module-federation/runtime-core/dist/src/type/config";
 
@@ -17,10 +17,7 @@ fetch(environment.mfManifestURL)
       });
     });
 
-    return init({
-      name: 'client-shell',
-      remotes,
-    });
+    registerRemotes(remotes);
   })
   .then(() => import('./bootstrap'))
   .catch((err) => console.error(err));
