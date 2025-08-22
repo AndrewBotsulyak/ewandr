@@ -1,21 +1,12 @@
 import { ModuleFederationConfig } from '@nx/module-federation';
-import {mfSharedLibs} from "@ewandr-workspace/core";
+import {sharedFn} from "@ewandr-workspace/core";
 
 const config: ModuleFederationConfig = {
   name: 'client_products',
   exposes: {
     './Routes': 'apps/clients/client_products/src/app/remote-entry/entry.routes.ts',
   },
-  shared: (libraryName, defaultConfig) => {
-    if (mfSharedLibs.includes(libraryName)) {
-      return {
-        singleton: true,
-        strictVersion: false,
-        eager: true
-      };
-    }
-    return defaultConfig;
-  },
+  shared: sharedFn,
 };
 
 /**
