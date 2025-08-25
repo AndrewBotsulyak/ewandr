@@ -1,1 +1,20 @@
-<div class="container">Header Container</div>
+<div class="container">
+  Header Container
+
+  <div class="">
+    <button matMiniFab [matMenuTriggerFor]="menu" aria-label="Example icon button with a menu icon">
+      <mat-icon>menu</mat-icon>
+    </button>
+
+    <mat-menu #menu="matMenu">
+      @for (theme of themes(); track theme) {
+        <button mat-menu-item (click)="handleThemeClick(theme)">
+          <span>{{theme}}</span>
+        </button>
+      }
+    </mat-menu>
+  </div>
+
+</div>
+
+

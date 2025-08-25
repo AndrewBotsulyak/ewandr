@@ -11,6 +11,6 @@ export const remoteRoutes: Route[] = [
   },
   {
     path: ':productId',
-    component: ProductComponent
+    component: ProductComponent,
   }
 ];

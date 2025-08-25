@@ -1,5 +1,5 @@
 import {
-  Component, computed,
+  Component, computed, importProvidersFrom,
   inject,
   OnInit, Signal,
   signal,
@@ -14,6 +14,7 @@ import {GalleryItem, GalleryModule, ImageItem} from "ng-gallery";
 import {DataSource} from "@angular/cdk/collections";
 import {CdkTableModule} from "@angular/cdk/table";
 import {MatTooltipModule} from "@angular/material/tooltip";
+import {GallerizeDirective, LightboxModule} from "ng-gallery/lightbox";
 
 interface ProductOptionsData {
   id: ProductOptionGroup['id'],
@@ -53,7 +54,8 @@ class ProductDataSource extends DataSource<any> {
     MatCardModuleUI,
     GalleryModule,
     CdkTableModule,
-    MatTooltipModule
+    MatTooltipModule,
+    LightboxModule
   ],
   templateUrl: './product.component.html',
   styleUrl: './product.component.scss'
@@ -71,7 +73,7 @@ export class ProductComponent implements OnInit {
     const assets = this.product()?.assets ?? [];
     return assets?.map((item) => new ImageItem({
       src: item.source,
-      thumb: item.preview
+      thumb: item.source
     }));
   });
 

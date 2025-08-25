@@ -8,28 +8,4 @@
     padding: 15px;
   }
 
-  .product-card {
-    max-width: 400px;
-
-    .product-img {
-      height: 400px;
-      object-fit: cover;
-    }
-
-    .description {
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      height: 60px;
-      width: 100%;
-      padding: 15px 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-
-      ::ng-deep p {
-        margin: 0;
-      }
-    }
-  }
-
 }

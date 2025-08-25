@@ -54,6 +54,10 @@
   }
 
   .gallery-card {
-    //max-width: 600px;
+    ::ng-deep {
+      gallery {
+        background-color: var(--color-background);
+      }
+    }
   }
 }

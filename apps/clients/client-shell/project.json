@@ -22,7 +22,10 @@
             "input": "apps/clients/client-shell/public"
           }
         ],
-        "styles": ["apps/clients/client-shell/src/styles.scss"],
+        "styles": [
+          "apps/clients/client-shell/src/styles.scss",
+          "libs/client-core/src/lib/styles/themes.scss"
+        ],
         "scripts": [],
         "customWebpackConfig": {
           "path": "apps/clients/client-shell/webpack.config.ts"
