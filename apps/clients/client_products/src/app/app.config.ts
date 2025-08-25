@@ -1,4 +1,9 @@
-import {ApplicationConfig, provideZoneChangeDetection, provideZonelessChangeDetection} from '@angular/core';
+import {
+  ApplicationConfig,
+  importProvidersFrom,
+  provideZoneChangeDetection,
+  provideZonelessChangeDetection
+} from '@angular/core';
 import {provideRouter} from '@angular/router';
 import { appRoutes } from './app.routes';
 import {
@@ -11,6 +16,7 @@ import {provideEffects} from "@ngrx/effects";
 import {provideHttpClient, withFetch} from "@angular/common/http";
 import {CheckPlatformService} from "@ewandr-workspace/client-core";
 import { ProductContainerService } from './product-container/product-container.service';
+import {GalleryModule} from "ng-gallery";
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -41,5 +47,6 @@ export const appConfig: ApplicationConfig = {
     //   provide: API_URL_TOKEN,
     //   useValue: 'http://be-core-service:3000/ums'
     // }
+    importProvidersFrom(GalleryModule)
   ],
 };

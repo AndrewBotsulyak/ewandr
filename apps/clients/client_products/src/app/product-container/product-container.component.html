@@ -9,21 +9,10 @@ Products:
 
 <div class="container">
   @for (product of products(); track product.id) {
-    <mat-card class="product-card" appearance="outlined">
-      <mat-card-header>
-<!--        <div mat-card-avatar class="example-header-image"></div>-->
-        <mat-card-title><a [routerLink]="[product.id]" [relativeTo]="activatedRoute">{{ product.name }}</a></mat-card-title>
-        <mat-card-subtitle>Subtitle</mat-card-subtitle>
-      </mat-card-header>
-      <img mat-card-image class="product-img" [src]="product.featuredAsset?.source" [alt]="product.name">
-      <mat-card-content>
-        <div class="description" [innerHTML]="product.customFields?.shortDesc"></div>
-      </mat-card-content>
-<!--      <mat-card-actions>-->
-<!--        <button matButton>LIKE</button>-->
-<!--        <button matButton>SHARE</button>-->
-<!--      </mat-card-actions>-->
-    </mat-card>
+    <product-card
+      [product]="product"
+      (productClick)="handleProductClick(product)"
+    />
   } @empty {
     <li>There are no items 12.</li>
   }

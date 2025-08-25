@@ -3,7 +3,12 @@
   @if (product() != null) {
     <ewd-card-section-wrapper class="gallery-card">
       <mat-card-content>
-        <gallery [items]="images()" thumbPosition="bottom"></gallery>
+        <gallery
+          [items]="images()"
+          thumbPosition="bottom"
+          thumbs
+          gallerize
+        ></gallery>
       </mat-card-content>
     </ewd-card-section-wrapper>
 
