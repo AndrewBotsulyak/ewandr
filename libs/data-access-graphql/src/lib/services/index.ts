@@ -1,1 +1,1 @@
-export * from './products.service';
+export * from './gql-data.service';

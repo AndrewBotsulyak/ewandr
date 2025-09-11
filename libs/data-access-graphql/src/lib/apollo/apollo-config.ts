@@ -2,6 +2,7 @@ import { HttpLink } from 'apollo-angular/http';
 import { ApolloClientOptions, InMemoryCache, ApolloLink } from '@apollo/client/core';
 import { onError } from '@apollo/client/link/error';
 import {inject, Injectable, makeStateKey, TransferState} from '@angular/core';
+import {possibleTypesResult} from "./introspection-results";
 
 @Injectable()
 export class GraphQLConfig {
@@ -11,15 +12,68 @@ export class GraphQLConfig {
 
 const APOLLO_STATE_KEY = makeStateKey<any>('APOLLO_STATE');
 
+function mergeFields(existing: any, incoming: any) {
+  return {...existing, ...incoming};
+}
+
+function relaceFields(existing: any, incoming: any) {
+  return incoming;
+}
+
 export function apolloClientFactory(config: GraphQLConfig): ApolloClientOptions<any> {
   const httpLink = inject(HttpLink);
   const cache = new InMemoryCache({
+    possibleTypes: possibleTypesResult.possibleTypes,
     typePolicies: {
+      Query: {
+        fields: {
+          eligibleShippingMethods: {
+            merge: relaceFields,
+          },
+        },
+      },
       Product: {
-        keyFields: ['id'],
+        fields: {
+          customFields: {
+            merge: mergeFields,
+          },
+        },
+      },
+      Collection: {
+        fields: {
+          customFields: {
+            merge: mergeFields,
+          },
+        },
       },
       Order: {
-        keyFields: ['id'],
+        fields: {
+          lines: {
+            merge: relaceFields,
+          },
+          shippingLines: {
+            merge: relaceFields,
+          },
+          discounts: {
+            merge: relaceFields,
+          },
+          shippingAddress: {
+            merge: relaceFields,
+          },
+          billingAddress: {
+            merge: relaceFields,
+          },
+        },
+      },
+      Customer: {
+        fields: {
+          addresses: {
+            merge: relaceFields,
+          },
+          customFields: {
+            merge: mergeFields,
+          },
+        },
       },
     },
   });

@@ -8,6 +8,7 @@ import {
   MatCardTitle
 } from "@angular/material/card";
 import {ProductItemModel} from "../models/product-item.model";
+import { CurrencyPipe } from '@angular/common';
 
 @Component({
   selector: 'product-card',
@@ -18,6 +19,7 @@ import {ProductItemModel} from "../models/product-item.model";
     MatCardImage,
     MatCardSubtitle,
     MatCardTitle,
+    CurrencyPipe
   ],
   templateUrl: './product-card.component.html',
   styleUrl: './product-card.component.scss'

@@ -1,7 +1,7 @@
 # codegen.yml
 schema: http://localhost:3000/api     # Vendure Shop API
 documents:
-  - libs/data-access-graphql/src/lib/operations/**/*.graphql
+  - libs/data-access-graphql/src/lib/operations/**/*.graphql.ts
 generates:
   libs/data-access-graphql/src/lib/generated/graphql.ts:
     plugins:
@@ -10,3 +10,7 @@ generates:
       - typescript-apollo-angular
     config:
       skipTypename: false
+      namingConvention:
+        enumValues: 'keep'
+      maybeValue: 'T'
+      strict: true
