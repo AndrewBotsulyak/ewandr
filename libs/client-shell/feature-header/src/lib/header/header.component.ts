@@ -1,11 +1,9 @@
 import {Component, DOCUMENT, inject, OnInit, Renderer2, signal} from '@angular/core';
 import {CommonModule} from '@angular/common';
-import {MatMiniFabButton} from "@angular/material/button";
 import {MatIconModule} from "@angular/material/icon";
 import {MatMenuModule} from "@angular/material/menu";
 import {CheckPlatformService} from "@ewandr-workspace/client-core";
 import {RouterLink} from "@angular/router";
-import {toSignal} from "@angular/core/rxjs-interop";
 import {GqlDataService} from "@ewandr-workspace/data-access-graphql";
 
 @Component({
