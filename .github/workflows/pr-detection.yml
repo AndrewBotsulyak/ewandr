@@ -45,71 +45,76 @@ jobs:
         run: |
           set -eo pipefail
           echo "Node: $(node -v) | npm: $(npm -v)"
-          npx nx --version || true
+            npx nx --version || true
 
-          # Вычисляем BASE/HEAD для PR и push
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # Вычисляем BASE/HEAD для PR и push
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             BASE_REF="${{ github.base_ref }}"
-            # Гарантируем наличие базовой ветки локально
             git fetch --no-tags --prune --depth=1 origin \
-              "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}" \
-              || git fetch --no-tags --prune --unshallow
+            "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}" \
+            || git fetch --no-tags --prune --unshallow
 
-            HEAD="${{ github.sha }}"  # текущий чекаут от actions/checkout
+            HEAD="${{ github.sha }}"  # текущий чекаут
             BASE="$(git merge-base "$HEAD" "origin/${BASE_REF}")"
-          else
+            else
             BASE="${{ github.event.before }}"
             HEAD="${{ github.sha }}"
-          fi
+            fi
 
-          echo "Comparing $BASE ↔ $HEAD"
+            echo "Comparing $BASE ↔ $HEAD"
           echo "Base commit exists: $(git cat-file -t "$BASE" 2>/dev/null || echo 'no')"
           echo "Head commit exists: $(git cat-file -t "$HEAD" 2>/dev/null || echo 'no')"
 
-          # Пробуем 3 варианта Nx, пока один не сработает
-          try_cmd() {
+          # Пробуем команды Nx по очереди
+            try_cmd() {
             local CMD="$1"
-            echo "Trying: $CMD"
+          echo "Trying: $CMD"
             set +e
             OUT=$(bash -lc "$CMD" 2>nx_stderr.log)
             RC=$?
             set -e
             if [[ $RC -eq 0 && -n "$OUT" ]]; then
-              echo "$OUT"
-              return 0
+            echo "$OUT"
+            return 0
             fi
-            echo "::notice::Command failed (rc=$RC): $CMD"
+          echo "::notice::Command failed (rc=$RC): $CMD"
             cat nx_stderr.log || true
             return 1
           }
 
-          AFFECTED_JSON=""
-          # 1) Современная команда (Nx 18+)
-          if [[ -z "$AFFECTED_JSON" ]]; then
+            AFFECTED_JSON=""
+            # 1) Nx 18+: show projects
+            if [[ -z "$AFFECTED_JSON" ]]; then
             OUT=$(try_cmd "npx nx show projects --affected --type=app --base=\"$BASE\" --head=\"$HEAD\" --json") || true
             if [[ "$OUT" =~ ^\[ ]]; then AFFECTED_JSON="$OUT"; fi
-          fi
-          # 2) print-affected (универсальный фоллбэк)
-          if [[ -z "$AFFECTED_JSON" ]]; then
+            fi
+            # 2) Фоллбэк: print-affected
+            if [[ -z "$AFFECTED_JSON" ]]; then
             OUT=$(try_cmd "npx nx print-affected --type=app --base=\"$BASE\" --head=\"$HEAD\" --select=projects") || true
             if [[ -n "$OUT" ]]; then
-              # Превращаем список в JSON-массив
-              AFFECTED_JSON=$(printf "%s\n" "$OUT" | jq -R -s 'split("\n") | map(select(length>0))')
+            AFFECTED_JSON=$(printf "%s\n" "$OUT" | jq -R -s 'split("\n") | map(select(length>0))')
             fi
-          fi
+            fi
 
-          # Если вообще ничего не сработало — пустой список
-          AFFECTED_JSON=${AFFECTED_JSON:-"[]"}
+            # Гарантируем валидный компактный JSON (одна строка)
+            AFFECTED_JSON=$(echo "${AFFECTED_JSON:-[]}" | jq -c . 2>/dev/null || echo '[]')
           echo "Affected apps JSON: $AFFECTED_JSON"
 
-          # Фильтруем client_* как «ремоты»
-          REMOTES_JSON=$(echo "$AFFECTED_JSON" | jq -c '[ .[] | select(startswith("client_")) ]')
+          # Фильтруем client_* как «ремоты», тоже compact
+            REMOTES_JSON=$(echo "$AFFECTED_JSON" | jq -c '[ .[] | select(startswith("client_")) ]')
           echo "Remotes JSON: $REMOTES_JSON"
 
-          {
-            echo "apps=$AFFECTED_JSON"
-            echo "remotes=$REMOTES_JSON"
-          } >> "$GITHUB_OUTPUT"
+          # Записываем OUTPUT безопасно (multiline syntax)
+            {
+              echo 'apps<<__JSON__'
+              echo "$AFFECTED_JSON"
+              echo '__JSON__'
+              echo 'remotes<<__JSON__'
+              echo "$REMOTES_JSON"
+              echo '__JSON__'
+            } >> "$GITHUB_OUTPUT"
+
+
 
       - name: Check for server changes
         id: check-server
