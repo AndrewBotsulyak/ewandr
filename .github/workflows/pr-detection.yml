@@ -41,24 +41,69 @@ jobs:
           HEAD_SHA=${{ github.event.pull_request.head.sha }}
           echo "Comparing $BASE_SHA ↔ $HEAD_SHA"
 
-          # Получаем JSON-массив затронутых apps
-          AFFECTED_JSON=$(
+          # Verify commits exist
+            if ! git rev-parse --verify "$BASE_SHA" >/dev/null 2>&1; then
+          echo "Error: BASE_SHA $BASE_SHA does not exist"
+            exit 1
+            fi
+
+            if ! git rev-parse --verify "$HEAD_SHA" >/dev/null 2>&1; then
+          echo "Error: HEAD_SHA $HEAD_SHA does not exist"
+            exit 1
+            fi
+
+            # Check if nx is available
+            if ! command -v npx >/dev/null 2>&1; then
+          echo "Error: npx not found"
+            exit 1
+            fi
+
+            # Get affected apps with better error handling
+            echo "Running nx show projects command..."
+            if ! AFFECTED_JSON=$(
             npx nx show projects \
-              --affected \
-              --type app \
-              --base="$BASE_SHA" \
-              --head="$HEAD_SHA" \
-              --json
-          )
+            --affected \
+            --type app \
+            --base="$BASE_SHA" \
+            --head="$HEAD_SHA" \
+            --json 2>&1
+            ); then
+          echo "Error: nx show projects command failed"
+          echo "Output: $AFFECTED_JSON"
+            exit 1
+            fi
+
+            # Validate JSON output
+            if ! echo "$AFFECTED_JSON" | jq empty 2>/dev/null; then
+          echo "Error: Invalid JSON output from nx command"
+          echo "Output: $AFFECTED_JSON"
+            exit 1
+            fi
 
           echo "Affected apps JSON: $AFFECTED_JSON"
-          echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
 
-          REMOTES_JSON=$(
+          # Only write to GITHUB_OUTPUT if it's defined (running in GitHub Actions)
+            if [ -n "$GITHUB_OUTPUT" ]; then
+            echo "apps=$AFFECTED_JSON" >> "$GITHUB_OUTPUT"
+            fi
+
+            # Extract remotes with error handling
+            if ! REMOTES_JSON=$(
             echo "$AFFECTED_JSON" |
-            jq -c '[ .[] | select(startswith("client_")) ]'
-          )
-          echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
+            jq -c '[ .[] | select(startswith("client_")) ]' 2>&1
+            ); then
+          echo "Error: Failed to process JSON with jq"
+          echo "jq error: $REMOTES_JSON"
+            exit 1
+            fi
+
+          echo "Remotes JSON: $REMOTES_JSON"
+
+            if [ -n "$GITHUB_OUTPUT" ]; then
+            echo "remotes=$REMOTES_JSON" >> "$GITHUB_OUTPUT"
+            fi
+
+            echo "Script completed successfully"
 
 
       - name: Check for server changes
