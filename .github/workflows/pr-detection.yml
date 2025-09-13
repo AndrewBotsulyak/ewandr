@@ -37,61 +37,79 @@ jobs:
         with:
           fetch-depth: 0   # полный граф (или оставь, но см. защитный fetch ниже)
 
-      - name: Detect affected apps
+      - name: Detect affected apps (robust)
         id: affected
         shell: bash
         env:
           NX_NO_CLOUD: "true"
         run: |
           set -eo pipefail
+          echo "Node: $(node -v) | npm: $(npm -v)"
+          npx nx --version || true
 
+          # Вычисляем BASE/HEAD для PR и push
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             BASE_REF="${{ github.base_ref }}"
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-
-            # Подтягиваем tip базовой ветки (на случай shallow fetch/форка)
+            # Гарантируем наличие базовой ветки локально
             git fetch --no-tags --prune --depth=1 origin \
               "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}" \
               || git fetch --no-tags --prune --unshallow
 
-            # Считаем merge-base между HEAD ветки PR и tip базовой ветки
-            MB=$(git merge-base "$HEAD_SHA" "origin/${BASE_REF}" || true)
-            BASE="${MB:-$BASE_SHA}"
+            HEAD="${{ github.sha }}"  # текущий чекаут от actions/checkout
+            BASE="$(git merge-base "$HEAD" "origin/${BASE_REF}")"
           else
-            # Для push-событий
             BASE="${{ github.event.before }}"
-            HEAD_SHA="${{ github.sha }}"
+            HEAD="${{ github.sha }}"
           fi
 
-          echo "Comparing $BASE ↔ $HEAD_SHA"
+          echo "Comparing $BASE ↔ $HEAD"
+          echo "Base commit exists: $(git cat-file -t "$BASE" 2>/dev/null || echo 'no')"
+          echo "Head commit exists: $(git cat-file -t "$HEAD" 2>/dev/null || echo 'no')"
 
-          # Запускаем nx, но не падаем, если он вернёт код != 0
-          set +e
-          AFFECTED_JSON=$(npx nx show projects \
-            --affected \
-            --type=app \
-            --base="$BASE" \
-            --head="$HEAD_SHA" \
-            --json 2> nx_stderr.log)
-          NX_RC=$?
-          set -e
-
-          if [[ $NX_RC -ne 0 ]]; then
-            echo "::warning::'nx show projects' failed with code $NX_RC. Using empty list."
+          # Пробуем 3 варианта Nx, пока один не сработает
+          try_cmd() {
+            local CMD="$1"
+            echo "Trying: $CMD"
+            set +e
+            OUT=$(bash -lc "$CMD" 2>nx_stderr.log)
+            RC=$?
+            set -e
+            if [[ $RC -eq 0 && -n "$OUT" ]]; then
+              echo "$OUT"
+              return 0
+            fi
+            echo "::notice::Command failed (rc=$RC): $CMD"
             cat nx_stderr.log || true
-            AFFECTED_JSON="[]"
+            return 1
+          }
+
+          AFFECTED_JSON=""
+          # 1) Современная команда (Nx 18+)
+          if [[ -z "$AFFECTED_JSON" ]]; then
+            OUT=$(try_cmd "npx nx show projects --affected --type=app --base=\"$BASE\" --head=\"$HEAD\" --json") || true
+            if [[ "$OUT" =~ ^\[ ]]; then AFFECTED_JSON="$OUT"; fi
+          fi
+          # 2) print-affected (универсальный фоллбэк)
+          if [[ -z "$AFFECTED_JSON" ]]; then
+            OUT=$(try_cmd "npx nx print-affected --type=app --base=\"$BASE\" --head=\"$HEAD\" --select=projects") || true
+            if [[ -n "$OUT" ]]; then
+              # Превращаем список в JSON-массив
+              AFFECTED_JSON=$(printf "%s\n" "$OUT" | jq -R -s 'split("\n") | map(select(length>0))')
+            fi
           fi
 
+          # Если вообще ничего не сработало — пустой список
+          AFFECTED_JSON=${AFFECTED_JSON:-"[]"}
           echo "Affected apps JSON: $AFFECTED_JSON"
 
+          # Фильтруем client_* как «ремоты»
           REMOTES_JSON=$(echo "$AFFECTED_JSON" | jq -c '[ .[] | select(startswith("client_")) ]')
+          echo "Remotes JSON: $REMOTES_JSON"
 
           {
             echo "apps=$AFFECTED_JSON"
             echo "remotes=$REMOTES_JSON"
           } >> "$GITHUB_OUTPUT"
-
 
       - name: Check for server changes
         id: check-server
