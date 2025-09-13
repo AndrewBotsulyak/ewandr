@@ -31,89 +31,34 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps --loglevel verbose
+        run: npm ci --legacy-peer-deps
 
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # полный граф (или оставь, но см. защитный fetch ниже)
-
-      - name: Detect affected apps (robust)
+      - name: Detect affected apps
         id: affected
         shell: bash
-        env:
-          NX_NO_CLOUD: "true"
         run: |
-          set -eo pipefail
-          echo "Node: $(node -v) | npm: $(npm -v)"
-            npx nx --version || true
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+          echo "Comparing $BASE_SHA ↔ $HEAD_SHA"
 
-            # Вычисляем BASE/HEAD для PR и push
-            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BASE_REF="${{ github.base_ref }}"
-            git fetch --no-tags --prune --depth=1 origin \
-            "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}" \
-            || git fetch --no-tags --prune --unshallow
+          # Получаем JSON-массив затронутых apps
+          AFFECTED_JSON=$(
+            npx nx show projects \
+              --affected \
+              --type app \
+              --base="$BASE_SHA" \
+              --head="$HEAD_SHA" \
+              --json
+          )
 
-            HEAD="${{ github.sha }}"  # текущий чекаут
-            BASE="$(git merge-base "$HEAD" "origin/${BASE_REF}")"
-            else
-            BASE="${{ github.event.before }}"
-            HEAD="${{ github.sha }}"
-            fi
-
-            echo "Comparing $BASE ↔ $HEAD"
-          echo "Base commit exists: $(git cat-file -t "$BASE" 2>/dev/null || echo 'no')"
-          echo "Head commit exists: $(git cat-file -t "$HEAD" 2>/dev/null || echo 'no')"
-
-          # Пробуем команды Nx по очереди
-            try_cmd() {
-            local CMD="$1"
-          echo "Trying: $CMD"
-            set +e
-            OUT=$(bash -lc "$CMD" 2>nx_stderr.log)
-            RC=$?
-            set -e
-            if [[ $RC -eq 0 && -n "$OUT" ]]; then
-            echo "$OUT"
-            return 0
-            fi
-          echo "::notice::Command failed (rc=$RC): $CMD"
-            cat nx_stderr.log || true
-            return 1
-          }
-
-            AFFECTED_JSON=""
-            # 1) Nx 18+: show projects
-            if [[ -z "$AFFECTED_JSON" ]]; then
-            OUT=$(try_cmd "npx nx show projects --affected --type=app --base=\"$BASE\" --head=\"$HEAD\" --json") || true
-            if [[ "$OUT" =~ ^\[ ]]; then AFFECTED_JSON="$OUT"; fi
-            fi
-            # 2) Фоллбэк: print-affected
-            if [[ -z "$AFFECTED_JSON" ]]; then
-            OUT=$(try_cmd "npx nx print-affected --type=app --base=\"$BASE\" --head=\"$HEAD\" --select=projects") || true
-            if [[ -n "$OUT" ]]; then
-            AFFECTED_JSON=$(printf "%s\n" "$OUT" | jq -R -s 'split("\n") | map(select(length>0))')
-            fi
-            fi
-
-            # Гарантируем валидный компактный JSON (одна строка)
-            AFFECTED_JSON=$(echo "${AFFECTED_JSON:-[]}" | jq -c . 2>/dev/null || echo '[]')
           echo "Affected apps JSON: $AFFECTED_JSON"
+          echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
 
-          # Фильтруем client_* как «ремоты», тоже compact
-            REMOTES_JSON=$(echo "$AFFECTED_JSON" | jq -c '[ .[] | select(startswith("client_")) ]')
-          echo "Remotes JSON: $REMOTES_JSON"
-
-          # Записываем OUTPUT безопасно (multiline syntax)
-            {
-              echo 'apps<<__JSON__'
-              echo "$AFFECTED_JSON"
-              echo '__JSON__'
-              echo 'remotes<<__JSON__'
-              echo "$REMOTES_JSON"
-              echo '__JSON__'
-            } >> "$GITHUB_OUTPUT"
-
+          REMOTES_JSON=$(
+            echo "$AFFECTED_JSON" |
+            jq -c '[ .[] | select(startswith("client_")) ]'
+          )
+          echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
 
 
       - name: Check for server changes
