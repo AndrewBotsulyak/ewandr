@@ -33,32 +33,64 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps --loglevel verbose
 
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # полный граф (или оставь, но см. защитный fetch ниже)
+
       - name: Detect affected apps
         id: affected
         shell: bash
+        env:
+          NX_NO_CLOUD: "true"
         run: |
-          BASE_SHA=${{ github.event.pull_request.base.sha }}
-          HEAD_SHA=${{ github.event.pull_request.head.sha }}
-          echo "Comparing $BASE_SHA ↔ $HEAD_SHA"
+          set -eo pipefail
 
-          # Получаем JSON-массив затронутых apps
-          AFFECTED_JSON=$(
-            npx nx show projects \
-              --affected \
-              --type app \
-              --base="$BASE_SHA" \
-              --head="$HEAD_SHA" \
-              --json
-          )
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_REF="${{ github.base_ref }}"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+            # Подтягиваем tip базовой ветки (на случай shallow fetch/форка)
+            git fetch --no-tags --prune --depth=1 origin \
+              "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}" \
+              || git fetch --no-tags --prune --unshallow
+
+            # Считаем merge-base между HEAD ветки PR и tip базовой ветки
+            MB=$(git merge-base "$HEAD_SHA" "origin/${BASE_REF}" || true)
+            BASE="${MB:-$BASE_SHA}"
+          else
+            # Для push-событий
+            BASE="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+          fi
+
+          echo "Comparing $BASE ↔ $HEAD_SHA"
+
+          # Запускаем nx, но не падаем, если он вернёт код != 0
+          set +e
+          AFFECTED_JSON=$(npx nx show projects \
+            --affected \
+            --type=app \
+            --base="$BASE" \
+            --head="$HEAD_SHA" \
+            --json 2> nx_stderr.log)
+          NX_RC=$?
+          set -e
+
+          if [[ $NX_RC -ne 0 ]]; then
+            echo "::warning::'nx show projects' failed with code $NX_RC. Using empty list."
+            cat nx_stderr.log || true
+            AFFECTED_JSON="[]"
+          fi
 
           echo "Affected apps JSON: $AFFECTED_JSON"
-          echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
 
-          REMOTES_JSON=$(
-            echo "$AFFECTED_JSON" |
-            jq -c '[ .[] | select(startswith("client_")) ]'
-          )
-          echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
+          REMOTES_JSON=$(echo "$AFFECTED_JSON" | jq -c '[ .[] | select(startswith("client_")) ]')
+
+          {
+            echo "apps=$AFFECTED_JSON"
+            echo "remotes=$REMOTES_JSON"
+          } >> "$GITHUB_OUTPUT"
 
 
       - name: Check for server changes
