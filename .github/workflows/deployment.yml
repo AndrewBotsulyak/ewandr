@@ -49,7 +49,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "Searching for artifact from PR #${{ github.event.inputs.pr_number }}..."
+          echo "Searching for artifact: detection-results-pr-${{ github.event.inputs.pr_number }}"
+          
+          # Проверяем, что PR detection workflow запускался для этого PR
+          echo "🔍 Checking PR detection workflow runs for PR #${{ github.event.inputs.pr_number }}:"
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/runs \
+            --jq '.workflow_runs[] | select(.name == "PR Change Detection") | {id, status, conclusion, created_at, head_sha}' | head -5
+          
+          # Отладка: показываем все артефакты
+          echo "🔍 All artifacts in repository:"
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/artifacts \
+            --jq '.artifacts[] | {name, expired, created_at}' | head -20
 
           # Получаем список артефактов
           ARTIFACTS=$(gh api \
@@ -59,7 +75,7 @@ jobs:
             --jq '.artifacts[] | select(.name == "detection-results-pr-${{ github.event.inputs.pr_number }}") | {id, name, expired, created_at}')
 
           if [ -z "$ARTIFACTS" ]; then
-            echo "❌ No artifact found for PR #${{ github.event.inputs.pr_number }}"
+            echo "❌ No artifact found with name: detection-results-pr-${{ github.event.inputs.pr_number }}"
             echo "Please ensure the PR detection workflow has completed successfully."
             exit 1
           fi
