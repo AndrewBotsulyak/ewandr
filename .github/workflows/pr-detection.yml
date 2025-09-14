@@ -130,7 +130,9 @@ jobs:
       - name: Restore configuration files
         if: always()
         run: |
-          # Восстанавливаем оригинальные файлы конфигурации
+          echo "Restoring original configuration files..."
+
+          # Восстанавливаем все .original файлы
           find . -name "*.original" -type f | while read -r original; do
             target="${original%.original}"
             echo "Restoring $target"
@@ -139,16 +141,20 @@ jobs:
 
           # Удаляем временные JS файлы
           find . -name "module-federation.config.js" -type f | while read -r jsfile; do
-            if [ -f "${jsfile%.js}.ts.original" ]; then
+            if [ -f "${jsfile%.js}.ts" ]; then
+              echo "Removing temporary $jsfile"
               rm "$jsfile"
             fi
           done
 
           find . -name "webpack.config.js" -type f | while read -r jsfile; do
-            if [ -f "${jsfile%.js}.ts.original" ]; then
+            if [ -f "${jsfile%.js}.ts" ]; then
+              echo "Removing temporary $jsfile"
               rm "$jsfile"
             fi
           done
+
+          echo "✅ All original files restored"
 
       - name: Check for server changes
         id: check-server
@@ -182,26 +188,42 @@ jobs:
 
       - name: Save detection results
         run: |
+          # Получаем значения из предыдущих шагов
+          APPS_JSON='${{ steps.affected.outputs.apps }}'
+          REMOTES_JSON='${{ steps.affected.outputs.remotes }}'
+          HAS_SERVER_CHANGES='${{ steps.check-server.outputs.has-changes }}'
+          CLIENT_SHELL_AFFECTED='${{ steps.check-apps.outputs.client_shell_affected }}'
+          BE_VENDURE_AFFECTED='${{ steps.check-apps.outputs.be_vendure_affected }}'
+
+          # Проверяем и исправляем JSON если нужно
+          if [[ -z "$APPS_JSON" ]] || [[ "$APPS_JSON" == "null" ]]; then
+            APPS_JSON="[]"
+          fi
+
+          if [[ -z "$REMOTES_JSON" ]] || [[ "$REMOTES_JSON" == "null" ]]; then
+            REMOTES_JSON="[]"
+          fi
+
           # Сохраняем результаты в JSON файл
           cat > detection-results.json << EOF
           {
             "pr_number": "${{ github.event.pull_request.number }}",
-            "pr_title": $(echo '${{ github.event.pull_request.title }}' | jq -R .),
+            "pr_title": $(echo '${{ github.event.pull_request.title }}' | jq -R . || echo '"Unknown"'),
             "pr_url": "${{ github.event.pull_request.html_url }}",
             "base_sha": "${{ github.event.pull_request.base.sha }}",
             "head_sha": "${{ github.event.pull_request.head.sha }}",
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "affected_apps": ${{ steps.affected.outputs.apps }},
-            "affected_remotes": ${{ steps.affected.outputs.remotes }},
-            "has_server_changes": ${{ steps.check-server.outputs.has-changes }},
-            "client_shell_affected": ${{ steps.check-apps.outputs.client_shell_affected }},
-            "be_vendure_affected": ${{ steps.check-apps.outputs.be_vendure_affected }},
+            "affected_apps": $APPS_JSON,
+            "affected_remotes": $REMOTES_JSON,
+            "has_server_changes": $HAS_SERVER_CHANGES,
+            "client_shell_affected": $CLIENT_SHELL_AFFECTED,
+            "be_vendure_affected": $BE_VENDURE_AFFECTED,
             "detection_method": "git_diff_fallback"
           }
           EOF
 
           echo "Detection results:"
-          cat detection-results.json | jq '.'
+          cat detection-results.json | jq '.' || cat detection-results.json
 
       - name: Upload detection results
         uses: actions/upload-artifact@v4
