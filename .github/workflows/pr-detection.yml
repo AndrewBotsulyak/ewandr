@@ -127,10 +127,19 @@ jobs:
             HAS_SERVER_CHANGES=true
           fi
 
-          # 5) Правильная запись outputs (многострочно — безопаснее)
+          # 5) Определяем remotes (микрофронтенды)
+          REMOTES_JSON='[]'
+          if echo "$AFFECTED_JSON" | jq -e '.[] | select(. == "client_products")' > /dev/null 2>&1; then
+            REMOTES_JSON='["client_products"]'
+          fi
+
+          # 6) Правильная запись outputs (многострочно — безопаснее)
           {
             echo "affected_apps<<EOF"
             echo "$AFFECTED_JSON"
+            echo "EOF"
+            echo "remotes<<EOF"
+            echo "$REMOTES_JSON"
             echo "EOF"
             echo "has_server_changes=$HAS_SERVER_CHANGES"
           } >> "$GITHUB_OUTPUT"
@@ -167,8 +176,8 @@ jobs:
       - name: Debug outputs
         run: |
           echo "=== DEBUG OUTPUTS ==="
-          APPS_OUTPUT='${{ steps.affected.outputs.apps }}'
-          REMOTES_OUTPUT='${{ steps.affected.outputs.remotes }}'
+          APPS_OUTPUT='${{ steps.detect.outputs.affected_apps }}'
+          REMOTES_OUTPUT='${{ steps.detect.outputs.remotes }}'
           echo "Apps output: '$APPS_OUTPUT'"
           echo "Remotes output: '$REMOTES_OUTPUT'"
           echo "Apps length: ${#APPS_OUTPUT}"
@@ -178,10 +187,10 @@ jobs:
       - name: Check for server changes
         id: check-server
         run: |
-          echo "Checking affected apps: ${{ steps.affected.outputs.apps }}"
+          echo "Checking affected apps: ${{ steps.detect.outputs.affected_apps }}"
 
           # Проверяем только server приложения
-          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell" or . == "be-vendure")' > /dev/null 2>&1; then
+          if echo '${{ steps.detect.outputs.affected_apps }}' | jq -e '.[] | select(. == "client-shell" or . == "be-vendure")' > /dev/null 2>&1; then
             echo "Server applications are affected"
             echo "has-changes=true" >> $GITHUB_OUTPUT
           else
@@ -193,13 +202,13 @@ jobs:
         id: check-apps
         run: |
           # Проверяем каждое приложение отдельно
-          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "client-shell")' > /dev/null 2>&1; then
+          if echo '${{ steps.detect.outputs.affected_apps }}' | jq -e '.[] | select(. == "client-shell")' > /dev/null 2>&1; then
             echo "client_shell_affected=true" >> $GITHUB_OUTPUT
           else
             echo "client_shell_affected=false" >> $GITHUB_OUTPUT
           fi
 
-          if echo '${{ steps.affected.outputs.apps }}' | jq -e '.[] | select(. == "be-vendure")' > /dev/null 2>&1; then
+          if echo '${{ steps.detect.outputs.affected_apps }}' | jq -e '.[] | select(. == "be-vendure")' > /dev/null 2>&1; then
             echo "be_vendure_affected=true" >> $GITHUB_OUTPUT
           else
             echo "be_vendure_affected=false" >> $GITHUB_OUTPUT
@@ -208,8 +217,8 @@ jobs:
       - name: Save detection results
         run: |
           # Получаем значения из предыдущих шагов
-          APPS_JSON='${{ steps.affected.outputs.apps }}'
-          REMOTES_JSON='${{ steps.affected.outputs.remotes }}'
+          APPS_JSON='${{ steps.detect.outputs.affected_apps }}'
+          REMOTES_JSON='${{ steps.detect.outputs.remotes }}'
           HAS_SERVER_CHANGES='${{ steps.check-server.outputs.has-changes }}'
           CLIENT_SHELL_AFFECTED='${{ steps.check-apps.outputs.client_shell_affected }}'
           BE_VENDURE_AFFECTED='${{ steps.check-apps.outputs.be_vendure_affected }}'
