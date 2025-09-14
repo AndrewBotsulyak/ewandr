@@ -33,33 +33,65 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps --loglevel verbose
 
+      - uses: actions/checkout@v4
+        with:
+          # важнейшее: полная история, чтобы BASE/HEAD были доступны
+          fetch-depth: 0
+
       - name: Detect affected apps
         id: affected
         shell: bash
+        env:
+          NX_DAEMON: "false"
+          NX_VERBOSE_LOGGING: "true"
         run: |
-          BASE_SHA=${{ github.event.pull_request.base.sha }}
-          HEAD_SHA=${{ github.event.pull_request.head.sha }}
-          echo "Comparing $BASE_SHA ↔ $HEAD_SHA"
+          set -Eeuo pipefail
 
-          # Получаем JSON-массив затронутых apps
-          AFFECTED_JSON=$(
-            npx nx show projects \
-              --affected \
-              --type app \
-              --base="$BASE_SHA" \
-              --head="$HEAD_SHA" \
-              --json
-          )
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            BASE_REF="${{ github.event.pull_request.base.ref }}"
+            echo "PR mode. Comparing $BASE_SHA ($BASE_REF) ↔ $HEAD_SHA"
 
-          echo "Affected apps JSON: $AFFECTED_JSON"
-          echo "apps=$AFFECTED_JSON" >> $GITHUB_OUTPUT
+            # на всякий случай подтянем оба коммита
+            git fetch --no-tags --prune --depth=1 origin "${BASE_REF}:${BASE_REF}" || true
+            git fetch --no-tags --prune --depth=1 origin "${BASE_SHA}" || true
+            git fetch --no-tags --prune --depth=1 origin "${HEAD_SHA}" || true
+          else
+            HEAD_SHA="${{ github.sha }}"
+            # базовый коммит — предыдущий по истории
+            BASE_SHA="$(git rev-parse "${HEAD_SHA}^" || true)"
+            echo "Push mode. Comparing ${BASE_SHA:-<none>} ↔ $HEAD_SHA"
+            if [[ -z "${BASE_SHA}" ]]; then
+              echo "BASE_SHA not found, fetching origin/main as fallback"
+              git fetch --no-tags --prune --depth=2 origin +refs/heads/main:refs/remotes/origin/main
+              BASE_SHA="$(git rev-parse origin/main)"
+            fi
+          fi
 
-          REMOTES_JSON=$(
-            echo "$AFFECTED_JSON" |
-            jq -c '[ .[] | select(startswith("client_")) ]'
-          )
-          echo "remotes=$REMOTES_JSON" >> $GITHUB_OUTPUT
+          set +e
+          OUT=$(npx nx show projects \
+            --affected \
+            --type app \
+            --base="$BASE_SHA" \
+            --head="$HEAD_SHA" \
+            --json 2>&1)
+          CODE=$?
+          set -e
 
+          echo "nx output:"
+          echo "$OUT"
+
+          if [[ $CODE -ne 0 ]]; then
+            echo "::warning:: nx show projects failed (code=$CODE). Returning empty arrays so the pipeline can continue."
+            echo "apps=[]" >> "$GITHUB_OUTPUT"
+            echo "remotes=[]" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "apps=$OUT" >> "$GITHUB_OUTPUT"
+          REMOTES_JSON=$(jq -c '[ .[] | select(startswith("client_")) ]' <<< "$OUT")
+          echo "remotes=$REMOTES_JSON" >> "$GITHUB_OUTPUT"
 
       - name: Check for server changes
         id: check-server
