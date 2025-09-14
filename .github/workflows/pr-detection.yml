@@ -139,7 +139,7 @@ jobs:
 
             # JSON компактной строкой
             if [[ ${#affected[@]} -gt 0 ]]; then
-              AFFECTED_JSON="$(printf '%s\n' "${affected[@]}" | jq -Rc 'split("\n") - [""]')"
+              AFFECTED_JSON="$(printf '%s\n' "${affected[@]}" | jq -Rs 'split("\n") | map(select(length > 0))')"
             else
               AFFECTED_JSON='[]'
             fi
@@ -149,7 +149,7 @@ jobs:
             if ! echo "$AFFECTED_JSON" | jq empty 2>/dev/null; then
               echo "🔄 Converting Nx output to JSON array..."
               # Nx может вернуть список проектов через пробел или новые строки
-              AFFECTED_JSON="$(echo "$AFFECTED_JSON" | tr ' ' '\n' | grep -v '^$' | jq -Rc 'split("\n") - [""]' 2>/dev/null || echo '[]')"
+              AFFECTED_JSON="$(echo "$AFFECTED_JSON" | tr ' ' '\n' | grep -v '^$' | jq -Rs 'split("\n") | map(select(length > 0))' 2>/dev/null || echo '[]')"
             fi
           fi
 
