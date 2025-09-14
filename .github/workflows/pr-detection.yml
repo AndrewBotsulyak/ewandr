@@ -81,35 +81,61 @@ jobs:
           echo "HEAD=$HEAD"
 
           # 2) Пробуем Nx (может упасть из-за graph)
+          echo "🚀 Trying Nx affected detection..."
           set +e
           AFFECTED_JSON="$(npx -y nx show projects --affected --base="$BASE" --head="$HEAD" --select=projects 2>/dev/null)"
           NX_RC=$?
           set -e
+          
+          echo "📊 Nx return code: $NX_RC"
+          echo "📋 Nx affected JSON: '$AFFECTED_JSON'"
 
           # 3) Fallback на git diff, если Nx упал/вернул пусто
           if [[ $NX_RC -ne 0 || -z "$AFFECTED_JSON" ]]; then
-            echo "Nx failed or returned empty. Falling back to git diff analysis..."
+            echo "🔄 Nx failed (RC=$NX_RC) or returned empty. Falling back to git diff analysis..."
             CHANGED_FILES="$(git diff --name-only "$BASE" "$HEAD")"
+            echo "📁 Changed files:"
             echo "$CHANGED_FILES"
+            echo "📊 Total changed files: $(echo "$CHANGED_FILES" | wc -l)"
 
             affected=()
 
+            echo "🔍 Checking for client-shell changes..."
             if echo "$CHANGED_FILES" | grep -q '^apps/clients/client-shell/'; then
+              echo "✅ Found client-shell app changes"
               affected+=("client-shell")
+            else
+              echo "❌ No client-shell app changes found"
             fi
+
+            echo "🔍 Checking for client_products changes..."
             if echo "$CHANGED_FILES" | grep -q '^apps/clients/client_products/'; then
+              echo "✅ Found client_products app changes"
               affected+=("client_products")
+            else
+              echo "❌ No client_products app changes found"
             fi
 
             # простая эвристика по общим либам:
+            echo "🔍 Checking for client-shell lib changes..."
             if echo "$CHANGED_FILES" | grep -q '^libs/client-shell/'; then
+              echo "✅ Found client-shell lib changes"
               [[ " ${affected[*]} " =~ " client-shell " ]] || affected+=("client-shell")
+            else
+              echo "❌ No client-shell lib changes found"
             fi
+
+            echo "🔍 Checking for general lib changes..."
             if echo "$CHANGED_FILES" | grep -q '^libs/'; then
+              echo "✅ Found general lib changes - affecting both clients"
               # если менялись любые либы — считаем, что затрагивает оба клиента (упростим)
               [[ " ${affected[*]} " =~ " client-shell " ]] || affected+=("client-shell")
               [[ " ${affected[*]} " =~ " client_products " ]] || affected+=("client_products")
+            else
+              echo "❌ No general lib changes found"
             fi
+
+            echo "📋 Affected apps array: ${affected[*]}"
 
             # JSON компактной строкой
             if [[ ${#affected[@]} -gt 0 ]]; then
@@ -117,9 +143,17 @@ jobs:
             else
               AFFECTED_JSON='[]'
             fi
+          else
+            echo "✅ Nx detection successful!"
+            # Преобразуем вывод Nx в JSON массив, если это не JSON
+            if ! echo "$AFFECTED_JSON" | jq empty 2>/dev/null; then
+              echo "🔄 Converting Nx output to JSON array..."
+              # Nx может вернуть список проектов через пробел или новые строки
+              AFFECTED_JSON="$(echo "$AFFECTED_JSON" | tr ' ' '\n' | grep -v '^$' | jq -Rc 'split("\n") - [""]' 2>/dev/null || echo '[]')"
+            fi
           fi
 
-          echo "Affected (JSON): $AFFECTED_JSON"
+          echo "📋 Final Affected (JSON): $AFFECTED_JSON"
 
           # 4) Доп. признаки (пример)
           HAS_SERVER_CHANGES=false
