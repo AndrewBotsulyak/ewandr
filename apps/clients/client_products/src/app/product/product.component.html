@@ -1,132 +1,65 @@
 
-<section class="bg-slate-50">
-  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-    @if (product() != null) {
-      <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        <div class="lg:col-span-7">
-          <ewd-card-section-wrapper class="gallery-card block rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <mat-card-content>
-              <gallery
-                [items]="images()"
-                thumbPosition="bottom"
-                thumbs
-                gallerize
-              ></gallery>
-            </mat-card-content>
-          </ewd-card-section-wrapper>
-        </div>
+<div class="container">
+  @if (product() != null) {
+    <ewd-card-section-wrapper class="gallery-card">
+      <mat-card-content>
+        <gallery
+          [items]="images()"
+          thumbPosition="bottom"
+          thumbs
+          gallerize
+        ></gallery>
+      </mat-card-content>
+    </ewd-card-section-wrapper>
 
-        <div class="lg:col-span-5">
-          <ewd-card-section-wrapper class="block rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <mat-card-content>
-              <h1 class="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">{{ product()?.name }}</h1>
-              <p class="mt-2 text-xl font-bold text-sky-700">
-                {{ (product()?.variants?.[0]?.priceWithTax || 0) / 100 | currency: (product()?.variants?.[0]?.currencyCode || 'USD') }}
-              </p>
-              @if (product()?.customFields?.shortDesc) {
-                <p class="mt-3 text-sm text-slate-600">{{ product()?.customFields?.shortDesc }}</p>
-              }
-              <div class="prose prose-slate mt-4 max-w-none" [innerHTML]="product()?.description"></div>
-            </mat-card-content>
-          </ewd-card-section-wrapper>
+    <div class="">
+      <ewd-card-section-wrapper>
+        <mat-card-content>
+          <div [innerHTML]="product()?.description"></div>
+        </mat-card-content>
+      </ewd-card-section-wrapper>
 
-          <ewd-card-section-wrapper class="mt-6 block rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <mat-card-content>
-              <h2 class="text-base font-semibold text-slate-900">Options</h2>
-              <div class="mt-3 space-y-6">
-                @for (item of productOptions(); track item.id) {
-                  <div>
-                    <h3 class="text-sm font-medium text-slate-800">{{item.title}}</h3>
-                    <div class="mt-2 overflow-x-auto rounded-md border border-slate-200">
-                      <table cdk-table [dataSource]="item.options" class="min-w-full divide-y divide-slate-200 text-left text-sm">
-                        <ng-container cdkColumnDef="name">
-                          <td cdk-cell *cdkCellDef="let element" class="whitespace-nowrap px-4 py-2 text-slate-700">
-                            <span
-                              [matTooltip]="element.description"
-                              [class.option-description]="element.description != null"
-                            >{{element.name}}</span>
-                          </td>
-                        </ng-container>
+      <ewd-card-section-wrapper>
+        <mat-card-content>
+          @for (item of productOptions(); track item.id) {
+            <h3>{{item.title}}</h3>
+            <table cdk-table [dataSource]="item.options" class="options-table">
+              <!-- Position Column -->
+              <ng-container cdkColumnDef="name">
+                <td cdk-cell *cdkCellDef="let element">
+                  <span
+                    [matTooltip]="element.description"
+                    [class.option-description]="element.description != null"
+                  >{{element.name}}</span>
+                </td>
+              </ng-container>
 
-                        <ng-container cdkColumnDef="code">
-                          <td cdk-cell *cdkCellDef="let element" class="whitespace-nowrap px-4 py-2 text-slate-500">
-                            <span>{{element.code}}</span>
-                          </td>
-                        </ng-container>
+              <!-- Name Column -->
+              <ng-container cdkColumnDef="code">
+                <td cdk-cell *cdkCellDef="let element">
+                  <span>{{element.code}}</span>
+                </td>
+              </ng-container>
 
-                        <tr cdk-row *cdkRowDef="let row; columns: displayedColumns;" class="odd:bg-slate-50"></tr>
-                      </table>
-                    </div>
-                  </div>
-                }
-              </div>
-            </mat-card-content>
-          </ewd-card-section-wrapper>
+              <!--            <tr cdk-header-row *cdkHeaderRowDef="displayedColumns"></tr>-->
+              <tr cdk-row *cdkRowDef="let row; columns: displayedColumns;"></tr>
+            </table>
+          }
+        </mat-card-content>
+      </ewd-card-section-wrapper>
+    </div>
 
-          <ewd-card-section-wrapper class="mt-6 block rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <mat-card-content>
-              <h2 class="text-base font-semibold text-slate-900">Meta</h2>
-              <dl class="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                <div class="rounded-md border border-slate-200 p-3">
-                  <dt class="text-slate-500">Status</dt>
-                  <dd class="mt-1">
-                    @if (product()?.enabled) {
-                      <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">Enabled</span>
-                    } @else {
-                      <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-200">Disabled</span>
-                    }
-                  </dd>
-                </div>
-                <div class="rounded-md border border-slate-200 p-3">
-                  <dt class="text-slate-500">Slug</dt>
-                  <dd class="mt-1 text-slate-800">{{ product()?.slug }}</dd>
-                </div>
-                <div class="rounded-md border border-slate-200 p-3">
-                  <dt class="text-slate-500">SKU</dt>
-                  <dd class="mt-1 text-slate-800">{{ product()?.variants?.[0]?.sku }}</dd>
-                </div>
-                <div class="rounded-md border border-slate-200 p-3 sm:col-span-2">
-                  <dt class="text-slate-500">Tags</dt>
-                  <dd class="mt-2">
-                    <div class="flex flex-wrap gap-2">
-                      @for (t of product()?.featuredAsset?.tags ?? []; track t.id) {
-                        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700 ring-1 ring-inset ring-slate-200">{{ t.value }}</span>
-                      } @empty {
-                        <span class="text-slate-500">No tags</span>
-                      }
-                    </div>
-                  </dd>
-                </div>
-              </dl>
-            </mat-card-content>
-          </ewd-card-section-wrapper>
+  } @else {
+    Product not found!
+    {{product() | json}}
+  }
+</div>
 
-          <ewd-card-section-wrapper class="mt-6 block rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <mat-card-content>
-              <h2 class="text-base font-semibold text-slate-900">Variants</h2>
-              <ul class="mt-3 divide-y divide-slate-200 rounded-md border border-slate-200">
-                @for (v of product()?.variants ?? []; track v.id) {
-                  <li class="flex items-center justify-between gap-4 px-4 py-3">
-                    <div>
-                      <p class="text-sm font-medium text-slate-900">{{ v.name }}</p>
-                      <p class="text-xs text-slate-500">SKU: {{ v.sku }}</p>
-                    </div>
-                    <div class="text-sm font-semibold text-slate-900">
-                      {{ (v.priceWithTax || 0) / 100 | currency: (v.currencyCode || 'USD') }}
-                    </div>
-                  </li>
-                } @empty {
-                  <li class="px-4 py-3 text-sm text-slate-500">No variants</li>
-                }
-              </ul>
-            </mat-card-content>
-          </ewd-card-section-wrapper>
-        </div>
-      </div>
-    } @else {
-      <div class="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-600">
-        Product not found
-      </div>
-    }
-  </div>
-</section>
+
+
+<pre style="
+width: 500px;
+overflow: auto;
+">
+  {{product() | json}}
+</pre>

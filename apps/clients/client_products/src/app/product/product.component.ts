@@ -67,7 +67,7 @@ export class ProductComponent implements OnInit {
   displayedColumns: string[] = ['name', 'code'];
 
   // product = toSignal(this.service.selectedProduct$);
-  product = signal<GetProductQuery['product'] | null>(null);
+  product = signal<GetProductQuery['product']>(null);
 
   images: Signal<GalleryItem[]> = computed(() => {
     const assets = this.product()?.assets ?? [];

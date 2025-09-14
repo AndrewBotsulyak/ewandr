@@ -24,12 +24,59 @@ $dark-theme: (
   text: #ffffff
 );
 
+$ocean-theme: (
+  primary: #0077b6,
+  secondary: #00b4d8,
+  background: #caf0f8,
+  surface: #90e0ef,
+  text: #03045e
+);
+
+$forest-theme: (
+  primary: #2e7d32,
+  secondary: #81c784,
+  background: #f1f8e9,
+  surface: #a5d6a7,
+  text: #1b5e20
+);
+
+$sunset-theme: (
+  primary: #ff4500,
+  secondary: #ff8c00,
+  background: #fff5e6,
+  surface: #ffe0b2,
+  text: #4e342e
+);
+
+$neon-theme: (
+  primary: #39ff14,
+  secondary: #ff00ff,
+  background: #0d0d0d,
+  surface: #1a1a1a,
+  text: #ffffff
+);
+
 // ---------- Привязка тем к body ----------
 body.light {
   @include theme-variables($light-theme);
-  color: var(--color-text);
 }
 
 body.dark {
   @include theme-variables($dark-theme);
+}
+
+body.ocean {
+  @include theme-variables($ocean-theme);
+}
+
+body.forest {
+  @include theme-variables($forest-theme);
+}
+
+body.sunset {
+  @include theme-variables($sunset-theme);
+}
+
+body.neon {
+  @include theme-variables($neon-theme);
 }

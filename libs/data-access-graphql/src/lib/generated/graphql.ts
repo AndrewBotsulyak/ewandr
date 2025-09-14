@@ -1,8 +1,8 @@
 import { gql } from 'apollo-angular';
 import { Injectable } from '@angular/core';
 import * as Apollo from 'apollo-angular';
-export type Maybe<T> = T;
-export type InputMaybe<T> = T;
+export type Maybe<T> = T | null;
+export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
@@ -58,9 +58,9 @@ export type Adjustment = {
 };
 
 export enum AdjustmentType {
-  DISTRIBUTED_ORDER_PROMOTION = 'DISTRIBUTED_ORDER_PROMOTION',
-  OTHER = 'OTHER',
-  PROMOTION = 'PROMOTION'
+  DistributedOrderPromotion = 'DISTRIBUTED_ORDER_PROMOTION',
+  Other = 'OTHER',
+  Promotion = 'PROMOTION'
 }
 
 /** Returned when attempting to set the Customer for an Order when already logged in. */
@@ -97,9 +97,9 @@ export type AssetList = PaginatedList & {
 };
 
 export enum AssetType {
-  BINARY = 'BINARY',
-  IMAGE = 'IMAGE',
-  VIDEO = 'VIDEO'
+  Binary = 'BINARY',
+  Image = 'IMAGE',
+  Video = 'VIDEO'
 }
 
 export type AuthenticationInput = {
@@ -415,319 +415,319 @@ export type CreateCustomerInput = {
  */
 export enum CurrencyCode {
   /** United Arab Emirates dirham */
-  AED = 'AED',
+  Aed = 'AED',
   /** Afghan afghani */
-  AFN = 'AFN',
+  Afn = 'AFN',
   /** Albanian lek */
-  ALL = 'ALL',
+  All = 'ALL',
   /** Armenian dram */
-  AMD = 'AMD',
+  Amd = 'AMD',
   /** Netherlands Antillean guilder */
-  ANG = 'ANG',
+  Ang = 'ANG',
   /** Angolan kwanza */
-  AOA = 'AOA',
+  Aoa = 'AOA',
   /** Argentine peso */
-  ARS = 'ARS',
+  Ars = 'ARS',
   /** Australian dollar */
-  AUD = 'AUD',
+  Aud = 'AUD',
   /** Aruban florin */
-  AWG = 'AWG',
+  Awg = 'AWG',
   /** Azerbaijani manat */
-  AZN = 'AZN',
+  Azn = 'AZN',
   /** Bosnia and Herzegovina convertible mark */
-  BAM = 'BAM',
+  Bam = 'BAM',
   /** Barbados dollar */
-  BBD = 'BBD',
+  Bbd = 'BBD',
   /** Bangladeshi taka */
-  BDT = 'BDT',
+  Bdt = 'BDT',
   /** Bulgarian lev */
-  BGN = 'BGN',
+  Bgn = 'BGN',
   /** Bahraini dinar */
-  BHD = 'BHD',
+  Bhd = 'BHD',
   /** Burundian franc */
-  BIF = 'BIF',
+  Bif = 'BIF',
   /** Bermudian dollar */
-  BMD = 'BMD',
+  Bmd = 'BMD',
   /** Brunei dollar */
-  BND = 'BND',
+  Bnd = 'BND',
   /** Boliviano */
-  BOB = 'BOB',
+  Bob = 'BOB',
   /** Brazilian real */
-  BRL = 'BRL',
+  Brl = 'BRL',
   /** Bahamian dollar */
-  BSD = 'BSD',
+  Bsd = 'BSD',
   /** Bhutanese ngultrum */
-  BTN = 'BTN',
+  Btn = 'BTN',
   /** Botswana pula */
-  BWP = 'BWP',
+  Bwp = 'BWP',
   /** Belarusian ruble */
-  BYN = 'BYN',
+  Byn = 'BYN',
   /** Belize dollar */
-  BZD = 'BZD',
+  Bzd = 'BZD',
   /** Canadian dollar */
-  CAD = 'CAD',
+  Cad = 'CAD',
   /** Congolese franc */
-  CDF = 'CDF',
+  Cdf = 'CDF',
   /** Swiss franc */
-  CHF = 'CHF',
+  Chf = 'CHF',
   /** Chilean peso */
-  CLP = 'CLP',
+  Clp = 'CLP',
   /** Renminbi (Chinese) yuan */
-  CNY = 'CNY',
+  Cny = 'CNY',
   /** Colombian peso */
-  COP = 'COP',
+  Cop = 'COP',
   /** Costa Rican colon */
-  CRC = 'CRC',
+  Crc = 'CRC',
   /** Cuban convertible peso */
-  CUC = 'CUC',
+  Cuc = 'CUC',
   /** Cuban peso */
-  CUP = 'CUP',
+  Cup = 'CUP',
   /** Cape Verde escudo */
-  CVE = 'CVE',
+  Cve = 'CVE',
   /** Czech koruna */
-  CZK = 'CZK',
+  Czk = 'CZK',
   /** Djiboutian franc */
-  DJF = 'DJF',
+  Djf = 'DJF',
   /** Danish krone */
-  DKK = 'DKK',
+  Dkk = 'DKK',
   /** Dominican peso */
-  DOP = 'DOP',
+  Dop = 'DOP',
   /** Algerian dinar */
-  DZD = 'DZD',
+  Dzd = 'DZD',
   /** Egyptian pound */
-  EGP = 'EGP',
+  Egp = 'EGP',
   /** Eritrean nakfa */
-  ERN = 'ERN',
+  Ern = 'ERN',
   /** Ethiopian birr */
-  ETB = 'ETB',
+  Etb = 'ETB',
   /** Euro */
-  EUR = 'EUR',
+  Eur = 'EUR',
   /** Fiji dollar */
-  FJD = 'FJD',
+  Fjd = 'FJD',
   /** Falkland Islands pound */
-  FKP = 'FKP',
+  Fkp = 'FKP',
   /** Pound sterling */
-  GBP = 'GBP',
+  Gbp = 'GBP',
   /** Georgian lari */
-  GEL = 'GEL',
+  Gel = 'GEL',
   /** Ghanaian cedi */
-  GHS = 'GHS',
+  Ghs = 'GHS',
   /** Gibraltar pound */
-  GIP = 'GIP',
+  Gip = 'GIP',
   /** Gambian dalasi */
-  GMD = 'GMD',
+  Gmd = 'GMD',
   /** Guinean franc */
-  GNF = 'GNF',
+  Gnf = 'GNF',
   /** Guatemalan quetzal */
-  GTQ = 'GTQ',
+  Gtq = 'GTQ',
   /** Guyanese dollar */
-  GYD = 'GYD',
+  Gyd = 'GYD',
   /** Hong Kong dollar */
-  HKD = 'HKD',
+  Hkd = 'HKD',
   /** Honduran lempira */
-  HNL = 'HNL',
+  Hnl = 'HNL',
   /** Croatian kuna */
-  HRK = 'HRK',
+  Hrk = 'HRK',
   /** Haitian gourde */
-  HTG = 'HTG',
+  Htg = 'HTG',
   /** Hungarian forint */
-  HUF = 'HUF',
+  Huf = 'HUF',
   /** Indonesian rupiah */
-  IDR = 'IDR',
+  Idr = 'IDR',
   /** Israeli new shekel */
-  ILS = 'ILS',
+  Ils = 'ILS',
   /** Indian rupee */
-  INR = 'INR',
+  Inr = 'INR',
   /** Iraqi dinar */
-  IQD = 'IQD',
+  Iqd = 'IQD',
   /** Iranian rial */
-  IRR = 'IRR',
+  Irr = 'IRR',
   /** Icelandic króna */
-  ISK = 'ISK',
+  Isk = 'ISK',
   /** Jamaican dollar */
-  JMD = 'JMD',
+  Jmd = 'JMD',
   /** Jordanian dinar */
-  JOD = 'JOD',
+  Jod = 'JOD',
   /** Japanese yen */
-  JPY = 'JPY',
+  Jpy = 'JPY',
   /** Kenyan shilling */
-  KES = 'KES',
+  Kes = 'KES',
   /** Kyrgyzstani som */
-  KGS = 'KGS',
+  Kgs = 'KGS',
   /** Cambodian riel */
-  KHR = 'KHR',
+  Khr = 'KHR',
   /** Comoro franc */
-  KMF = 'KMF',
+  Kmf = 'KMF',
   /** North Korean won */
-  KPW = 'KPW',
+  Kpw = 'KPW',
   /** South Korean won */
-  KRW = 'KRW',
+  Krw = 'KRW',
   /** Kuwaiti dinar */
-  KWD = 'KWD',
+  Kwd = 'KWD',
   /** Cayman Islands dollar */
-  KYD = 'KYD',
+  Kyd = 'KYD',
   /** Kazakhstani tenge */
-  KZT = 'KZT',
+  Kzt = 'KZT',
   /** Lao kip */
-  LAK = 'LAK',
+  Lak = 'LAK',
   /** Lebanese pound */
-  LBP = 'LBP',
+  Lbp = 'LBP',
   /** Sri Lankan rupee */
-  LKR = 'LKR',
+  Lkr = 'LKR',
   /** Liberian dollar */
-  LRD = 'LRD',
+  Lrd = 'LRD',
   /** Lesotho loti */
-  LSL = 'LSL',
+  Lsl = 'LSL',
   /** Libyan dinar */
-  LYD = 'LYD',
+  Lyd = 'LYD',
   /** Moroccan dirham */
-  MAD = 'MAD',
+  Mad = 'MAD',
   /** Moldovan leu */
-  MDL = 'MDL',
+  Mdl = 'MDL',
   /** Malagasy ariary */
-  MGA = 'MGA',
+  Mga = 'MGA',
   /** Macedonian denar */
-  MKD = 'MKD',
+  Mkd = 'MKD',
   /** Myanmar kyat */
-  MMK = 'MMK',
+  Mmk = 'MMK',
   /** Mongolian tögrög */
-  MNT = 'MNT',
+  Mnt = 'MNT',
   /** Macanese pataca */
-  MOP = 'MOP',
+  Mop = 'MOP',
   /** Mauritanian ouguiya */
-  MRU = 'MRU',
+  Mru = 'MRU',
   /** Mauritian rupee */
-  MUR = 'MUR',
+  Mur = 'MUR',
   /** Maldivian rufiyaa */
-  MVR = 'MVR',
+  Mvr = 'MVR',
   /** Malawian kwacha */
-  MWK = 'MWK',
+  Mwk = 'MWK',
   /** Mexican peso */
-  MXN = 'MXN',
+  Mxn = 'MXN',
   /** Malaysian ringgit */
-  MYR = 'MYR',
+  Myr = 'MYR',
   /** Mozambican metical */
-  MZN = 'MZN',
+  Mzn = 'MZN',
   /** Namibian dollar */
-  NAD = 'NAD',
+  Nad = 'NAD',
   /** Nigerian naira */
-  NGN = 'NGN',
+  Ngn = 'NGN',
   /** Nicaraguan córdoba */
-  NIO = 'NIO',
+  Nio = 'NIO',
   /** Norwegian krone */
-  NOK = 'NOK',
+  Nok = 'NOK',
   /** Nepalese rupee */
-  NPR = 'NPR',
+  Npr = 'NPR',
   /** New Zealand dollar */
-  NZD = 'NZD',
+  Nzd = 'NZD',
   /** Omani rial */
-  OMR = 'OMR',
+  Omr = 'OMR',
   /** Panamanian balboa */
-  PAB = 'PAB',
+  Pab = 'PAB',
   /** Peruvian sol */
-  PEN = 'PEN',
+  Pen = 'PEN',
   /** Papua New Guinean kina */
-  PGK = 'PGK',
+  Pgk = 'PGK',
   /** Philippine peso */
-  PHP = 'PHP',
+  Php = 'PHP',
   /** Pakistani rupee */
-  PKR = 'PKR',
+  Pkr = 'PKR',
   /** Polish złoty */
-  PLN = 'PLN',
+  Pln = 'PLN',
   /** Paraguayan guaraní */
-  PYG = 'PYG',
+  Pyg = 'PYG',
   /** Qatari riyal */
-  QAR = 'QAR',
+  Qar = 'QAR',
   /** Romanian leu */
-  RON = 'RON',
+  Ron = 'RON',
   /** Serbian dinar */
-  RSD = 'RSD',
+  Rsd = 'RSD',
   /** Russian ruble */
-  RUB = 'RUB',
+  Rub = 'RUB',
   /** Rwandan franc */
-  RWF = 'RWF',
+  Rwf = 'RWF',
   /** Saudi riyal */
-  SAR = 'SAR',
+  Sar = 'SAR',
   /** Solomon Islands dollar */
-  SBD = 'SBD',
+  Sbd = 'SBD',
   /** Seychelles rupee */
-  SCR = 'SCR',
+  Scr = 'SCR',
   /** Sudanese pound */
-  SDG = 'SDG',
+  Sdg = 'SDG',
   /** Swedish krona/kronor */
-  SEK = 'SEK',
+  Sek = 'SEK',
   /** Singapore dollar */
-  SGD = 'SGD',
+  Sgd = 'SGD',
   /** Saint Helena pound */
-  SHP = 'SHP',
+  Shp = 'SHP',
   /** Sierra Leonean leone */
-  SLL = 'SLL',
+  Sll = 'SLL',
   /** Somali shilling */
-  SOS = 'SOS',
+  Sos = 'SOS',
   /** Surinamese dollar */
-  SRD = 'SRD',
+  Srd = 'SRD',
   /** South Sudanese pound */
-  SSP = 'SSP',
+  Ssp = 'SSP',
   /** São Tomé and Príncipe dobra */
-  STN = 'STN',
+  Stn = 'STN',
   /** Salvadoran colón */
-  SVC = 'SVC',
+  Svc = 'SVC',
   /** Syrian pound */
-  SYP = 'SYP',
+  Syp = 'SYP',
   /** Swazi lilangeni */
-  SZL = 'SZL',
+  Szl = 'SZL',
   /** Thai baht */
-  THB = 'THB',
+  Thb = 'THB',
   /** Tajikistani somoni */
-  TJS = 'TJS',
+  Tjs = 'TJS',
   /** Turkmenistan manat */
-  TMT = 'TMT',
+  Tmt = 'TMT',
   /** Tunisian dinar */
-  TND = 'TND',
+  Tnd = 'TND',
   /** Tongan paʻanga */
-  TOP = 'TOP',
+  Top = 'TOP',
   /** Turkish lira */
-  TRY = 'TRY',
+  Try = 'TRY',
   /** Trinidad and Tobago dollar */
-  TTD = 'TTD',
+  Ttd = 'TTD',
   /** New Taiwan dollar */
-  TWD = 'TWD',
+  Twd = 'TWD',
   /** Tanzanian shilling */
-  TZS = 'TZS',
+  Tzs = 'TZS',
   /** Ukrainian hryvnia */
-  UAH = 'UAH',
+  Uah = 'UAH',
   /** Ugandan shilling */
-  UGX = 'UGX',
+  Ugx = 'UGX',
   /** United States dollar */
-  USD = 'USD',
+  Usd = 'USD',
   /** Uruguayan peso */
-  UYU = 'UYU',
+  Uyu = 'UYU',
   /** Uzbekistan som */
-  UZS = 'UZS',
+  Uzs = 'UZS',
   /** Venezuelan bolívar soberano */
-  VES = 'VES',
+  Ves = 'VES',
   /** Vietnamese đồng */
-  VND = 'VND',
+  Vnd = 'VND',
   /** Vanuatu vatu */
-  VUV = 'VUV',
+  Vuv = 'VUV',
   /** Samoan tala */
-  WST = 'WST',
+  Wst = 'WST',
   /** CFA franc BEAC */
-  XAF = 'XAF',
+  Xaf = 'XAF',
   /** East Caribbean dollar */
-  XCD = 'XCD',
+  Xcd = 'XCD',
   /** CFA franc BCEAO */
-  XOF = 'XOF',
+  Xof = 'XOF',
   /** CFP franc (franc Pacifique) */
-  XPF = 'XPF',
+  Xpf = 'XPF',
   /** Yemeni rial */
-  YER = 'YER',
+  Yer = 'YER',
   /** South African rand */
-  ZAR = 'ZAR',
+  Zar = 'ZAR',
   /** Zambian kwacha */
-  ZMW = 'ZMW',
+  Zmw = 'ZMW',
   /** Zimbabwean dollar */
-  ZWL = 'ZWL'
+  Zwl = 'ZWL'
 }
 
 export type CurrentUser = {
@@ -904,9 +904,9 @@ export type DeletionResponse = {
 
 export enum DeletionResult {
   /** The entity was successfully deleted */
-  DELETED = 'DELETED',
+  Deleted = 'DELETED',
   /** Deletion did not take place, reason given in message */
-  NOT_DELETED = 'NOT_DELETED'
+  NotDeleted = 'NOT_DELETED'
 }
 
 export type Discount = {
@@ -926,37 +926,37 @@ export type EmailAddressConflictError = ErrorResult & {
 };
 
 export enum ErrorCode {
-  ALREADY_LOGGED_IN_ERROR = 'ALREADY_LOGGED_IN_ERROR',
-  COUPON_CODE_EXPIRED_ERROR = 'COUPON_CODE_EXPIRED_ERROR',
-  COUPON_CODE_INVALID_ERROR = 'COUPON_CODE_INVALID_ERROR',
-  COUPON_CODE_LIMIT_ERROR = 'COUPON_CODE_LIMIT_ERROR',
-  EMAIL_ADDRESS_CONFLICT_ERROR = 'EMAIL_ADDRESS_CONFLICT_ERROR',
-  GUEST_CHECKOUT_ERROR = 'GUEST_CHECKOUT_ERROR',
-  IDENTIFIER_CHANGE_TOKEN_EXPIRED_ERROR = 'IDENTIFIER_CHANGE_TOKEN_EXPIRED_ERROR',
-  IDENTIFIER_CHANGE_TOKEN_INVALID_ERROR = 'IDENTIFIER_CHANGE_TOKEN_INVALID_ERROR',
-  INELIGIBLE_PAYMENT_METHOD_ERROR = 'INELIGIBLE_PAYMENT_METHOD_ERROR',
-  INELIGIBLE_SHIPPING_METHOD_ERROR = 'INELIGIBLE_SHIPPING_METHOD_ERROR',
-  INSUFFICIENT_STOCK_ERROR = 'INSUFFICIENT_STOCK_ERROR',
-  INVALID_CREDENTIALS_ERROR = 'INVALID_CREDENTIALS_ERROR',
-  MISSING_PASSWORD_ERROR = 'MISSING_PASSWORD_ERROR',
-  NATIVE_AUTH_STRATEGY_ERROR = 'NATIVE_AUTH_STRATEGY_ERROR',
-  NEGATIVE_QUANTITY_ERROR = 'NEGATIVE_QUANTITY_ERROR',
-  NOT_VERIFIED_ERROR = 'NOT_VERIFIED_ERROR',
-  NO_ACTIVE_ORDER_ERROR = 'NO_ACTIVE_ORDER_ERROR',
-  ORDER_INTERCEPTOR_ERROR = 'ORDER_INTERCEPTOR_ERROR',
-  ORDER_LIMIT_ERROR = 'ORDER_LIMIT_ERROR',
-  ORDER_MODIFICATION_ERROR = 'ORDER_MODIFICATION_ERROR',
-  ORDER_PAYMENT_STATE_ERROR = 'ORDER_PAYMENT_STATE_ERROR',
-  ORDER_STATE_TRANSITION_ERROR = 'ORDER_STATE_TRANSITION_ERROR',
-  PASSWORD_ALREADY_SET_ERROR = 'PASSWORD_ALREADY_SET_ERROR',
-  PASSWORD_RESET_TOKEN_EXPIRED_ERROR = 'PASSWORD_RESET_TOKEN_EXPIRED_ERROR',
-  PASSWORD_RESET_TOKEN_INVALID_ERROR = 'PASSWORD_RESET_TOKEN_INVALID_ERROR',
-  PASSWORD_VALIDATION_ERROR = 'PASSWORD_VALIDATION_ERROR',
-  PAYMENT_DECLINED_ERROR = 'PAYMENT_DECLINED_ERROR',
-  PAYMENT_FAILED_ERROR = 'PAYMENT_FAILED_ERROR',
-  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
-  VERIFICATION_TOKEN_EXPIRED_ERROR = 'VERIFICATION_TOKEN_EXPIRED_ERROR',
-  VERIFICATION_TOKEN_INVALID_ERROR = 'VERIFICATION_TOKEN_INVALID_ERROR'
+  AlreadyLoggedInError = 'ALREADY_LOGGED_IN_ERROR',
+  CouponCodeExpiredError = 'COUPON_CODE_EXPIRED_ERROR',
+  CouponCodeInvalidError = 'COUPON_CODE_INVALID_ERROR',
+  CouponCodeLimitError = 'COUPON_CODE_LIMIT_ERROR',
+  EmailAddressConflictError = 'EMAIL_ADDRESS_CONFLICT_ERROR',
+  GuestCheckoutError = 'GUEST_CHECKOUT_ERROR',
+  IdentifierChangeTokenExpiredError = 'IDENTIFIER_CHANGE_TOKEN_EXPIRED_ERROR',
+  IdentifierChangeTokenInvalidError = 'IDENTIFIER_CHANGE_TOKEN_INVALID_ERROR',
+  IneligiblePaymentMethodError = 'INELIGIBLE_PAYMENT_METHOD_ERROR',
+  IneligibleShippingMethodError = 'INELIGIBLE_SHIPPING_METHOD_ERROR',
+  InsufficientStockError = 'INSUFFICIENT_STOCK_ERROR',
+  InvalidCredentialsError = 'INVALID_CREDENTIALS_ERROR',
+  MissingPasswordError = 'MISSING_PASSWORD_ERROR',
+  NativeAuthStrategyError = 'NATIVE_AUTH_STRATEGY_ERROR',
+  NegativeQuantityError = 'NEGATIVE_QUANTITY_ERROR',
+  NotVerifiedError = 'NOT_VERIFIED_ERROR',
+  NoActiveOrderError = 'NO_ACTIVE_ORDER_ERROR',
+  OrderInterceptorError = 'ORDER_INTERCEPTOR_ERROR',
+  OrderLimitError = 'ORDER_LIMIT_ERROR',
+  OrderModificationError = 'ORDER_MODIFICATION_ERROR',
+  OrderPaymentStateError = 'ORDER_PAYMENT_STATE_ERROR',
+  OrderStateTransitionError = 'ORDER_STATE_TRANSITION_ERROR',
+  PasswordAlreadySetError = 'PASSWORD_ALREADY_SET_ERROR',
+  PasswordResetTokenExpiredError = 'PASSWORD_RESET_TOKEN_EXPIRED_ERROR',
+  PasswordResetTokenInvalidError = 'PASSWORD_RESET_TOKEN_INVALID_ERROR',
+  PasswordValidationError = 'PASSWORD_VALIDATION_ERROR',
+  PaymentDeclinedError = 'PAYMENT_DECLINED_ERROR',
+  PaymentFailedError = 'PAYMENT_FAILED_ERROR',
+  UnknownError = 'UNKNOWN_ERROR',
+  VerificationTokenExpiredError = 'VERIFICATION_TOKEN_EXPIRED_ERROR',
+  VerificationTokenInvalidError = 'VERIFICATION_TOKEN_INVALID_ERROR'
 }
 
 export type ErrorResult = {
@@ -1171,9 +1171,9 @@ export type FulfillmentLine = {
 };
 
 export enum GlobalFlag {
-  FALSE = 'FALSE',
-  INHERIT = 'INHERIT',
-  TRUE = 'TRUE'
+  False = 'FALSE',
+  Inherit = 'INHERIT',
+  True = 'TRUE'
 }
 
 /** Returned when attempting to set the Customer on a guest checkout when the configured GuestCheckoutStrategy does not allow it. */
@@ -1229,31 +1229,31 @@ export type HistoryEntrySortParameter = {
 };
 
 export enum HistoryEntryType {
-  CUSTOMER_ADDED_TO_GROUP = 'CUSTOMER_ADDED_TO_GROUP',
-  CUSTOMER_ADDRESS_CREATED = 'CUSTOMER_ADDRESS_CREATED',
-  CUSTOMER_ADDRESS_DELETED = 'CUSTOMER_ADDRESS_DELETED',
-  CUSTOMER_ADDRESS_UPDATED = 'CUSTOMER_ADDRESS_UPDATED',
-  CUSTOMER_DETAIL_UPDATED = 'CUSTOMER_DETAIL_UPDATED',
-  CUSTOMER_EMAIL_UPDATE_REQUESTED = 'CUSTOMER_EMAIL_UPDATE_REQUESTED',
-  CUSTOMER_EMAIL_UPDATE_VERIFIED = 'CUSTOMER_EMAIL_UPDATE_VERIFIED',
-  CUSTOMER_NOTE = 'CUSTOMER_NOTE',
-  CUSTOMER_PASSWORD_RESET_REQUESTED = 'CUSTOMER_PASSWORD_RESET_REQUESTED',
-  CUSTOMER_PASSWORD_RESET_VERIFIED = 'CUSTOMER_PASSWORD_RESET_VERIFIED',
-  CUSTOMER_PASSWORD_UPDATED = 'CUSTOMER_PASSWORD_UPDATED',
-  CUSTOMER_REGISTERED = 'CUSTOMER_REGISTERED',
-  CUSTOMER_REMOVED_FROM_GROUP = 'CUSTOMER_REMOVED_FROM_GROUP',
-  CUSTOMER_VERIFIED = 'CUSTOMER_VERIFIED',
-  ORDER_CANCELLATION = 'ORDER_CANCELLATION',
-  ORDER_COUPON_APPLIED = 'ORDER_COUPON_APPLIED',
-  ORDER_COUPON_REMOVED = 'ORDER_COUPON_REMOVED',
-  ORDER_CUSTOMER_UPDATED = 'ORDER_CUSTOMER_UPDATED',
-  ORDER_FULFILLMENT = 'ORDER_FULFILLMENT',
-  ORDER_FULFILLMENT_TRANSITION = 'ORDER_FULFILLMENT_TRANSITION',
-  ORDER_MODIFIED = 'ORDER_MODIFIED',
-  ORDER_NOTE = 'ORDER_NOTE',
-  ORDER_PAYMENT_TRANSITION = 'ORDER_PAYMENT_TRANSITION',
-  ORDER_REFUND_TRANSITION = 'ORDER_REFUND_TRANSITION',
-  ORDER_STATE_TRANSITION = 'ORDER_STATE_TRANSITION'
+  CustomerAddedToGroup = 'CUSTOMER_ADDED_TO_GROUP',
+  CustomerAddressCreated = 'CUSTOMER_ADDRESS_CREATED',
+  CustomerAddressDeleted = 'CUSTOMER_ADDRESS_DELETED',
+  CustomerAddressUpdated = 'CUSTOMER_ADDRESS_UPDATED',
+  CustomerDetailUpdated = 'CUSTOMER_DETAIL_UPDATED',
+  CustomerEmailUpdateRequested = 'CUSTOMER_EMAIL_UPDATE_REQUESTED',
+  CustomerEmailUpdateVerified = 'CUSTOMER_EMAIL_UPDATE_VERIFIED',
+  CustomerNote = 'CUSTOMER_NOTE',
+  CustomerPasswordResetRequested = 'CUSTOMER_PASSWORD_RESET_REQUESTED',
+  CustomerPasswordResetVerified = 'CUSTOMER_PASSWORD_RESET_VERIFIED',
+  CustomerPasswordUpdated = 'CUSTOMER_PASSWORD_UPDATED',
+  CustomerRegistered = 'CUSTOMER_REGISTERED',
+  CustomerRemovedFromGroup = 'CUSTOMER_REMOVED_FROM_GROUP',
+  CustomerVerified = 'CUSTOMER_VERIFIED',
+  OrderCancellation = 'ORDER_CANCELLATION',
+  OrderCouponApplied = 'ORDER_COUPON_APPLIED',
+  OrderCouponRemoved = 'ORDER_COUPON_REMOVED',
+  OrderCustomerUpdated = 'ORDER_CUSTOMER_UPDATED',
+  OrderFulfillment = 'ORDER_FULFILLMENT',
+  OrderFulfillmentTransition = 'ORDER_FULFILLMENT_TRANSITION',
+  OrderModified = 'ORDER_MODIFIED',
+  OrderNote = 'ORDER_NOTE',
+  OrderPaymentTransition = 'ORDER_PAYMENT_TRANSITION',
+  OrderRefundTransition = 'ORDER_REFUND_TRANSITION',
+  OrderStateTransition = 'ORDER_STATE_TRANSITION'
 }
 
 /** Operators for filtering on a list of ID fields */
@@ -1363,319 +1363,319 @@ export type InvalidCredentialsError = ErrorResult & {
  */
 export enum LanguageCode {
   /** Afrikaans */
-  af = 'af',
+  Af = 'af',
   /** Akan */
-  ak = 'ak',
+  Ak = 'ak',
   /** Amharic */
-  am = 'am',
+  Am = 'am',
   /** Arabic */
-  ar = 'ar',
+  Ar = 'ar',
   /** Assamese */
-  as = 'as',
+  As = 'as',
   /** Azerbaijani */
-  az = 'az',
+  Az = 'az',
   /** Belarusian */
-  be = 'be',
+  Be = 'be',
   /** Bulgarian */
-  bg = 'bg',
+  Bg = 'bg',
   /** Bambara */
-  bm = 'bm',
+  Bm = 'bm',
   /** Bangla */
-  bn = 'bn',
+  Bn = 'bn',
   /** Tibetan */
-  bo = 'bo',
+  Bo = 'bo',
   /** Breton */
-  br = 'br',
+  Br = 'br',
   /** Bosnian */
-  bs = 'bs',
+  Bs = 'bs',
   /** Catalan */
-  ca = 'ca',
+  Ca = 'ca',
   /** Chechen */
-  ce = 'ce',
+  Ce = 'ce',
   /** Corsican */
-  co = 'co',
+  Co = 'co',
   /** Czech */
-  cs = 'cs',
+  Cs = 'cs',
   /** Church Slavic */
-  cu = 'cu',
+  Cu = 'cu',
   /** Welsh */
-  cy = 'cy',
+  Cy = 'cy',
   /** Danish */
-  da = 'da',
+  Da = 'da',
   /** German */
-  de = 'de',
+  De = 'de',
   /** Austrian German */
-  de_AT = 'de_AT',
+  DeAt = 'de_AT',
   /** Swiss High German */
-  de_CH = 'de_CH',
+  DeCh = 'de_CH',
   /** Dzongkha */
-  dz = 'dz',
+  Dz = 'dz',
   /** Ewe */
-  ee = 'ee',
+  Ee = 'ee',
   /** Greek */
-  el = 'el',
+  El = 'el',
   /** English */
-  en = 'en',
+  En = 'en',
   /** Australian English */
-  en_AU = 'en_AU',
+  EnAu = 'en_AU',
   /** Canadian English */
-  en_CA = 'en_CA',
+  EnCa = 'en_CA',
   /** British English */
-  en_GB = 'en_GB',
+  EnGb = 'en_GB',
   /** American English */
-  en_US = 'en_US',
+  EnUs = 'en_US',
   /** Esperanto */
-  eo = 'eo',
+  Eo = 'eo',
   /** Spanish */
-  es = 'es',
+  Es = 'es',
   /** European Spanish */
-  es_ES = 'es_ES',
+  EsEs = 'es_ES',
   /** Mexican Spanish */
-  es_MX = 'es_MX',
+  EsMx = 'es_MX',
   /** Estonian */
-  et = 'et',
+  Et = 'et',
   /** Basque */
-  eu = 'eu',
+  Eu = 'eu',
   /** Persian */
-  fa = 'fa',
+  Fa = 'fa',
   /** Dari */
-  fa_AF = 'fa_AF',
+  FaAf = 'fa_AF',
   /** Fulah */
-  ff = 'ff',
+  Ff = 'ff',
   /** Finnish */
-  fi = 'fi',
+  Fi = 'fi',
   /** Faroese */
-  fo = 'fo',
+  Fo = 'fo',
   /** French */
-  fr = 'fr',
+  Fr = 'fr',
   /** Canadian French */
-  fr_CA = 'fr_CA',
+  FrCa = 'fr_CA',
   /** Swiss French */
-  fr_CH = 'fr_CH',
+  FrCh = 'fr_CH',
   /** Western Frisian */
-  fy = 'fy',
+  Fy = 'fy',
   /** Irish */
-  ga = 'ga',
+  Ga = 'ga',
   /** Scottish Gaelic */
-  gd = 'gd',
+  Gd = 'gd',
   /** Galician */
-  gl = 'gl',
+  Gl = 'gl',
   /** Gujarati */
-  gu = 'gu',
+  Gu = 'gu',
   /** Manx */
-  gv = 'gv',
+  Gv = 'gv',
   /** Hausa */
-  ha = 'ha',
+  Ha = 'ha',
   /** Hebrew */
-  he = 'he',
+  He = 'he',
   /** Hindi */
-  hi = 'hi',
+  Hi = 'hi',
   /** Croatian */
-  hr = 'hr',
+  Hr = 'hr',
   /** Haitian Creole */
-  ht = 'ht',
+  Ht = 'ht',
   /** Hungarian */
-  hu = 'hu',
+  Hu = 'hu',
   /** Armenian */
-  hy = 'hy',
+  Hy = 'hy',
   /** Interlingua */
-  ia = 'ia',
+  Ia = 'ia',
   /** Indonesian */
-  id = 'id',
+  Id = 'id',
   /** Igbo */
-  ig = 'ig',
+  Ig = 'ig',
   /** Sichuan Yi */
-  ii = 'ii',
+  Ii = 'ii',
   /** Icelandic */
-  is = 'is',
+  Is = 'is',
   /** Italian */
-  it = 'it',
+  It = 'it',
   /** Japanese */
-  ja = 'ja',
+  Ja = 'ja',
   /** Javanese */
-  jv = 'jv',
+  Jv = 'jv',
   /** Georgian */
-  ka = 'ka',
+  Ka = 'ka',
   /** Kikuyu */
-  ki = 'ki',
+  Ki = 'ki',
   /** Kazakh */
-  kk = 'kk',
+  Kk = 'kk',
   /** Kalaallisut */
-  kl = 'kl',
+  Kl = 'kl',
   /** Khmer */
-  km = 'km',
+  Km = 'km',
   /** Kannada */
-  kn = 'kn',
+  Kn = 'kn',
   /** Korean */
-  ko = 'ko',
+  Ko = 'ko',
   /** Kashmiri */
-  ks = 'ks',
+  Ks = 'ks',
   /** Kurdish */
-  ku = 'ku',
+  Ku = 'ku',
   /** Cornish */
-  kw = 'kw',
+  Kw = 'kw',
   /** Kyrgyz */
-  ky = 'ky',
+  Ky = 'ky',
   /** Latin */
-  la = 'la',
+  La = 'la',
   /** Luxembourgish */
-  lb = 'lb',
+  Lb = 'lb',
   /** Ganda */
-  lg = 'lg',
+  Lg = 'lg',
   /** Lingala */
-  ln = 'ln',
+  Ln = 'ln',
   /** Lao */
-  lo = 'lo',
+  Lo = 'lo',
   /** Lithuanian */
-  lt = 'lt',
+  Lt = 'lt',
   /** Luba-Katanga */
-  lu = 'lu',
+  Lu = 'lu',
   /** Latvian */
-  lv = 'lv',
+  Lv = 'lv',
   /** Malagasy */
-  mg = 'mg',
+  Mg = 'mg',
   /** Maori */
-  mi = 'mi',
+  Mi = 'mi',
   /** Macedonian */
-  mk = 'mk',
+  Mk = 'mk',
   /** Malayalam */
-  ml = 'ml',
+  Ml = 'ml',
   /** Mongolian */
-  mn = 'mn',
+  Mn = 'mn',
   /** Marathi */
-  mr = 'mr',
+  Mr = 'mr',
   /** Malay */
-  ms = 'ms',
+  Ms = 'ms',
   /** Maltese */
-  mt = 'mt',
+  Mt = 'mt',
   /** Burmese */
-  my = 'my',
+  My = 'my',
   /** Norwegian Bokmål */
-  nb = 'nb',
+  Nb = 'nb',
   /** North Ndebele */
-  nd = 'nd',
+  Nd = 'nd',
   /** Nepali */
-  ne = 'ne',
+  Ne = 'ne',
   /** Dutch */
-  nl = 'nl',
+  Nl = 'nl',
   /** Flemish */
-  nl_BE = 'nl_BE',
+  NlBe = 'nl_BE',
   /** Norwegian Nynorsk */
-  nn = 'nn',
+  Nn = 'nn',
   /** Nyanja */
-  ny = 'ny',
+  Ny = 'ny',
   /** Oromo */
-  om = 'om',
+  Om = 'om',
   /** Odia */
-  or = 'or',
+  Or = 'or',
   /** Ossetic */
-  os = 'os',
+  Os = 'os',
   /** Punjabi */
-  pa = 'pa',
+  Pa = 'pa',
   /** Polish */
-  pl = 'pl',
+  Pl = 'pl',
   /** Pashto */
-  ps = 'ps',
+  Ps = 'ps',
   /** Portuguese */
-  pt = 'pt',
+  Pt = 'pt',
   /** Brazilian Portuguese */
-  pt_BR = 'pt_BR',
+  PtBr = 'pt_BR',
   /** European Portuguese */
-  pt_PT = 'pt_PT',
+  PtPt = 'pt_PT',
   /** Quechua */
-  qu = 'qu',
+  Qu = 'qu',
   /** Romansh */
-  rm = 'rm',
+  Rm = 'rm',
   /** Rundi */
-  rn = 'rn',
+  Rn = 'rn',
   /** Romanian */
-  ro = 'ro',
+  Ro = 'ro',
   /** Moldavian */
-  ro_MD = 'ro_MD',
+  RoMd = 'ro_MD',
   /** Russian */
-  ru = 'ru',
+  Ru = 'ru',
   /** Kinyarwanda */
-  rw = 'rw',
+  Rw = 'rw',
   /** Sanskrit */
-  sa = 'sa',
+  Sa = 'sa',
   /** Sindhi */
-  sd = 'sd',
+  Sd = 'sd',
   /** Northern Sami */
-  se = 'se',
+  Se = 'se',
   /** Sango */
-  sg = 'sg',
+  Sg = 'sg',
   /** Sinhala */
-  si = 'si',
+  Si = 'si',
   /** Slovak */
-  sk = 'sk',
+  Sk = 'sk',
   /** Slovenian */
-  sl = 'sl',
+  Sl = 'sl',
   /** Samoan */
-  sm = 'sm',
+  Sm = 'sm',
   /** Shona */
-  sn = 'sn',
+  Sn = 'sn',
   /** Somali */
-  so = 'so',
+  So = 'so',
   /** Albanian */
-  sq = 'sq',
+  Sq = 'sq',
   /** Serbian */
-  sr = 'sr',
+  Sr = 'sr',
   /** Southern Sotho */
-  st = 'st',
+  St = 'st',
   /** Sundanese */
-  su = 'su',
+  Su = 'su',
   /** Swedish */
-  sv = 'sv',
+  Sv = 'sv',
   /** Swahili */
-  sw = 'sw',
+  Sw = 'sw',
   /** Congo Swahili */
-  sw_CD = 'sw_CD',
+  SwCd = 'sw_CD',
   /** Tamil */
-  ta = 'ta',
+  Ta = 'ta',
   /** Telugu */
-  te = 'te',
+  Te = 'te',
   /** Tajik */
-  tg = 'tg',
+  Tg = 'tg',
   /** Thai */
-  th = 'th',
+  Th = 'th',
   /** Tigrinya */
-  ti = 'ti',
+  Ti = 'ti',
   /** Turkmen */
-  tk = 'tk',
+  Tk = 'tk',
   /** Tongan */
-  to = 'to',
+  To = 'to',
   /** Turkish */
-  tr = 'tr',
+  Tr = 'tr',
   /** Tatar */
-  tt = 'tt',
+  Tt = 'tt',
   /** Uyghur */
-  ug = 'ug',
+  Ug = 'ug',
   /** Ukrainian */
-  uk = 'uk',
+  Uk = 'uk',
   /** Urdu */
-  ur = 'ur',
+  Ur = 'ur',
   /** Uzbek */
-  uz = 'uz',
+  Uz = 'uz',
   /** Vietnamese */
-  vi = 'vi',
+  Vi = 'vi',
   /** Volapük */
-  vo = 'vo',
+  Vo = 'vo',
   /** Wolof */
-  wo = 'wo',
+  Wo = 'wo',
   /** Xhosa */
-  xh = 'xh',
+  Xh = 'xh',
   /** Yiddish */
-  yi = 'yi',
+  Yi = 'yi',
   /** Yoruba */
-  yo = 'yo',
+  Yo = 'yo',
   /** Chinese */
-  zh = 'zh',
+  Zh = 'zh',
   /** Simplified Chinese */
-  zh_Hans = 'zh_Hans',
+  ZhHans = 'zh_Hans',
   /** Traditional Chinese */
-  zh_Hant = 'zh_Hant',
+  ZhHant = 'zh_Hant',
   /** Zulu */
-  zu = 'zu'
+  Zu = 'zu'
 }
 
 export type LocaleStringCustomFieldConfig = CustomField & {
@@ -1715,8 +1715,8 @@ export type LocalizedString = {
 };
 
 export enum LogicalOperator {
-  AND = 'AND',
-  OR = 'OR'
+  And = 'AND',
+  Or = 'OR'
 }
 
 /** Returned when attempting to register or verify a customer account without a password, when one is required. */
@@ -3281,8 +3281,8 @@ export type SinglePrice = {
 };
 
 export enum SortOrder {
-  ASC = 'ASC',
-  DESC = 'DESC'
+  Asc = 'ASC',
+  Desc = 'DESC'
 }
 
 export type StringCustomFieldConfig = CustomField & {
@@ -3545,318 +3545,18 @@ export type Zone = Node & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type GetCustomerAddressesQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type GetCustomerAddressesQuery = { __typename?: 'Query', activeCustomer?: { __typename?: 'Customer', id: string, addresses?: Array<{ __typename?: 'Address', id: string, fullName?: string, company?: string, streetLine1: string, streetLine2?: string, city?: string, province?: string, postalCode?: string, phoneNumber?: string, defaultShippingAddress?: boolean, defaultBillingAddress?: boolean, country: { __typename?: 'Country', id: string, code: string, name: string } }> } };
-
-export type GetAvailableCountriesQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type GetAvailableCountriesQuery = { __typename?: 'Query', availableCountries: Array<{ __typename?: 'Country', id: string, code: string, name: string, enabled: boolean }> };
-
-export type GetActiveCustomerQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type GetActiveCustomerQuery = { __typename?: 'Query', activeCustomer?: { __typename?: 'Customer', id: string, firstName: string, lastName: string, emailAddress: string, phoneNumber?: string } };
-
-export type GetCollectionsQueryVariables = Exact<{
-  options?: InputMaybe<CollectionListOptions>;
-}>;
-
-
-export type GetCollectionsQuery = { __typename?: 'Query', collections: { __typename?: 'CollectionList', items: Array<{ __typename?: 'Collection', id: string, name: string, slug: string, parent?: { __typename?: 'Collection', id: string, name: string, slug: string }, featuredAsset?: { __typename?: 'Asset', id: string, width: number, height: number, name: string, preview: string, focalPoint?: { __typename?: 'Coordinate', x: number, y: number } } }> } };
-
-export type AssetFragment = { __typename?: 'Asset', id: string, width: number, height: number, name: string, preview: string, focalPoint?: { __typename?: 'Coordinate', x: number, y: number } };
-
-export type CartFragment = { __typename?: 'Order', id: string, code: string, state: string, active: boolean, updatedAt: any, orderPlacedAt?: any, totalQuantity: number, subTotal: any, subTotalWithTax: any, total: any, totalWithTax: any, shipping: any, shippingWithTax: any, lines: Array<{ __typename?: 'OrderLine', id: string, unitPrice: any, unitPriceWithTax: any, quantity: number, linePriceWithTax: any, discountedLinePriceWithTax: any, featuredAsset?: { __typename?: 'Asset', id: string, width: number, height: number, name: string, preview: string, focalPoint?: { __typename?: 'Coordinate', x: number, y: number } }, productVariant: { __typename?: 'ProductVariant', id: string, name: string }, discounts: Array<{ __typename?: 'Discount', amount: any, amountWithTax: any, description: string, adjustmentSource: string, type: AdjustmentType }> }>, shippingLines: Array<{ __typename?: 'ShippingLine', priceWithTax: any, shippingMethod: { __typename?: 'ShippingMethod', id: string, code: string, name: string, description: string } }>, discounts: Array<{ __typename?: 'Discount', amount: any, amountWithTax: any, description: string, adjustmentSource: string, type: AdjustmentType }> };
-
-export type CountryFragment = { __typename?: 'Country', id: string, code: string, name: string, enabled: boolean };
-
-export type OrderAddressFragment = { __typename?: 'OrderAddress', fullName?: string, company?: string, streetLine1?: string, streetLine2?: string, city?: string, province?: string, postalCode?: string, country?: string, phoneNumber?: string };
-
-export type AddressFragment = { __typename?: 'Address', id: string, fullName?: string, company?: string, streetLine1: string, streetLine2?: string, city?: string, province?: string, postalCode?: string, phoneNumber?: string, defaultShippingAddress?: boolean, defaultBillingAddress?: boolean, country: { __typename?: 'Country', id: string, code: string, name: string } };
-
-type ErrorResult_AlreadyLoggedInError_Fragment = { __typename?: 'AlreadyLoggedInError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_CouponCodeExpiredError_Fragment = { __typename?: 'CouponCodeExpiredError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_CouponCodeInvalidError_Fragment = { __typename?: 'CouponCodeInvalidError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_CouponCodeLimitError_Fragment = { __typename?: 'CouponCodeLimitError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_EmailAddressConflictError_Fragment = { __typename?: 'EmailAddressConflictError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_GuestCheckoutError_Fragment = { __typename?: 'GuestCheckoutError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_IdentifierChangeTokenExpiredError_Fragment = { __typename?: 'IdentifierChangeTokenExpiredError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_IdentifierChangeTokenInvalidError_Fragment = { __typename?: 'IdentifierChangeTokenInvalidError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_IneligiblePaymentMethodError_Fragment = { __typename?: 'IneligiblePaymentMethodError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_IneligibleShippingMethodError_Fragment = { __typename?: 'IneligibleShippingMethodError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_InsufficientStockError_Fragment = { __typename?: 'InsufficientStockError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_InvalidCredentialsError_Fragment = { __typename?: 'InvalidCredentialsError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_MissingPasswordError_Fragment = { __typename?: 'MissingPasswordError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_NativeAuthStrategyError_Fragment = { __typename?: 'NativeAuthStrategyError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_NegativeQuantityError_Fragment = { __typename?: 'NegativeQuantityError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_NoActiveOrderError_Fragment = { __typename?: 'NoActiveOrderError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_NotVerifiedError_Fragment = { __typename?: 'NotVerifiedError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_OrderInterceptorError_Fragment = { __typename?: 'OrderInterceptorError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_OrderLimitError_Fragment = { __typename?: 'OrderLimitError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_OrderModificationError_Fragment = { __typename?: 'OrderModificationError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_OrderPaymentStateError_Fragment = { __typename?: 'OrderPaymentStateError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_OrderStateTransitionError_Fragment = { __typename?: 'OrderStateTransitionError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_PasswordAlreadySetError_Fragment = { __typename?: 'PasswordAlreadySetError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_PasswordResetTokenExpiredError_Fragment = { __typename?: 'PasswordResetTokenExpiredError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_PasswordResetTokenInvalidError_Fragment = { __typename?: 'PasswordResetTokenInvalidError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_PasswordValidationError_Fragment = { __typename?: 'PasswordValidationError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_PaymentDeclinedError_Fragment = { __typename?: 'PaymentDeclinedError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_PaymentFailedError_Fragment = { __typename?: 'PaymentFailedError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_VerificationTokenExpiredError_Fragment = { __typename?: 'VerificationTokenExpiredError', errorCode: ErrorCode, message: string };
-
-type ErrorResult_VerificationTokenInvalidError_Fragment = { __typename?: 'VerificationTokenInvalidError', errorCode: ErrorCode, message: string };
-
-export type ErrorResultFragment = ErrorResult_AlreadyLoggedInError_Fragment | ErrorResult_CouponCodeExpiredError_Fragment | ErrorResult_CouponCodeInvalidError_Fragment | ErrorResult_CouponCodeLimitError_Fragment | ErrorResult_EmailAddressConflictError_Fragment | ErrorResult_GuestCheckoutError_Fragment | ErrorResult_IdentifierChangeTokenExpiredError_Fragment | ErrorResult_IdentifierChangeTokenInvalidError_Fragment | ErrorResult_IneligiblePaymentMethodError_Fragment | ErrorResult_IneligibleShippingMethodError_Fragment | ErrorResult_InsufficientStockError_Fragment | ErrorResult_InvalidCredentialsError_Fragment | ErrorResult_MissingPasswordError_Fragment | ErrorResult_NativeAuthStrategyError_Fragment | ErrorResult_NegativeQuantityError_Fragment | ErrorResult_NoActiveOrderError_Fragment | ErrorResult_NotVerifiedError_Fragment | ErrorResult_OrderInterceptorError_Fragment | ErrorResult_OrderLimitError_Fragment | ErrorResult_OrderModificationError_Fragment | ErrorResult_OrderPaymentStateError_Fragment | ErrorResult_OrderStateTransitionError_Fragment | ErrorResult_PasswordAlreadySetError_Fragment | ErrorResult_PasswordResetTokenExpiredError_Fragment | ErrorResult_PasswordResetTokenInvalidError_Fragment | ErrorResult_PasswordValidationError_Fragment | ErrorResult_PaymentDeclinedError_Fragment | ErrorResult_PaymentFailedError_Fragment | ErrorResult_VerificationTokenExpiredError_Fragment | ErrorResult_VerificationTokenInvalidError_Fragment;
-
 export type GetProductQueryVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
 
-export type GetProductQuery = { __typename?: 'Query', product?: { __typename?: 'Product', id: string, name: string, slug: string, description: string, enabled: boolean, optionGroups: Array<{ __typename?: 'ProductOptionGroup', id: string, name: string, options: Array<{ __typename?: 'ProductOption', id: string, name: string, code: string, customFields?: { __typename?: 'ProductOptionCustomFields', description?: string, isColor?: boolean } }> }>, assets: Array<{ __typename?: 'Asset', id: string, name: string, source: string, preview: string, width: number, height: number }>, featuredAsset?: { __typename?: 'Asset', id: string, name: string, type: AssetType, source: string, customFields?: any, tags: Array<{ __typename?: 'Tag', id: string, value: string }> }, variants: Array<{ __typename?: 'ProductVariant', id: string, productId: string, sku: string, name: string, price: any, currencyCode: CurrencyCode, priceWithTax: any, customFields?: any }>, customFields?: { __typename?: 'ProductCustomFields', shortDesc?: string } } };
+export type GetProductQuery = { __typename?: 'Query', product?: { __typename?: 'Product', id: string, name: string, slug: string, description: string, enabled: boolean, optionGroups: Array<{ __typename?: 'ProductOptionGroup', id: string, name: string, options: Array<{ __typename?: 'ProductOption', id: string, name: string, code: string, customFields?: { __typename?: 'ProductOptionCustomFields', description?: string | null, isColor?: boolean | null } | null }> }>, assets: Array<{ __typename?: 'Asset', id: string, name: string, source: string, preview: string, width: number, height: number }>, featuredAsset?: { __typename?: 'Asset', id: string, name: string, type: AssetType, source: string, customFields?: any | null, tags: Array<{ __typename?: 'Tag', id: string, value: string }> } | null, variants: Array<{ __typename?: 'ProductVariant', id: string, productId: string, sku: string, name: string, price: any, customFields?: any | null }>, customFields?: { __typename?: 'ProductCustomFields', shortDesc?: string | null } | null } | null };
 
 export type GetProductsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetProductsQuery = { __typename?: 'Query', products: { __typename?: 'ProductList', items: Array<{ __typename?: 'Product', id: string, name: string, slug: string, description: string, featuredAsset?: { __typename?: 'Asset', source: string }, customFields?: { __typename?: 'ProductCustomFields', shortDesc?: string }, variants: Array<{ __typename?: 'ProductVariant', id: string, productId: string, sku: string, name: string, price: any, currencyCode: CurrencyCode, priceWithTax: any }> }> } };
+export type GetProductsQuery = { __typename?: 'Query', products: { __typename?: 'ProductList', items: Array<{ __typename?: 'Product', id: string, name: string, slug: string, description: string, featuredAsset?: { __typename?: 'Asset', source: string } | null, customFields?: { __typename?: 'ProductCustomFields', shortDesc?: string | null } | null }> } };
 
-export const AssetFragmentDoc = gql`
-    fragment Asset on Asset {
-  id
-  width
-  height
-  name
-  preview
-  focalPoint {
-    x
-    y
-  }
-}
-    `;
-export const CartFragmentDoc = gql`
-    fragment Cart on Order {
-  id
-  code
-  state
-  active
-  updatedAt
-  orderPlacedAt
-  lines {
-    id
-    featuredAsset {
-      ...Asset
-    }
-    unitPrice
-    unitPriceWithTax
-    quantity
-    linePriceWithTax
-    discountedLinePriceWithTax
-    productVariant {
-      id
-      name
-    }
-    discounts {
-      amount
-      amountWithTax
-      description
-      adjustmentSource
-      type
-    }
-  }
-  totalQuantity
-  subTotal
-  subTotalWithTax
-  total
-  totalWithTax
-  shipping
-  shippingWithTax
-  shippingLines {
-    priceWithTax
-    shippingMethod {
-      id
-      code
-      name
-      description
-    }
-  }
-  discounts {
-    amount
-    amountWithTax
-    description
-    adjustmentSource
-    type
-  }
-}
-    ${AssetFragmentDoc}`;
-export const CountryFragmentDoc = gql`
-    fragment Country on Country {
-  id
-  code
-  name
-  enabled
-}
-    `;
-export const OrderAddressFragmentDoc = gql`
-    fragment OrderAddress on OrderAddress {
-  fullName
-  company
-  streetLine1
-  streetLine2
-  city
-  province
-  postalCode
-  country
-  phoneNumber
-}
-    `;
-export const AddressFragmentDoc = gql`
-    fragment Address on Address {
-  id
-  fullName
-  company
-  streetLine1
-  streetLine2
-  city
-  province
-  postalCode
-  country {
-    id
-    code
-    name
-  }
-  phoneNumber
-  defaultShippingAddress
-  defaultBillingAddress
-}
-    `;
-export const ErrorResultFragmentDoc = gql`
-    fragment ErrorResult on ErrorResult {
-  errorCode
-  message
-}
-    `;
-export const GetCustomerAddressesDocument = gql`
-    query GetCustomerAddresses {
-  activeCustomer {
-    id
-    addresses {
-      ...Address
-    }
-  }
-}
-    ${AddressFragmentDoc}`;
-
-  @Injectable({
-    providedIn: 'root'
-  })
-  export class GetCustomerAddressesGQL extends Apollo.Query<GetCustomerAddressesQuery, GetCustomerAddressesQueryVariables> {
-    document = GetCustomerAddressesDocument;
-    
-    constructor(apollo: Apollo.Apollo) {
-      super(apollo);
-    }
-  }
-export const GetAvailableCountriesDocument = gql`
-    query GetAvailableCountries {
-  availableCountries {
-    ...Country
-  }
-}
-    ${CountryFragmentDoc}`;
-
-  @Injectable({
-    providedIn: 'root'
-  })
-  export class GetAvailableCountriesGQL extends Apollo.Query<GetAvailableCountriesQuery, GetAvailableCountriesQueryVariables> {
-    document = GetAvailableCountriesDocument;
-    
-    constructor(apollo: Apollo.Apollo) {
-      super(apollo);
-    }
-  }
-export const GetActiveCustomerDocument = gql`
-    query GetActiveCustomer {
-  activeCustomer {
-    id
-    firstName
-    lastName
-    emailAddress
-    phoneNumber
-  }
-}
-    `;
-
-  @Injectable({
-    providedIn: 'root'
-  })
-  export class GetActiveCustomerGQL extends Apollo.Query<GetActiveCustomerQuery, GetActiveCustomerQueryVariables> {
-    document = GetActiveCustomerDocument;
-    
-    constructor(apollo: Apollo.Apollo) {
-      super(apollo);
-    }
-  }
-export const GetCollectionsDocument = gql`
-    query GetCollections($options: CollectionListOptions) {
-  collections(options: $options) {
-    items {
-      id
-      name
-      slug
-      parent {
-        id
-        name
-        slug
-      }
-      featuredAsset {
-        ...Asset
-      }
-    }
-  }
-}
-    ${AssetFragmentDoc}`;
-
-  @Injectable({
-    providedIn: 'root'
-  })
-  export class GetCollectionsGQL extends Apollo.Query<GetCollectionsQuery, GetCollectionsQueryVariables> {
-    document = GetCollectionsDocument;
-    
-    constructor(apollo: Apollo.Apollo) {
-      super(apollo);
-    }
-  }
 export const GetProductDocument = gql`
     query GetProduct($id: ID!) {
   product(id: $id) {
@@ -3903,8 +3603,6 @@ export const GetProductDocument = gql`
       sku
       name
       price
-      currencyCode
-      priceWithTax
       customFields
     }
     customFields {
@@ -3937,15 +3635,6 @@ export const GetProductsDocument = gql`
       }
       customFields {
         shortDesc
-      }
-      variants {
-        id
-        productId
-        sku
-        name
-        price
-        currencyCode
-        priceWithTax
       }
     }
   }

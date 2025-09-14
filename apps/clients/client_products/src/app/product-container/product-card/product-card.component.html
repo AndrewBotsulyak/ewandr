@@ -1,9 +1,15 @@
-<a href="" (click)="handleLinkClick($event)" class="group block rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-300">
-  <div class="relative overflow-hidden rounded-md bg-slate-100 aspect-[4/3]">
-    <img [src]="product.featuredAsset?.source" [alt]="product.name" class="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
-  </div>
-  <h3 class="mt-4 line-clamp-2 text-sm font-medium text-slate-900">{{ product.name }}</h3>
-  <p class="mt-1 text-base font-semibold text-slate-900">
-    {{ (product?.variants?.[0]?.priceWithTax || 0) / 100 | currency: (product?.variants?.[0]?.currencyCode || 'USD') }}
-  </p>
-</a>
+<mat-card class="product-card" appearance="outlined">
+  <mat-card-header>
+    <!--        <div mat-card-avatar class="example-header-image"></div>-->
+    <mat-card-title><a href="" (click)="handleLinkClick($event)">{{ product.name }}</a></mat-card-title>
+    <mat-card-subtitle>Subtitle</mat-card-subtitle>
+  </mat-card-header>
+  <img mat-card-image class="product-img" [src]="product.featuredAsset?.source" [alt]="product.name" fill>
+  <mat-card-content>
+    <div class="description" [innerHTML]="product.customFields?.shortDesc"></div>
+  </mat-card-content>
+  <!--      <mat-card-actions>-->
+  <!--        <button matButton>LIKE</button>-->
+  <!--        <button matButton>SHARE</button>-->
+  <!--      </mat-card-actions>-->
+</mat-card>

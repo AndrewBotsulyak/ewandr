@@ -3,28 +3,18 @@ import { Apollo } from 'apollo-angular';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
-  GetCollectionsQuery,
-  GetCollectionsQueryVariables,
   GetProductDocument,
   GetProductQuery,
   GetProductsDocument,
   GetProductsQuery,
   ProductListOptions,
 } from '../generated/graphql';
-import {GET_COLLECTIONS} from "../operations/common/documents.graphql";
-import {DataService} from "./data.service";
-import {arrayToTree, RootNode} from "../utils/array-to-tree";
-
-type CollectionItem = GetCollectionsQuery['collections']['items'][number];
 
 @Injectable({
   providedIn: 'root',
 })
 export class ProductsService {
-  constructor(
-    private apollo: Apollo,
-    private dataService: DataService,
-    ) {}
+  constructor(private apollo: Apollo) {}
 
   getProducts(options?: ProductListOptions): Observable<GetProductsQuery['products']> {
     return this.apollo
@@ -38,20 +28,9 @@ export class ProductsService {
   getProduct(id: string): Observable<GetProductQuery['product']> {
     return this.apollo
       .query<GetProductQuery>({
-        query: GET_COLLECTIONS,
+        query: GetProductDocument,
         variables: { id },
       })
       .pipe(map(result => result.data.product));
-  }
-
-  getCollections(options?: GetCollectionsQueryVariables): Observable<RootNode<CollectionItem>> {
-    return this.dataService.query<GetCollectionsQuery, GetCollectionsQueryVariables>(GET_COLLECTIONS, {
-      options: {
-        take: 50,
-        ...options
-      }
-    }).pipe(
-      map(data => arrayToTree(data.collections.items)),
-    );
   }
 }
