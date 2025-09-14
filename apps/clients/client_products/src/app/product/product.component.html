@@ -1,7 +1,7 @@
 
 <section class="bg-slate-50">
   <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-    @if (product() !== null) {
+    @if (product() != null) {
       <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
         <div class="lg:col-span-7">
           <ewd-card-section-wrapper class="gallery-card block rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -43,7 +43,7 @@
                           <td cdk-cell *cdkCellDef="let element" class="whitespace-nowrap px-4 py-2 text-slate-700">
                             <span
                               [matTooltip]="element.description"
-                              [class.option-description]="element.description !== null"
+                              [class.option-description]="element.description != null"
                             >{{element.name}}</span>
                           </td>
                         </ng-container>

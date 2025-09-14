@@ -58,74 +58,82 @@ jobs:
           done
 
       - name: Detect affected apps
-        id: affected
-        env:
-          NX_DAEMON: "false"
-          NX_VERBOSE_LOGGING: "true"
+        id: detect
         shell: bash
         run: |
-          set -Eeuo pipefail
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
-          echo "PR mode. Comparing $BASE_SHA ($BASE_REF) → $HEAD_SHA"
+          set -eo pipefail
+          echo "Node: $(node -v) | npm: $(npm -v)"
+          npx nx --version || true
 
-          # Улучшенная загрузка веток
-          git fetch --no-tags --prune --depth=10 origin "${BASE_REF}:${BASE_REF}" || echo "::warning::Failed to fetch base ref"
-          git fetch --no-tags --prune --depth=10 origin "${BASE_SHA}" || echo "::warning::Failed to fetch base SHA"
-          git fetch --no-tags --prune --depth=10 origin "${HEAD_SHA}" || echo "::warning::Failed to fetch head SHA"
-
-          # Альтернативные методы определения изменений
-          set +e
-
-          # Метод 1: NX affected
-          OUT=$(npx --no-install nx show projects \
-            --affected --type app \
-            --base="$BASE_SHA" --head="$HEAD_SHA" \
-            --json 2>&1)
-          NX_CODE=$?
-
-          if [[ $NX_CODE -eq 0 ]]; then
-            echo "✅ NX affected detection successful"
-            echo "apps=$OUT" >> "$GITHUB_OUTPUT"
-            REMOTES_JSON=$(jq -c '[ .[] | select(startswith("client_")) ]' <<< "$OUT")
-            echo "remotes=$REMOTES_JSON" >> "$GITHUB_OUTPUT"
+          # 1) Находим BASE/HEAD
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_REF="main"
+            git fetch --no-tags --prune --depth=1 origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}" \
+              || git fetch --no-tags --prune --unshallow
+            HEAD="${{ github.sha }}"
+            BASE="$(git merge-base "$HEAD" "origin/${BASE_REF}")"
           else
-            echo "❌ NX affected detection failed (code=$NX_CODE)"
-            echo "nx output: $OUT"
-
-            # Метод 2: Анализ изменённых файлов
-            echo "🔄 Falling back to git diff analysis..."
-
-            CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || echo "")
-            echo "Changed files: $CHANGED_FILES"
-
-            # Определение затронутых приложений по путям файлов
-            AFFECTED_APPS="[]"
-
-            if echo "$CHANGED_FILES" | grep -q "apps/clients/client-shell"; then
-              AFFECTED_APPS=$(echo "$AFFECTED_APPS" | jq '. + ["client-shell"]')
-            fi
-
-            if echo "$CHANGED_FILES" | grep -q "apps/be-vendure"; then
-              AFFECTED_APPS=$(echo "$AFFECTED_APPS" | jq '. + ["be-vendure"]')
-            fi
-
-            if echo "$CHANGED_FILES" | grep -q "apps/clients/client_products"; then
-              AFFECTED_APPS=$(echo "$AFFECTED_APPS" | jq '. + ["client_products"]')
-            fi
-
-            # Добавляем другие приложения по мере необходимости
-
-            echo "apps=$AFFECTED_APPS" >> "$GITHUB_OUTPUT"
-            REMOTES_JSON=$(jq -c '[ .[] | select(startswith("client_")) ]' <<< "$AFFECTED_APPS")
-            echo "remotes=$REMOTES_JSON" >> "$GITHUB_OUTPUT"
-
-            echo "📋 Fallback detection completed"
-            echo "Affected apps: $AFFECTED_APPS"
+            BASE="$(git rev-parse HEAD~1)"
+            HEAD="$(git rev-parse HEAD)"
           fi
 
+          echo "BASE=$BASE"
+          echo "HEAD=$HEAD"
+
+          # 2) Пробуем Nx (может упасть из-за graph)
+          set +e
+          AFFECTED_JSON="$(npx -y nx show projects --affected --base="$BASE" --head="$HEAD" --select=projects 2>/dev/null)"
+          NX_RC=$?
           set -e
+
+          # 3) Fallback на git diff, если Nx упал/вернул пусто
+          if [[ $NX_RC -ne 0 || -z "$AFFECTED_JSON" ]]; then
+            echo "Nx failed or returned empty. Falling back to git diff analysis..."
+            CHANGED_FILES="$(git diff --name-only "$BASE" "$HEAD")"
+            echo "$CHANGED_FILES"
+
+            affected=()
+
+            if echo "$CHANGED_FILES" | grep -q '^apps/clients/client-shell/'; then
+              affected+=("client-shell")
+            fi
+            if echo "$CHANGED_FILES" | grep -q '^apps/clients/client_products/'; then
+              affected+=("client_products")
+            fi
+
+            # простая эвристика по общим либам:
+            if echo "$CHANGED_FILES" | grep -q '^libs/client-shell/'; then
+              [[ " ${affected[*]} " =~ " client-shell " ]] || affected+=("client-shell")
+            fi
+            if echo "$CHANGED_FILES" | grep -q '^libs/'; then
+              # если менялись любые либы — считаем, что затрагивает оба клиента (упростим)
+              [[ " ${affected[*]} " =~ " client-shell " ]] || affected+=("client-shell")
+              [[ " ${affected[*]} " =~ " client_products " ]] || affected+=("client_products")
+            fi
+
+            # JSON компактной строкой
+            if [[ ${#affected[@]} -gt 0 ]]; then
+              AFFECTED_JSON="$(printf '%s\n' "${affected[@]}" | jq -Rc 'split("\n") - [""]')"
+            else
+              AFFECTED_JSON='[]'
+            fi
+          fi
+
+          echo "Affected (JSON): $AFFECTED_JSON"
+
+          # 4) Доп. признаки (пример)
+          HAS_SERVER_CHANGES=false
+          if git diff --name-only "$BASE" "$HEAD" | grep -q '^be-'; then
+            HAS_SERVER_CHANGES=true
+          fi
+
+          # 5) Правильная запись outputs (многострочно — безопаснее)
+          {
+            echo "affected_apps<<EOF"
+            echo "$AFFECTED_JSON"
+            echo "EOF"
+            echo "has_server_changes=$HAS_SERVER_CHANGES"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Restore configuration files
         if: always()
