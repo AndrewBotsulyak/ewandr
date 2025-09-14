@@ -340,6 +340,18 @@ jobs:
           fi
 
       - name: Upload detection results
+        run: |
+          if [ ! -f "detection-results.json" ]; then
+            echo "❌ detection-results.json not found!"
+            ls -la
+            exit 1
+          fi
+          
+          echo "✅ detection-results.json exists, size: $(wc -c < detection-results.json) bytes"
+          echo "📄 File content preview:"
+          head -20 detection-results.json
+          
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: detection-results-pr-${{ github.event.pull_request.number }}
