@@ -1,15 +1,14 @@
 import {DestroyRef, inject, Injectable, signal} from '@angular/core';
 import {Store} from "@ngrx/store";
 import {ProductsActions, selectAllProducts, selectIsLoading} from "@ewandr-workspace/ngrx-store";
-import {ProductsService} from "@ewandr-workspace/data-access-graphql";
-import {log} from "@angular-devkit/build-angular/src/builders/ssr-dev-server";
+import {GqlDataService} from "@ewandr-workspace/data-access-graphql";
 
 @Injectable({
   providedIn: "any"
 })
 export class ProductContainerService {
   store = inject(Store);
-  gqlService = inject(ProductsService);
+  gqlService = inject(GqlDataService);
   destroyRef = inject(DestroyRef);
 
   // products$ = this.store.select(selectAllProducts);
