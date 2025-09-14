@@ -232,26 +232,52 @@ jobs:
             REMOTES_JSON="[]"
           fi
 
-          # Сохраняем результаты в JSON файл
-          cat > detection-results.json << EOF
-          {
-            "pr_number": "${{ github.event.pull_request.number }}",
-            "pr_title": $(echo '${{ github.event.pull_request.title }}' | jq -R . || echo '"Unknown"'),
-            "pr_url": "${{ github.event.pull_request.html_url }}",
-            "base_sha": "${{ github.event.pull_request.base.sha }}",
-            "head_sha": "${{ github.event.pull_request.head.sha }}",
-            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "affected_apps": $APPS_JSON,
-            "affected_remotes": $REMOTES_JSON,
-            "has_server_changes": $HAS_SERVER_CHANGES,
-            "client_shell_affected": $CLIENT_SHELL_AFFECTED,
-            "be_vendure_affected": $BE_VENDURE_AFFECTED,
-            "detection_method": "git_diff_fallback"
-          }
-          EOF
+          # Конвертируем булевые значения в правильный JSON формат
+          [[ "$HAS_SERVER_CHANGES" == "true" ]] && HAS_SERVER_CHANGES="true" || HAS_SERVER_CHANGES="false"
+          [[ "$CLIENT_SHELL_AFFECTED" == "true" ]] && CLIENT_SHELL_AFFECTED="true" || CLIENT_SHELL_AFFECTED="false"
+          [[ "$BE_VENDURE_AFFECTED" == "true" ]] && BE_VENDURE_AFFECTED="true" || BE_VENDURE_AFFECTED="false"
+
+          # Безопасно экранируем PR title
+          PR_TITLE=$(echo '${{ github.event.pull_request.title }}' | jq -R . 2>/dev/null || echo '"Unknown"')
+
+          # Создаем JSON с помощью jq для безопасности
+          jq -n \
+            --arg pr_number "${{ github.event.pull_request.number }}" \
+            --argjson pr_title "$PR_TITLE" \
+            --arg pr_url "${{ github.event.pull_request.html_url }}" \
+            --arg base_sha "${{ github.event.pull_request.base.sha }}" \
+            --arg head_sha "${{ github.event.pull_request.head.sha }}" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson affected_apps "$APPS_JSON" \
+            --argjson affected_remotes "$REMOTES_JSON" \
+            --argjson has_server_changes "$HAS_SERVER_CHANGES" \
+            --argjson client_shell_affected "$CLIENT_SHELL_AFFECTED" \
+            --argjson be_vendure_affected "$BE_VENDURE_AFFECTED" \
+            --arg detection_method "git_diff_fallback" \
+            '{
+              pr_number: ($pr_number | tonumber),
+              pr_title: $pr_title,
+              pr_url: $pr_url,
+              base_sha: $base_sha,
+              head_sha: $head_sha,
+              timestamp: $timestamp,
+              affected_apps: $affected_apps,
+              affected_remotes: $affected_remotes,
+              has_server_changes: $has_server_changes,
+              client_shell_affected: $client_shell_affected,
+              be_vendure_affected: $be_vendure_affected,
+              detection_method: $detection_method
+            }' > detection-results.json
 
           echo "Detection results:"
-          cat detection-results.json | jq '.' || cat detection-results.json
+          if jq empty detection-results.json 2>/dev/null; then
+            echo "✅ Valid JSON created"
+            jq '.' detection-results.json
+          else
+            echo "❌ Invalid JSON created, showing raw content:"
+            cat detection-results.json
+            exit 1
+          fi
 
       - name: Upload detection results
         uses: actions/upload-artifact@v4
@@ -265,7 +291,17 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const results = JSON.parse(fs.readFileSync('detection-results.json', 'utf8'));
+            let results;
+            
+            try {
+              const rawData = fs.readFileSync('detection-results.json', 'utf8');
+              console.log('Raw JSON data:', rawData);
+              results = JSON.parse(rawData);
+            } catch (error) {
+              console.error('JSON parsing error:', error);
+              console.error('Raw file content:', fs.readFileSync('detection-results.json', 'utf8'));
+              throw error;
+            }
 
             const affectedApps = results.affected_apps.length > 0
               ? results.affected_apps.map(app => `- ${app}`).join('\n')
