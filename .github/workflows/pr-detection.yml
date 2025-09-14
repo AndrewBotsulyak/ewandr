@@ -33,6 +33,30 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps --loglevel verbose
 
+      - name: Validate configuration files
+        run: |
+          echo "Checking for syntax errors in config files..."
+
+          # Проверка playwright.config.ts файлов
+          find . -name "playwright.config.ts" -type f | while read -r file; do
+            echo "Validating $file"
+            if ! npx tsc --noEmit --skipLibCheck "$file" 2>/dev/null; then
+              echo "::warning::Syntax error in $file - skipping from NX analysis"
+              mv "$file" "$file.backup"
+              echo "export default {};" > "$file"
+            fi
+          done
+
+          # Проверка webpack.config.ts файлов
+          find . -name "webpack.config.ts" -type f | while read -r file; do
+            echo "Validating $file"
+            if ! npx tsc --noEmit --skipLibCheck "$file" 2>/dev/null; then
+              echo "::warning::Syntax error in $file - skipping from NX analysis"
+              mv "$file" "$file.backup"
+              echo "export default {};" > "$file"
+            fi
+          done
+
       - name: Detect affected apps
         id: affected
         env:
@@ -44,30 +68,74 @@ jobs:
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           BASE_REF="${{ github.event.pull_request.base.ref }}"
-          echo "PR mode. Comparing $BASE_SHA ($BASE_REF) ↔ $HEAD_SHA"
-          git fetch --no-tags --prune --depth=1 origin "${BASE_REF}:${BASE_REF}" || true
-          git fetch --no-tags --prune --depth=1 origin "${BASE_SHA}" || true
-          git fetch --no-tags --prune --depth=1 origin "${HEAD_SHA}" || true
+          echo "PR mode. Comparing $BASE_SHA ($BASE_REF) → $HEAD_SHA"
 
+          # Улучшенная загрузка веток
+          git fetch --no-tags --prune --depth=10 origin "${BASE_REF}:${BASE_REF}" || echo "::warning::Failed to fetch base ref"
+          git fetch --no-tags --prune --depth=10 origin "${BASE_SHA}" || echo "::warning::Failed to fetch base SHA"
+          git fetch --no-tags --prune --depth=10 origin "${HEAD_SHA}" || echo "::warning::Failed to fetch head SHA"
+
+          # Альтернативные методы определения изменений
           set +e
+
+          # Метод 1: NX affected
           OUT=$(npx --no-install nx show projects \
             --affected --type app \
             --base="$BASE_SHA" --head="$HEAD_SHA" \
             --json 2>&1)
-          CODE=$?
-          set -e
+          NX_CODE=$?
 
-          echo "nx output:"; echo "$OUT"
-          if [[ $CODE -ne 0 ]]; then
-            echo "::warning:: nx show projects failed (code=$CODE). Returning empty arrays."
-            echo "apps=[]" >> "$GITHUB_OUTPUT"
-            echo "remotes=[]" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [[ $NX_CODE -eq 0 ]]; then
+            echo "✅ NX affected detection successful"
+            echo "apps=$OUT" >> "$GITHUB_OUTPUT"
+            REMOTES_JSON=$(jq -c '[ .[] | select(startswith("client_")) ]' <<< "$OUT")
+            echo "remotes=$REMOTES_JSON" >> "$GITHUB_OUTPUT"
+          else
+            echo "❌ NX affected detection failed (code=$NX_CODE)"
+            echo "nx output: $OUT"
+
+            # Метод 2: Анализ изменённых файлов
+            echo "🔄 Falling back to git diff analysis..."
+
+            CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || echo "")
+            echo "Changed files: $CHANGED_FILES"
+
+            # Определение затронутых приложений по путям файлов
+            AFFECTED_APPS="[]"
+
+            if echo "$CHANGED_FILES" | grep -q "apps/clients/client-shell"; then
+              AFFECTED_APPS=$(echo "$AFFECTED_APPS" | jq '. + ["client-shell"]')
+            fi
+
+            if echo "$CHANGED_FILES" | grep -q "apps/be-vendure"; then
+              AFFECTED_APPS=$(echo "$AFFECTED_APPS" | jq '. + ["be-vendure"]')
+            fi
+
+            if echo "$CHANGED_FILES" | grep -q "apps/clients/client_products"; then
+              AFFECTED_APPS=$(echo "$AFFECTED_APPS" | jq '. + ["client_products"]')
+            fi
+
+            # Добавляем другие приложения по мере необходимости
+
+            echo "apps=$AFFECTED_APPS" >> "$GITHUB_OUTPUT"
+            REMOTES_JSON=$(jq -c '[ .[] | select(startswith("client_")) ]' <<< "$AFFECTED_APPS")
+            echo "remotes=$REMOTES_JSON" >> "$GITHUB_OUTPUT"
+
+            echo "📋 Fallback detection completed"
+            echo "Affected apps: $AFFECTED_APPS"
           fi
 
-          echo "apps=$OUT" >> "$GITHUB_OUTPUT"
-          REMOTES_JSON=$(jq -c '[ .[] | select(startswith("client_")) ]' <<< "$OUT")
-          echo "remotes=$REMOTES_JSON" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Restore configuration files
+        if: always()
+        run: |
+          # Восстанавливаем оригинальные файлы конфигурации
+          find . -name "*.config.ts.backup" -type f | while read -r backup; do
+            original="${backup%.backup}"
+            mv "$backup" "$original"
+            echo "Restored $original"
+          done
 
       - name: Check for server changes
         id: check-server
@@ -105,7 +173,7 @@ jobs:
           cat > detection-results.json << EOF
           {
             "pr_number": "${{ github.event.pull_request.number }}",
-            "pr_title": "${{ github.event.pull_request.title }}",
+            "pr_title": $(echo '${{ github.event.pull_request.title }}' | jq -R .),
             "pr_url": "${{ github.event.pull_request.html_url }}",
             "base_sha": "${{ github.event.pull_request.base.sha }}",
             "head_sha": "${{ github.event.pull_request.head.sha }}",
@@ -114,7 +182,8 @@ jobs:
             "affected_remotes": ${{ steps.affected.outputs.remotes }},
             "has_server_changes": ${{ steps.check-server.outputs.has-changes }},
             "client_shell_affected": ${{ steps.check-apps.outputs.client_shell_affected }},
-            "be_vendure_affected": ${{ steps.check-apps.outputs.be_vendure_affected }}
+            "be_vendure_affected": ${{ steps.check-apps.outputs.be_vendure_affected }},
+            "detection_method": "git_diff_fallback"
           }
           EOF
 
@@ -139,7 +208,13 @@ jobs:
               ? results.affected_apps.map(app => `- ${app}`).join('\n')
               : 'No applications affected';
 
+            const methodBadge = results.detection_method === 'git_diff_fallback'
+              ? '⚠️ Fallback method used'
+              : '✅ NX detection';
+
             const comment = `## 🔍 Change Detection Results
+
+            ${methodBadge}
 
             **Affected Applications:**
             ${affectedApps}
