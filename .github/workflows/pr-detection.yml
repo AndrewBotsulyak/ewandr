@@ -167,9 +167,12 @@ jobs:
       - name: Debug outputs
         run: |
           echo "=== DEBUG OUTPUTS ==="
-          echo "Apps output: '${{ steps.affected.outputs.apps }}'"
-          echo "Remotes output: '${{ steps.affected.outputs.remotes }}'"
-          echo "Apps length: ${#'${{ steps.affected.outputs.apps }}'}"
+          APPS_OUTPUT='${{ steps.affected.outputs.apps }}'
+          REMOTES_OUTPUT='${{ steps.affected.outputs.remotes }}'
+          echo "Apps output: '$APPS_OUTPUT'"
+          echo "Remotes output: '$REMOTES_OUTPUT'"
+          echo "Apps length: ${#APPS_OUTPUT}"
+          echo "Remotes length: ${#REMOTES_OUTPUT}"
           echo "=== END DEBUG ==="
 
       - name: Check for server changes
