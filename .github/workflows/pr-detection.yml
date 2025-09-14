@@ -33,11 +33,6 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps --loglevel verbose
 
-      - name: Build core libraries
-        run: |
-          echo "Building core libraries for proper path resolution..."
-          npx nx build core --skip-nx-cache || echo "::warning::Failed to build core library"
-
       - name: Validate configuration files
         run: |
           echo "Checking for syntax errors in config files..."
