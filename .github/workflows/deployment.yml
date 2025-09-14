@@ -27,6 +27,7 @@ permissions:
 env:
   NODE_VERSION: '20'
   NX_NO_CLOUD: true
+  NX_PREFER_TS_NODE: true
   MF_MANIFEST_PATH: 'client-shell'
   MF_MANIFEST_FILE_NAME: 'mf-manifest.prod.json'
   AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -146,10 +147,13 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Build in Docker
+        env:
+          NX_PREFER_TS_NODE: true
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
+            -e NX_PREFER_TS_NODE=true \
             node:20-alpine \
             sh -c "npm ci --legacy-peer-deps && npx nx run ${{ matrix.app }}:server:production"
 
@@ -230,6 +234,8 @@ jobs:
 
       - name: Build be-vendure application
         if: matrix.app == 'be-vendure' && needs.load-detection-results.outputs.be_vendure_affected == 'true'
+        env:
+          NX_PREFER_TS_NODE: true
         run: |
           echo ">>> Running NX build for be-vendure…"
           npx nx run be-vendure:build:production
@@ -242,6 +248,8 @@ jobs:
 
       - name: Build client-shell application
         if: matrix.app == 'client-shell' && needs.load-detection-results.outputs.client_shell_affected == 'true'
+        env:
+          NX_PREFER_TS_NODE: true
         run: npx nx run client-shell:build:production --excludeTaskDependencies && npx nx run client-shell:server:production --excludeTaskDependencies
 
       - name: Configure AWS credentials

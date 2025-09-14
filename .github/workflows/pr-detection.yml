@@ -15,6 +15,7 @@ permissions:
 env:
   NODE_VERSION: '20'
   NX_NO_CLOUD: true
+  NX_PREFER_TS_NODE: true
 
 jobs:
   detect-changes:
