@@ -1,5 +1,5 @@
 import {SharedFunction, SharedLibraryConfig} from "@nx/module-federation/src/utils/models";
-const deps = require('package.json').dependencies;
+const deps = require('../../../../../package.json').dependencies;
 
 export const mfSharedLibs: {[key: string]: SharedLibraryConfig} = {
   '@angular/core': {
