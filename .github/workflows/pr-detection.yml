@@ -240,32 +240,58 @@ jobs:
           # Безопасно экранируем PR title
           PR_TITLE=$(echo '${{ github.event.pull_request.title }}' | jq -R . 2>/dev/null || echo '"Unknown"')
 
+          # Отладка переменных перед созданием JSON
+          echo "=== DEBUG VARIABLES ==="
+          echo "APPS_JSON: '$APPS_JSON'"
+          echo "REMOTES_JSON: '$REMOTES_JSON'"
+          echo "HAS_SERVER_CHANGES: '$HAS_SERVER_CHANGES'"
+          echo "CLIENT_SHELL_AFFECTED: '$CLIENT_SHELL_AFFECTED'"
+          echo "BE_VENDURE_AFFECTED: '$BE_VENDURE_AFFECTED'"
+          echo "PR_TITLE: '$PR_TITLE'"
+          echo "========================"
+
+          # Валидируем JSON переменные перед использованием
+          if ! echo "$APPS_JSON" | jq empty 2>/dev/null; then
+            echo "Invalid APPS_JSON, setting to []"
+            APPS_JSON='[]'
+          fi
+          
+          if ! echo "$REMOTES_JSON" | jq empty 2>/dev/null; then
+            echo "Invalid REMOTES_JSON, setting to []"
+            REMOTES_JSON='[]'
+          fi
+          
+          if ! echo "$PR_TITLE" | jq empty 2>/dev/null; then
+            echo "Invalid PR_TITLE, setting to default"
+            PR_TITLE='"Unknown"'
+          fi
+
           # Создаем JSON с помощью jq для безопасности
           jq -n \
             --arg pr_number "${{ github.event.pull_request.number }}" \
-            --argjson pr_title "$PR_TITLE" \
+            --arg pr_title_raw "$PR_TITLE" \
             --arg pr_url "${{ github.event.pull_request.html_url }}" \
             --arg base_sha "${{ github.event.pull_request.base.sha }}" \
             --arg head_sha "${{ github.event.pull_request.head.sha }}" \
             --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --argjson affected_apps "$APPS_JSON" \
-            --argjson affected_remotes "$REMOTES_JSON" \
-            --argjson has_server_changes "$HAS_SERVER_CHANGES" \
-            --argjson client_shell_affected "$CLIENT_SHELL_AFFECTED" \
-            --argjson be_vendure_affected "$BE_VENDURE_AFFECTED" \
+            --arg affected_apps_raw "$APPS_JSON" \
+            --arg affected_remotes_raw "$REMOTES_JSON" \
+            --arg has_server_changes "$HAS_SERVER_CHANGES" \
+            --arg client_shell_affected "$CLIENT_SHELL_AFFECTED" \
+            --arg be_vendure_affected "$BE_VENDURE_AFFECTED" \
             --arg detection_method "git_diff_fallback" \
             '{
               pr_number: ($pr_number | tonumber),
-              pr_title: $pr_title,
+              pr_title: (try ($pr_title_raw | fromjson) catch "Unknown"),
               pr_url: $pr_url,
               base_sha: $base_sha,
               head_sha: $head_sha,
               timestamp: $timestamp,
-              affected_apps: $affected_apps,
-              affected_remotes: $affected_remotes,
-              has_server_changes: $has_server_changes,
-              client_shell_affected: $client_shell_affected,
-              be_vendure_affected: $be_vendure_affected,
+              affected_apps: (try ($affected_apps_raw | fromjson) catch []),
+              affected_remotes: (try ($affected_remotes_raw | fromjson) catch []),
+              has_server_changes: ($has_server_changes == "true"),
+              client_shell_affected: ($client_shell_affected == "true"),
+              be_vendure_affected: ($be_vendure_affected == "true"),
               detection_method: $detection_method
             }' > detection-results.json
 
