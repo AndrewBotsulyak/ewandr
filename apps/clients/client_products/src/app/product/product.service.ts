@@ -2,7 +2,7 @@ import {inject, Injectable} from "@angular/core";
 import {Store} from "@ngrx/store";
 import {ProductActions, ProductsActions, selectedProduct} from "@ewandr-workspace/ngrx-store";
 import {GetProductModel} from "@ewandr-workspace/core";
-import {GetProductQuery, GetProductQueryVariables, ProductsService} from "@ewandr-workspace/data-access-graphql";
+import {GetProductQuery, GetProductQueryVariables, GqlDataService} from "@ewandr-workspace/data-access-graphql";
 import {map} from "rxjs";
 
 @Injectable({
@@ -10,7 +10,7 @@ import {map} from "rxjs";
 })
 export class ProductService {
   store = inject(Store);
-  gqlService = inject(ProductsService);
+  gqlService = inject(GqlDataService);
 
   selectedProduct$ = this.store.select(selectedProduct);
 

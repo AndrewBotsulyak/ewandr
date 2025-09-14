@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import {inject, Injectable} from '@angular/core';
 import { Apollo } from 'apollo-angular';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -20,11 +20,11 @@ type CollectionItem = GetCollectionsQuery['collections']['items'][number];
 @Injectable({
   providedIn: 'root',
 })
-export class ProductsService {
-  constructor(
-    private apollo: Apollo,
-    private dataService: DataService,
-    ) {}
+export class GqlDataService {
+  private apollo = inject(Apollo);
+  private dataService = inject(DataService);
+
+  // region Product / Products
 
   getProducts(options?: ProductListOptions): Observable<GetProductsQuery['products']> {
     return this.apollo
@@ -38,11 +38,15 @@ export class ProductsService {
   getProduct(id: string): Observable<GetProductQuery['product']> {
     return this.apollo
       .query<GetProductQuery>({
-        query: GET_COLLECTIONS,
+        query: GetProductDocument,
         variables: { id },
       })
       .pipe(map(result => result.data.product));
   }
+
+  // endregion
+
+  // region Collections
 
   getCollections(options?: GetCollectionsQueryVariables): Observable<RootNode<CollectionItem>> {
     return this.dataService.query<GetCollectionsQuery, GetCollectionsQueryVariables>(GET_COLLECTIONS, {
@@ -54,4 +58,6 @@ export class ProductsService {
       map(data => arrayToTree(data.collections.items)),
     );
   }
+
+  //endregion
 }
