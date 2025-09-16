@@ -13,8 +13,8 @@ COPY ../../../package*.json ../../../nx.json ../../../tsconfig.base.json ./
 # Установка зависимостей
 # Удаление node_modules если есть и переустановка
 #RUN rm -rf node_modules package-lock.json || true
-#RUN npm install --force
-RUN npm ci --legacy-peer-deps
+#RUN npm install --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --force
 
 ## Копирование конфигурационных файлов проектов
 #COPY apps/ ./apps/
