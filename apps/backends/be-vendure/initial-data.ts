@@ -12,21 +12,27 @@ export const initialData: InitialData = {
   shippingMethods: [
     { name: 'Standard Shipping', price: 500 },
     { name: 'Express Shipping', price: 1000 },
+    { name: 'Free Shipping', price: 0 },
   ],
   collections: [
     {
       name: 'Electronics',
-      filters: [
-        {
-          code: 'facet-value-filter',
-          args: { facetValueNames: ['Electronics'], containsAny: false },
-        },
-      ],
+    },
+    {
+      name: 'Fashion',
+    },
+    {
+      name: 'Home',
     },
   ],
   countries: [
     { name: 'Austria', code: 'AT', zone: 'Europe' },
     { name: 'Germany', code: 'DE', zone: 'Europe' },
     { name: 'United Kingdom', code: 'GB', zone: 'Europe' },
+    { name: 'France', code: 'FR', zone: 'Europe' },
+    { name: 'Italy', code: 'IT', zone: 'Europe' },
+    { name: 'Spain', code: 'ES', zone: 'Europe' },
+    { name: 'United States', code: 'US', zone: 'Americas' },
+    { name: 'Canada', code: 'CA', zone: 'Americas' },
   ],
 };

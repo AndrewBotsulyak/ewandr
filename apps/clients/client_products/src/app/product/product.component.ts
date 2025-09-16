@@ -1,12 +1,12 @@
 import {
-  Component, computed, importProvidersFrom,
+  Component, computed,
   inject,
   OnInit, Signal,
   signal,
 } from '@angular/core';
 import {ProductService} from "./product.service";
 import {ActivatedRoute} from "@angular/router";
-import {CommonModule, JsonPipe} from "@angular/common";
+import {CommonModule} from "@angular/common";
 import {BehaviorSubject, map, Observable} from "rxjs";
 import {GetProductQuery, ProductOptionGroup} from "@ewandr-workspace/data-access-graphql";
 import {CardSectionWrapper, MatCardModuleUI} from "@ewandr-workspace/ui-shared-lib";
@@ -14,18 +14,13 @@ import {GalleryItem, GalleryModule, ImageItem} from "ng-gallery";
 import {DataSource} from "@angular/cdk/collections";
 import {CdkTableModule} from "@angular/cdk/table";
 import {MatTooltipModule} from "@angular/material/tooltip";
-import {GallerizeDirective, LightboxModule} from "ng-gallery/lightbox";
+import {LightboxModule} from "ng-gallery/lightbox";
 
 interface ProductOptionsData {
   id: ProductOptionGroup['id'],
   title: ProductOptionGroup['name'],
   options: ProductDataSource,
 }
-
-const ELEMENT_DATA: any[] = [
-  {position: 1, name: 'Hydrogen'},
-  {position: 2, name: 'Helium'},
-];
 
 class ProductDataSource extends DataSource<any> {
   /** Stream of data that is provided to the table. */
@@ -49,7 +44,6 @@ class ProductDataSource extends DataSource<any> {
   selector: 'app-product',
   imports: [
     CommonModule,
-    JsonPipe,
     CardSectionWrapper,
     MatCardModuleUI,
     GalleryModule,
