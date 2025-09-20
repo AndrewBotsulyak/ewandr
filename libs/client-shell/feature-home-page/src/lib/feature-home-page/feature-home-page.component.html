@@ -1,0 +1,247 @@
+<!-- Hero Section -->
+<section style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 20px;">
+  <div style="max-width: 1200px; margin: 0 auto; text-align: center;">
+    <!-- Badge -->
+    <div style="display: inline-block; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 15px; margin-bottom: 20px; backdrop-filter: blur(10px);">
+      <span style="font-size: 12px; font-weight: 500;">✨ New collections are here</span>
+    </div>
+    
+    <!-- Main Heading -->
+    <h1 style="font-size: 2.5rem; font-weight: 900; margin-bottom: 15px; line-height: 1.2;">
+      Discover the world of
+      <span style="background: linear-gradient(45deg, #ff6b6b, #feca57); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+        style
+      </span>
+    </h1>
+    
+    <!-- Subtitle -->
+    <p style="font-size: 1rem; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto; opacity: 0.9; line-height: 1.5;">
+      Exclusive products that will emphasize your individuality
+    </p>
+    
+    <!-- CTA Buttons -->
+    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+      <button style="background: white; color: #667eea; padding: 12px 24px; border-radius: 20px; font-weight: bold; font-size: 1rem; border: none; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+        Start Shopping
+      </button>
+      <button style="background: transparent; color: white; padding: 12px 24px; border-radius: 20px; font-weight: bold; font-size: 1rem; border: 2px solid white; cursor: pointer; transition: all 0.3s ease;">
+        View Catalog
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- Collections Section -->
+<section style="background: white; padding: 40px 20px;">
+  <div style="max-width: 1400px; margin: 0 auto;">
+    <!-- Section Header -->
+    <div style="text-align: center; margin-bottom: 50px;">
+      <h2 style="font-size: 2.5rem; font-weight: 900; color: #333; margin-bottom: 15px;">
+        Our Collections
+      </h2>
+      <p style="font-size: 1.1rem; color: #666; max-width: 500px; margin: 0 auto; line-height: 1.5;">
+        Discover unique products in each collection
+      </p>
+    </div>
+
+    <!-- Loading State -->
+    @if (!collections()) {
+      <div style="display: flex; justify-content: center; align-items: center; padding: 80px 0;">
+        <div style="width: 40px; height: 40px; border: 4px solid #e3f2fd; border-top: 4px solid #1976d2; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <span style="margin-left: 15px; font-size: 1.1rem; color: #666; font-weight: 500;">Loading collections...</span>
+      </div>
+    }
+
+    <!-- Collections Grid -->
+    @if (collections()?.children) {
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px;">
+        @for (collection of collections()!.children; track collection.id) {
+          <div style="background: white; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); overflow: hidden; transition: all 0.3s ease; cursor: pointer; border: 1px solid #f0f0f0;" 
+               onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 15px 35px rgba(0,0,0,0.12)'"
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 5px 20px rgba(0,0,0,0.08)'">
+            
+            <!-- Collection Image -->
+            <div style="height: 200px; overflow: hidden; position: relative; background: #f8f9fa;">
+              @if (collection.featuredAsset) {
+                <img
+                  [src]="collection.featuredAsset.preview"
+                  [alt]="collection.name"
+                  style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;"
+                  onmouseover="this.style.transform='scale(1.05)'"
+                  onmouseout="this.style.transform='scale(1)'"
+                />
+              } @else {
+                <!-- Placeholder for collections without images -->
+                <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #e3f2fd, #f3e5f5); display: flex; align-items: center; justify-content: center;">
+                  <div style="text-align: center;">
+                    <div style="width: 50px; height: 50px; background: linear-gradient(45deg, #1976d2, #7b1fa2); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;">
+                      <span style="color: white; font-size: 20px;">📦</span>
+                    </div>
+                    <p style="color: #666; font-weight: 500; font-size: 0.9rem;">Collection</p>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Collection Info -->
+            <div style="padding: 20px;">
+              <h3 style="font-size: 1.2rem; font-weight: bold; color: #333; margin-bottom: 8px; line-height: 1.3;">
+                {{ collection.name }}
+              </h3>
+
+              <!-- Collection Slug -->
+              <p style="font-size: 0.8rem; color: #999; margin-bottom: 15px; font-family: monospace;">
+                /{{ collection.slug }}
+              </p>
+
+              <!-- Action Button -->
+              <button
+                style="width: 100%; background: linear-gradient(45deg, #1976d2, #7b1fa2); color: white; padding: 12px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; transition: all 0.3s ease;"
+                (click)="navigateToCollection(collection.slug)"
+                onmouseover="this.style.background='linear-gradient(45deg, #1565c0, #6a1b9a)'"
+                onmouseout="this.style.background='linear-gradient(45deg, #1976d2, #7b1fa2)'"
+              >
+                View Collection →
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Collections Count -->
+      <div style="text-align: center; margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 15px;">
+        <p style="color: #666; font-size: 1rem; margin: 0;">
+          <strong style="color: #1976d2;">{{ collections()!.children.length }}</strong> 
+          collections available for viewing
+        </p>
+      </div>
+
+      <!-- Empty State -->
+      @if (collections()!.children.length === 0) {
+        <div style="text-align: center; padding: 80px 0;">
+          <div style="width: 80px; height: 80px; background: linear-gradient(45deg, #e3f2fd, #f3e5f5); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px;">
+            <span style="font-size: 32px;">📦</span>
+          </div>
+          <h3 style="font-size: 1.8rem; font-weight: bold; color: #333; margin-bottom: 15px;">No Collections Found</h3>
+          <p style="color: #666; font-size: 1rem;">We're working on adding new collections. Check back later!</p>
+        </div>
+      }
+    }
+  </div>
+</section>
+
+<style>
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+
+<!-- Features Section -->
+<section style="background: white; padding: 80px 20px;">
+  <div style="max-width: 1200px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 60px;">
+      <div style="display: inline-block; background: #e8f5e8; padding: 8px 16px; border-radius: 20px; margin-bottom: 20px;">
+        <span style="font-size: 14px; font-weight: 500; color: #2e7d32;">⭐ Benefits</span>
+      </div>
+      <h2 style="font-size: 3rem; font-weight: 900; color: #333; margin-bottom: 20px;">
+        Why choose<br>
+        <span style="background: linear-gradient(45deg, #2e7d32, #1976d2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+          us
+        </span>
+      </h2>
+      <p style="font-size: 1.2rem; color: #666; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+        We've created an ecosystem that makes shopping convenient and unforgettable
+      </p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px;">
+      <!-- Feature 1 -->
+      <div style="text-align: center; padding: 30px;">
+        <div style="width: 80px; height: 80px; background: linear-gradient(45deg, #1976d2, #00bcd4); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; position: relative;">
+          <span style="color: white; font-size: 32px;">⚡</span>
+          <div style="position: absolute; top: -5px; right: -5px; width: 25px; height: 25px; background: #ffc107; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 12px; color: #333;">⚡</span>
+          </div>
+        </div>
+        <h3 style="font-size: 1.5rem; font-weight: bold; color: #333; margin-bottom: 15px;">Lightning Fast Delivery</h3>
+        <p style="color: #666; line-height: 1.6;">We deliver orders nationwide within 24-48 hours. No waiting, just shopping pleasure!</p>
+      </div>
+
+      <!-- Feature 2 -->
+      <div style="text-align: center; padding: 30px;">
+        <div style="width: 80px; height: 80px; background: linear-gradient(45deg, #2e7d32, #4caf50); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; position: relative;">
+          <span style="color: white; font-size: 32px;">✓</span>
+          <div style="position: absolute; top: -5px; right: -5px; width: 25px; height: 25px; background: #4caf50; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 12px; color: white;">✓</span>
+          </div>
+        </div>
+        <h3 style="font-size: 1.5rem; font-weight: bold; color: #333; margin-bottom: 15px;">Quality Guarantee</h3>
+        <p style="color: #666; line-height: 1.6;">Every product undergoes multi-level verification. We guarantee only original and quality products.</p>
+      </div>
+
+      <!-- Feature 3 -->
+      <div style="text-align: center; padding: 30px;">
+        <div style="width: 80px; height: 80px; background: linear-gradient(45deg, #e91e63, #f06292); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; position: relative;">
+          <span style="color: white; font-size: 32px;">❤️</span>
+          <div style="position: absolute; top: -5px; right: -5px; width: 25px; height: 25px; background: #f06292; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 12px; color: white;">❤️</span>
+          </div>
+        </div>
+        <h3 style="font-size: 1.5rem; font-weight: bold; color: #333; margin-bottom: 15px;">Customer Care</h3>
+        <p style="color: #666; line-height: 1.6;">Our support team works 24/7 and is always ready to help you with any questions and requests.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Newsletter Section -->
+<section style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 80px 20px; position: relative; overflow: hidden;">
+  <!-- Background Elements -->
+  <div style="position: absolute; top: 20px; left: 20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; filter: blur(20px);"></div>
+  <div style="position: absolute; bottom: 20px; right: 20px; width: 120px; height: 120px; background: rgba(255,105,180,0.2); border-radius: 50%; filter: blur(20px);"></div>
+  
+  <div style="max-width: 800px; margin: 0 auto; text-align: center; position: relative; color: white;">
+    <!-- Badge -->
+    <div style="display: inline-block; background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; margin-bottom: 30px; backdrop-filter: blur(10px);">
+      <span style="font-size: 14px; font-weight: 500;">📧 Newsletter</span>
+    </div>
+    
+    <h2 style="font-size: 3rem; font-weight: 900; margin-bottom: 20px;">
+      Don't miss<br>
+      <span style="background: linear-gradient(45deg, #ff6b6b, #feca57); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+        anything important
+      </span>
+    </h2>
+    <p style="font-size: 1.2rem; margin-bottom: 40px; max-width: 500px; margin-left: auto; margin-right: auto; opacity: 0.9; line-height: 1.6;">
+      Get exclusive offers, be the first to know about new products and discounts up to 50%
+    </p>
+    
+    <div style="display: flex; gap: 15px; max-width: 500px; margin: 0 auto 30px; flex-wrap: wrap;">
+      <input
+        type="email"
+        placeholder="Enter your email"
+        style="flex: 1; padding: 15px 20px; border-radius: 25px; border: none; font-size: 1rem; min-width: 250px;"
+      />
+      <button style="background: linear-gradient(45deg, #ff6b6b, #feca57); color: white; padding: 15px 25px; border-radius: 25px; font-weight: bold; font-size: 1rem; border: none; cursor: pointer; transition: all 0.3s ease; white-space: nowrap;">
+        Subscribe →
+      </button>
+    </div>
+    
+    <!-- Trust Indicators -->
+    <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; opacity: 0.8;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="color: #4caf50; font-size: 16px;">✓</span>
+        <span style="font-size: 14px; font-weight: 500;">No spam</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="color: #4caf50; font-size: 16px;">✓</span>
+        <span style="font-size: 14px; font-weight: 500;">Only important</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="color: #4caf50; font-size: 16px;">✓</span>
+        <span style="font-size: 14px; font-weight: 500;">Unsubscribe anytime</span>
+      </div>
+    </div>
+  </div>
+</section>

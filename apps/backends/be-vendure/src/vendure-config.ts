@@ -1,7 +1,7 @@
 import {DefaultAssetNamingStrategy, VendureConfig } from '@vendure/core';
 import {AssetServerPlugin, configureS3AssetStorage} from '@vendure/asset-server-plugin';
 import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
-import { DefaultJobQueuePlugin } from '@vendure/core';
+import { DefaultJobQueuePlugin, DefaultSchedulerPlugin } from '@vendure/core';
 import { DefaultSearchPlugin } from '@vendure/core';
 
 import path from 'path';
@@ -31,9 +31,9 @@ export const config: VendureConfig = {
   dbConnectionOptions: {
     type: 'postgres',
     synchronize: true,
-    logging: false,
+    logging: true,
     database: process.env.DB_NAME || 'vendure',
-    host: process.env.DB_HOST || 'localhost',  // Будет использовать DB_HOST из docker-compose
+    host: process.env.DB_HOST || (process.env.NODE_ENV === 'development' ? 'localhost' : 'postgres-vendure-db'),  // Для локального воркера используем localhost
     port: parseInt(process.env.DB_PORT || '5432'),
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres123',
@@ -86,7 +86,12 @@ export const config: VendureConfig = {
         },
       }),
     }),
-    DefaultJobQueuePlugin.init({ useDatabaseForBuffer: true }),
+    DefaultJobQueuePlugin.init({ 
+      useDatabaseForBuffer: true,
+      pollInterval: 200,
+      concurrency: 1
+    }),
+    DefaultSchedulerPlugin.init(),
     DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
     AdminUiPlugin.init({
       route: 'admin',

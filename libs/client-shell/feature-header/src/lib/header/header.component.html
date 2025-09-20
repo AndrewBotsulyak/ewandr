@@ -21,18 +21,11 @@
         </button>
         <div class="absolute left-0 top-full hidden w-56 rounded-md border border-slate-200 bg-white shadow-lg ring-1 ring-black/5 group-hover:block">
           <ul class="py-2 text-sm text-slate-700">
-            <li>
-              <a [routerLink]="['/category','electronics']" class="block px-4 py-2 hover:bg-slate-50">Electronics</a>
-            </li>
-            <li>
-              <a [routerLink]="['/category','fashion']" class="block px-4 py-2 hover:bg-slate-50">Fashion</a>
-            </li>
-            <li>
-              <a [routerLink]="['/category','home']" class="block px-4 py-2 hover:bg-slate-50">Home</a>
-            </li>
-            <li>
-              <a [routerLink]="['/category','sports']" class="block px-4 py-2 hover:bg-slate-50">Sports</a>
-            </li>
+            @for (collection of collections()?.children; track collection.id) {
+              <li>
+                <a [routerLink]="[`/category`, collection.slug]" class="block px-4 py-2 hover:bg-slate-50">{{collection.name}}</a>
+              </li>
+            }
           </ul>
         </div>
       </div>

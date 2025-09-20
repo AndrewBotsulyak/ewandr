@@ -1,8 +1,8 @@
 import {gql} from "apollo-angular";
 
 export const GET_PRODUCT = gql`
-  query GetProduct($id: ID!) {
-    product (id: $id) {
+  query GetProduct($slug: String!) {
+    product (slug: $slug) {
       id,
       name,
       slug,
@@ -48,10 +48,19 @@ export const GET_PRODUCT = gql`
         price,
         currencyCode,
         priceWithTax,
-        customFields
+        customFields,
+        assets {
+          id,
+          name,
+          source,
+          preview,
+          width,
+          height
+        }
       },
       customFields {
-        shortDesc
+        shortDesc,
+        shippingInfo
       }
     }
   }

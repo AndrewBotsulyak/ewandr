@@ -25,6 +25,8 @@ export class HeaderComponent implements OnInit {
   private renderer = inject(Renderer2);
   private gqlService = inject(GqlDataService);
 
+  public collections = toSignal(this.gqlService.getCollections());
+
   private defaultTheme = 'light';
   public themes = signal(['light', 'dark']);
 

@@ -18,7 +18,7 @@ export class ProductService {
   //   this.store.dispatch(ProductActions.getProduct({id}));
   // }
   //
-  getProduct(id: GetProductQueryVariables['id']) {
-    return this.gqlService.getProduct(id);
+  getProduct(slug: GetProductQueryVariables['slug']) {
+    return this.gqlService.getProduct(slug);
   }
 }

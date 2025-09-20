@@ -17,7 +17,7 @@ export class DataService {
     constructor(private apollo: Apollo) { }
 
     query<T = any, V extends Record<string, any> = {}>(query: DocumentNode, variables?: V, fetchPolicy?: WatchQueryFetchPolicy): Observable<T> {
-        return this.apollo.watchQuery<T, V>({
+      return this.apollo.watchQuery<T, V>({
             query,
             variables,
             context: this.context,

@@ -113,7 +113,7 @@ export function apolloClientFactory(config: GraphQLConfig): ApolloClientOptions<
     cache,
     defaultOptions: {
       watchQuery: {
-        fetchPolicy: 'cache-and-network',
+        // fetchPolicy: 'cache-first',
       },
     },
   };
