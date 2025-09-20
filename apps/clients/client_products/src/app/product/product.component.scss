@@ -1,226 +1,63 @@
 
 :host {
-  // Product Gallery Styles
-  .product-gallery {
+
+  .container {
+    display: grid;
+    grid-template-columns: minmax(500px, 1fr) minmax(500px, 1fr);
+    gap: 15px;
+  }
+
+  .options-table {
+    width: 100%;
+    min-width: 300px;
+    max-width: 500px;
+
+    ::ng-deep {
+      .option-description {
+        color: gray;
+      }
+
+      span {
+        display: inline-block;
+        max-width: 200px;
+        background: #FFFFFF;
+      }
+
+      td {
+        vertical-align: bottom;
+      }
+
+      tr > td:first-of-type {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        overflow: hidden;
+
+        &::after {
+          content: "";
+          display: block;
+          width: 100%;
+          border-bottom: 1px dotted #d2d2d2;
+        }
+
+        span {
+          margin-right: 15px;
+        }
+      }
+
+      tr > td:not(:first-of-type) {
+        span {
+          margin-left: 15px;
+        }
+      }
+    }
+  }
+
+  .gallery-card {
     ::ng-deep {
       gallery {
-        background-color: transparent;
-        border-radius: 1rem;
-        overflow: hidden;
-        
-        .g-image {
-          border-radius: 1rem;
-        }
-        
-        .g-thumbs {
-          background: rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(10px);
-          border-top: 1px solid rgba(148, 163, 184, 0.2);
-          
-          .g-thumb {
-            border-radius: 0.5rem;
-            border: 2px solid transparent;
-            transition: all 0.2s ease;
-            
-            &:hover {
-              border-color: rgb(148, 163, 184);
-              transform: scale(1.05);
-            }
-            
-            &.active {
-              border-color: rgb(15, 23, 42);
-            }
-          }
-        }
+        background-color: var(--color-background);
       }
-    }
-  }
-
-  // Enhanced Button Styles
-  .btn-primary {
-    @apply bg-slate-900 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200;
-    @apply hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2;
-    @apply disabled:opacity-50 disabled:cursor-not-allowed;
-    
-    &:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-  }
-
-  .btn-secondary {
-    @apply border border-slate-300 text-slate-700 px-6 py-3 rounded-lg font-medium transition-all duration-200;
-    @apply hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2;
-    
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
-    }
-  }
-
-  // Option Button Styles
-  .option-button {
-    @apply px-4 py-2 text-sm font-medium rounded-lg border border-slate-300 text-slate-700;
-    @apply hover:border-slate-400 hover:bg-slate-50 transition-all duration-200;
-    @apply focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2;
-    
-    &.selected {
-      @apply bg-slate-900 text-white border-slate-900;
-    }
-    
-    &.color-option {
-      position: relative;
-      
-      &::before {
-        content: '';
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        right: 2px;
-        bottom: 2px;
-        border-radius: 0.375rem;
-        background: var(--color-value);
-        z-index: -1;
-      }
-    }
-  }
-
-  // Card Hover Effects
-  .product-card {
-    @apply bg-white rounded-xl shadow-sm border border-slate-200 transition-all duration-300;
-    
-    &:hover {
-      @apply shadow-lg transform -translate-y-1;
-    }
-  }
-
-  // Variant Card Styles
-  .variant-card {
-    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6 transition-all duration-200;
-    
-    &:hover {
-      @apply shadow-md;
-      transform: translateY(-2px);
-    }
-  }
-
-  // Status Badge Animations
-  .status-badge {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-sm font-medium transition-all duration-200;
-    
-    &.enabled {
-      @apply bg-emerald-100 text-emerald-800;
-      animation: pulse-green 2s infinite;
-    }
-    
-    &.disabled {
-      @apply bg-red-100 text-red-800;
-    }
-  }
-
-  // Feature Icons
-  .feature-icon {
-    @apply flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200;
-    
-    &:hover {
-      transform: scale(1.1);
-    }
-  }
-
-  // Tab Navigation
-  .tab-nav {
-    @apply -mb-px flex space-x-8;
-    
-    .tab-button {
-      @apply py-2 px-1 border-b-2 text-sm font-medium transition-all duration-200;
-      @apply focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2;
-      
-      &.active {
-        @apply border-slate-900 text-slate-900;
-      }
-      
-      &:not(.active) {
-        @apply border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300;
-      }
-    }
-  }
-
-  // Breadcrumb Styles
-  .breadcrumb {
-    @apply flex items-center space-x-2 text-sm text-slate-500;
-    
-    a {
-      @apply hover:text-slate-700 transition-colors duration-200;
-    }
-    
-    svg {
-      @apply w-4 h-4 mx-2;
-    }
-  }
-
-  // Loading States
-  .loading-skeleton {
-    @apply animate-pulse bg-slate-200 rounded;
-  }
-
-  // Responsive Adjustments
-  @media (max-width: 768px) {
-    .product-gallery {
-      ::ng-deep {
-        gallery {
-          .g-thumbs {
-            .g-thumb {
-              width: 60px;
-              height: 60px;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Animations
-  @keyframes pulse-green {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.8;
-    }
-  }
-
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .fade-in-up {
-    animation: fadeInUp 0.6s ease-out;
-  }
-
-  // Custom Scrollbar
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 3px;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
-    
-    &:hover {
-      background: #94a3b8;
     }
   }
 }

@@ -1,10 +1,12 @@
+@use "sass:map";
+
 // ---------- Функция генерации переменных ----------
 @mixin theme-variables($theme) {
-  --color-primary: #{map-get($theme, primary)};
-  --color-secondary: #{map-get($theme, secondary)};
-  --color-background: #{map-get($theme, background)};
-  --color-surface: #{map-get($theme, surface)};
-  --color-text: #{map-get($theme, text)};
+  --color-primary: #{map.get($theme, primary)};
+  --color-secondary: #{map.get($theme, secondary)};
+  --color-background: #{map.get($theme, background)};
+  --color-surface: #{map.get($theme, surface)};
+  --color-text: #{map.get($theme, text)};
 }
 
 // ---------- Определение тем ----------
