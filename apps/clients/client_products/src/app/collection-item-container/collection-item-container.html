@@ -1,0 +1,37 @@
+@if (collection(); as collectionData) {
+  <div class="min-h-screen bg-gray-50">
+    <!-- Breadcrumbs -->
+    <nav class="bg-white shadow-sm border-b">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <ui-breadcrumb [breadcrumbs]="collectionData.breadcrumbs"></ui-breadcrumb>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ collectionData.name }}</h1>
+        @if (collectionData.children && collectionData.children.length > 0) {
+          <p class="text-gray-600">{{ collectionData.children.length }} подкатегорий</p>
+        }
+      </div>
+
+      <!-- Categories Grid -->
+      <ui-collections-layout [collection]="collectionData"></ui-collections-layout>
+
+      <!--   Products list   -->
+      <product-container [collectionId]="collectionData.id"></product-container>
+
+    </div>
+  </div>
+} @else {
+  <!-- Loading State -->
+  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+      <p class="mt-4 text-gray-600">Загрузка категории...</p>
+    </div>
+  </div>
+}
+

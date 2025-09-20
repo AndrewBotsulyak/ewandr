@@ -54,6 +54,26 @@ services:
     networks:
       - app-network
 
+  be-vendure-worker:
+    container_name: be-vendure-worker
+    build:
+      context: .
+      dockerfile: apps/backends/be-vendure/worker.Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-vendure:
+        condition: service_healthy
+    env_file:
+      - apps/backends/be-vendure/.env.docker
+    volumes:
+      - .:/app
+      # Исключаем node_modules из синхронизации для производительности
+      - /app/node_modules
+      - /app/dist
+    networks:
+      - app-network
+
 #  postgres:
 #    image: postgres:15-alpine
 #    container_name: postgres-db

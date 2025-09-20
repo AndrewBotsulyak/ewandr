@@ -3,17 +3,19 @@ import { Apollo } from 'apollo-angular';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
+  GetCollectionQuery, GetCollectionQueryVariables,
   GetCollectionsQuery,
   GetCollectionsQueryVariables,
   GetProductDocument,
   GetProductQuery,
   GetProductsDocument,
   GetProductsQuery,
-  ProductListOptions,
+  ProductListOptions, SearchInput, SearchProductsGQL, SearchProductsQuery, SearchProductsQueryVariables, SearchResult,
 } from '../generated/graphql';
-import {GET_COLLECTIONS} from "../operations/common/documents.graphql";
 import {DataService} from "./data.service";
 import {arrayToTree, RootNode} from "../utils/array-to-tree";
+import {GET_COLLECTION, GET_COLLECTIONS} from "../operations/collections/collections.graphql";
+import {SEARCH_PRODUCTS} from "../operations/products/search-products.graphql";
 
 type CollectionItem = GetCollectionsQuery['collections']['items'][number];
 
@@ -31,15 +33,30 @@ export class GqlDataService {
       .watchQuery<GetProductsQuery>({
         query: GetProductsDocument,
         variables: { options },
+        fetchPolicy: "cache-first"
       })
       .valueChanges.pipe(map(result => result.data.products));
   }
 
-  getProduct(id: string): Observable<GetProductQuery['product']> {
+  searchProducts(searchInputs?: SearchInput): Observable<SearchProductsQuery['search']> {
+    return this.dataService.query<SearchProductsQuery, SearchProductsQueryVariables>(
+      SEARCH_PRODUCTS, {
+        input: {
+          groupByProduct: true,
+          ...searchInputs
+        }
+      }
+    ).pipe(
+      map(data => data.search),
+    );
+  }
+
+  getProduct(slug: string): Observable<GetProductQuery['product']> {
     return this.apollo
       .query<GetProductQuery>({
         query: GetProductDocument,
-        variables: { id },
+        variables: { slug },
+        fetchPolicy: "cache-first"
       })
       .pipe(map(result => result.data.product));
   }
@@ -48,14 +65,22 @@ export class GqlDataService {
 
   // region Collections
 
-  getCollections(options?: GetCollectionsQueryVariables): Observable<RootNode<CollectionItem>> {
+  getCollections(): Observable<RootNode<CollectionItem>> {
     return this.dataService.query<GetCollectionsQuery, GetCollectionsQueryVariables>(GET_COLLECTIONS, {
       options: {
-        take: 50,
-        ...options
-      }
+        take: 50
+      },
     }).pipe(
       map(data => arrayToTree(data.collections.items)),
+    );
+  }
+
+  getCollection(variables: {slug: string}): Observable<GetCollectionQuery['collection']> {
+    return this.dataService.query<GetCollectionQuery, GetCollectionQueryVariables>(
+      GET_COLLECTION,
+      variables
+    ).pipe(
+      map(data => data.collection),
     );
   }
 

@@ -17,6 +17,18 @@
         }
       }
     },
+    "build-worker": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "webpack-cli build --config apps/backends/be-vendure/webpack.worker.config.js",
+        "args": ["--node-env=production"]
+      },
+      "configurations": {
+        "development": {
+          "args": ["--node-env=development"]
+        }
+      }
+    },
     "serve": {
       "continuous": true,
       "executor": "@nx/js:node",
@@ -47,6 +59,32 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "npx ts-node --project apps/backends/be-vendure/tsconfig.app.json apps/backends/be-vendure/src/populate.ts"
+      }
+    },
+    "worker": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx run be-vendure:build-worker:development",
+          "node dist/apps/backends/be-vendure/main-worker.js"
+        ],
+        "parallel": false
+      },
+      "configurations": {
+        "development": {
+          "commands": [
+            "nx run be-vendure:build-worker:development",
+            "node dist/apps/backends/be-vendure/main-worker.js"
+          ],
+          "parallel": false
+        },
+        "production": {
+          "commands": [
+            "nx run be-vendure:build-worker:production",
+            "node dist/apps/backends/be-vendure/main-worker.js"
+          ],
+          "parallel": false
+        }
       }
     }
   }

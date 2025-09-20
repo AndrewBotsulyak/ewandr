@@ -1,7 +1,7 @@
 import {DestroyRef, inject, Injectable, signal} from '@angular/core';
 import {Store} from "@ngrx/store";
 import {ProductsActions, selectAllProducts, selectIsLoading} from "@ewandr-workspace/ngrx-store";
-import {GqlDataService} from "@ewandr-workspace/data-access-graphql";
+import {GqlDataService, SearchInput} from "@ewandr-workspace/data-access-graphql";
 
 @Injectable({
   providedIn: "any"
@@ -25,5 +25,9 @@ export class ProductContainerService {
 
   getGqlProducts() {
     return this.gqlService.getProducts();
+  }
+
+  searchProducts(searchInputs: SearchInput) {
+    return this.gqlService.searchProducts(searchInputs);
   }
 }

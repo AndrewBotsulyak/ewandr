@@ -35,23 +35,3 @@ export const GET_ACTIVE_CUSTOMER = gql`
         }
     }
 `;
-export const GET_COLLECTIONS = gql`
-    query GetCollections($options: CollectionListOptions) {
-        collections(options: $options) {
-            items {
-                id
-                name
-                slug
-                parent {
-                    id
-                    name
-                    slug
-                }
-                featuredAsset {
-                    ...Asset
-                }
-            }
-        }
-    }
-    ${ASSET_FRAGMENT}
-`;
