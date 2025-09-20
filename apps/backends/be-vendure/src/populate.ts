@@ -1,29 +1,40 @@
-import { bootstrap, DefaultJobQueuePlugin } from '@vendure/core';
+import { bootstrap } from '@vendure/core';
 import { populate } from '@vendure/core/cli';
 import { config } from './vendure-config';
-import {AdminUiPlugin} from "@vendure/admin-ui-plugin";
-import {initialData} from "../initial-data";
+import { initialData } from '../initial-data';
+import path from 'path';
+import fs from 'fs';
 
-const populateConfig = {
-  ...config,
-  plugins: (config.plugins || []).filter(
-    // Отключаем AdminUiPlugin при populate
-    plugin => plugin !== AdminUiPlugin
-  ),
-};
+// Get the path to the local assets directory
+const assetsDir = path.join(__dirname, '../assets');
+const productsCsvPath = path.join(assetsDir, 'products.csv');
+const imagesDir = path.join(assetsDir, 'images');
+
+// Ensure the images directory exists
+if (!fs.existsSync(imagesDir)) {
+  fs.mkdirSync(imagesDir, { recursive: true });
+}
 
 populate(
-  () => bootstrap(populateConfig),
+  () => bootstrap({
+    ...config,
+    apiOptions: {
+      ...config.apiOptions,
+      port: 3001, // Use a different port for population
+    },
+    importExportOptions: {
+      importAssetsDir: imagesDir,
+    },
+    dbConnectionOptions: {...config.dbConnectionOptions, synchronize: true}
+  }),
   initialData,
-  'assets/products.csv'
+  productsCsvPath
 )
   .then(app => {
-    return app.close();
+    console.log('Population completed successfully');
+    app.close();
   })
-  .then(
-    () => process.exit(0),
-    err => {
-      console.log(err);
-      process.exit(1);
-    }
-  );
+  .catch(err => {
+    console.log(err);
+    process.exit(1);
+  });

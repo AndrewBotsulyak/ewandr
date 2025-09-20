@@ -4,6 +4,6 @@
   </div>
   <h3 class="mt-4 line-clamp-2 text-sm font-medium text-slate-900">{{ product.name }}</h3>
   <p class="mt-1 text-base font-semibold text-slate-900">
-    {{ (product?.variants?.[0]?.priceWithTax || 0) / 100 | currency: (product?.variants?.[0]?.currencyCode || 'USD') }}
+    {{ (product.variants?.[0]?.priceWithTax || 0) / 100 | currency: (product.variants?.[0]?.currencyCode || 'USD') }}
   </p>
 </a>

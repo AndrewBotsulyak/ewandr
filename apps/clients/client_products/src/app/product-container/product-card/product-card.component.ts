@@ -1,24 +1,10 @@
-import {Component, EventEmitter, inject, Input, Output} from '@angular/core';
-import {
-  MatCard,
-  MatCardContent,
-  MatCardHeader,
-  MatCardImage,
-  MatCardSubtitle,
-  MatCardTitle
-} from "@angular/material/card";
+import {Component, EventEmitter, Input, Output} from '@angular/core';
 import {ProductItemModel} from "../models/product-item.model";
 import { CurrencyPipe } from '@angular/common';
 
 @Component({
   selector: 'product-card',
   imports: [
-    MatCard,
-    MatCardContent,
-    MatCardHeader,
-    MatCardImage,
-    MatCardSubtitle,
-    MatCardTitle,
     CurrencyPipe
   ],
   templateUrl: './product-card.component.html',
