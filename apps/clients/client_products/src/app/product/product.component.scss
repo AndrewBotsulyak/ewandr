@@ -1,57 +1,49 @@
 
-:host {
-  // Gallery
-  .product-gallery ::ng-deep gallery {
-    background: transparent;
-    border-radius: 1rem;
-    overflow: hidden;
+// Gallery
+.product-gallery ::ng-deep gallery {
+  border-radius: 1rem;
+  overflow: hidden;
 
-    .g-image { border-radius: 1rem; }
+  .g-image { border-radius: 1rem; }
 
-    .g-thumbs {
-      background: rgba(255, 255, 255, 0.8);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(148, 163, 184, 0.2);
+  .g-thumbs {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
 
-      .g-thumb {
-        border-radius: 0.5rem;
-        border: 2px solid transparent;
-        transition: all 0.2s ease;
+    .g-thumb {
+      border-radius: 0.5rem;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
 
-        &:hover { border-color: rgb(148, 163, 184); transform: scale(1.05); }
-        &.active { border-color: rgb(15, 23, 42); }
-      }
+      &:hover { border-color: #94a3b8; transform: scale(1.05); }
+      &.active { border-color: #0f172a; }
     }
   }
+}
 
-  // Cards
-  .product-card {
-    @apply bg-white rounded-xl shadow-sm border border-slate-200 transition-all duration-300;
-    &:hover { @apply shadow-lg transform -translate-y-1; }
+// Cards
+.variant-card {
+  @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6 transition-all duration-200;
+  &:hover { @apply shadow-md; transform: translateY(-2px); }
+}
+
+// Tabs
+.tab-nav {
+  @apply -mb-px flex space-x-8;
+
+  .tab-button {
+    @apply py-2 px-1 border-b-2 text-sm font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2;
+    @apply border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300;
+
+    &.active { @apply border-slate-900 text-slate-900; }
   }
+}
 
-  .variant-card {
-    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6 transition-all duration-200;
-    &:hover { @apply shadow-md; transform: translateY(-2px); }
-  }
-
-  // Tabs
-  .tab-nav {
-    @apply -mb-px flex space-x-8;
-
-    .tab-button {
-      @apply py-2 px-1 border-b-2 text-sm font-medium transition-all duration-200;
-      @apply focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2;
-
-      &.active { @apply border-slate-900 text-slate-900; }
-      &:not(.active) { @apply border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300; }
-    }
-  }
-
-  // Mobile
-  @media (max-width: 768px) {
-    .product-gallery ::ng-deep gallery .g-thumbs .g-thumb {
-      width: 60px; height: 60px;
-    }
+// Mobile
+@media (max-width: 768px) {
+  .product-gallery ::ng-deep gallery .g-thumbs .g-thumb {
+    width: 60px; height: 60px;
   }
 }
