@@ -38,7 +38,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "Searching for artifact: detection-results-pr-${{ github.event.inputs.pr_number }}"
-          
+
           # Проверяем, что PR detection workflow запускался для этого PR
           echo "🔍 Checking PR detection workflow runs for PR #${{ github.event.inputs.pr_number }}:"
           gh api \
@@ -46,7 +46,7 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/${{ github.repository }}/actions/runs \
             --jq '.workflow_runs[] | select(.name == "PR Change Detection") | {id, status, conclusion, created_at, head_sha}' | head -5
-          
+
           # Получаем список артефактов
           ARTIFACTS=$(gh api \
             -H "Accept: application/vnd.github+json" \
@@ -170,7 +170,7 @@ jobs:
           export IMAGE_TAG=$IMAGE_TAG
 
           # Запускаем скрипт сборки для worker
-          SCRIPT_NAME="CI_CD/ecr-be-vendure_worker.sh"
+          SCRIPT_NAME="CI_CD/ecr-be-vendure-worker.sh"
           if [ -f "./$SCRIPT_NAME" ]; then
             echo "Running $SCRIPT_NAME"
             chmod +x ./$SCRIPT_NAME
@@ -183,7 +183,7 @@ jobs:
           # Проверяем что образ создан в ECR
           echo "🔍 Verifying image in ECR..."
           if aws ecr describe-images \
-            --repository-name "ewandr/be-vendure_worker" \
+            --repository-name "ewandr/be-vendure-worker" \
             --image-ids imageTag=$IMAGE_TAG \
             --region $AWS_REGION 2>/dev/null; then
             echo "✅ Image successfully pushed to ECR!"
@@ -194,7 +194,7 @@ jobs:
 
       - name: Clean up old ECR images
         env:
-          REPO_NAME: ewandr/be-vendure_worker
+          REPO_NAME: ewandr/be-vendure-worker
         run: |
           echo "🧹 Cleaning up old ECR images for $REPO_NAME..."
 
