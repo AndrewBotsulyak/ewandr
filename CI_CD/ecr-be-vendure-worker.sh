@@ -2,7 +2,7 @@
 set -e
 
 export SERVICE_NAME=be-vendure
-export WORKER_NAME=be-vendure_worker
+export WORKER_NAME=be-vendure-worker
 export REPO_NAME=ewandr/$WORKER_NAME
 export DOCKER_FILE=prod.worker.Dockerfile
 export SERVICE_PATH=apps/backends/$SERVICE_NAME

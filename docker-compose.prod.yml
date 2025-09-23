@@ -45,7 +45,7 @@ services:
       - app-network
 
   be-vendure-worker:
-    image: ${ECR_REGISTRY}/ewandr/be-vendure_worker:${BE_VENDURE_WORKER_TAG}
+    image: ${ECR_REGISTRY}/ewandr/be-vendure-worker:${BE_VENDURE_WORKER_TAG}
     ports:
       - "3001:3001"
     depends_on:
