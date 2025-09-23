@@ -368,45 +368,62 @@ jobs:
           ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" \
             "cat ~/ewandr/.env.production" > old_env_prod 2>/dev/null || true
 
-          # 2) Дефолтные значения
-          OLD_CLIENT_SHELL_TAG="latest"
-          OLD_BE_VENDURE_TAG="latest"
-
-          # 3) Если скачали непустой файл — парсим из него переменные
-          if [ -s old_env_prod ]; then
-            OLD_CLIENT_SHELL_TAG=$(grep -E '^CLIENT_SHELL_TAG=' old_env_prod | cut -d= -f2- || echo "latest")
-            OLD_BE_VENDURE_TAG=$(grep -E '^BE_VENDURE_TAG=' old_env_prod | cut -d= -f2- || echo "latest")
-            echo "Existing tags: CLIENT_SHELL_TAG=$OLD_CLIENT_SHELL_TAG, BE_VENDURE_TAG=$OLD_BE_VENDURE_TAG"
-          else
-            echo "No remote .env.production found, defaulting tags to 'latest'"
-          fi
-
-          # 4) Генерируем новый tag - ТАКОЙ ЖЕ КАК В build-and-push-server
+          # 2) Генерируем новый tag - ТАКОЙ ЖЕ КАК В build-and-push-server
           UNIQUE_TAG="pr-${{ github.event.inputs.pr_number }}-${{ github.run_number }}-${{ github.sha }}"
 
-          # 5) По умолчанию используем старые теги
-          CLIENT_SHELL_TAG="$OLD_CLIENT_SHELL_TAG"
-          BE_VENDURE_TAG="$OLD_BE_VENDURE_TAG"
-
-          # 6) Обновляем ТОЛЬКО измененные сервисы
-          if [ "${{ needs.load-detection-results.outputs.client_shell_affected }}" = "true" ]; then
-            CLIENT_SHELL_TAG="$UNIQUE_TAG"
-            echo "✅ Updating CLIENT_SHELL_TAG to $UNIQUE_TAG"
+          # 3) Обновляем .env.production, сохраняя существующие записи
+          if [ -s old_env_prod ]; then
+            echo "📋 Existing .env.production found, updating affected service tags"
+            
+            # Создаем временный файл с обновленными значениями
+            cp old_env_prod .env.production
+            
+            # Обновляем CLIENT_SHELL_TAG если сервис был затронут
+            if [ "${{ needs.load-detection-results.outputs.client_shell_affected }}" = "true" ]; then
+              if grep -q "^CLIENT_SHELL_TAG=" .env.production; then
+                sed -i "s/^CLIENT_SHELL_TAG=.*/CLIENT_SHELL_TAG=$UNIQUE_TAG/" .env.production
+                echo "✅ Updated existing CLIENT_SHELL_TAG to $UNIQUE_TAG"
+              else
+                echo "CLIENT_SHELL_TAG=$UNIQUE_TAG" >> .env.production
+                echo "✅ Added CLIENT_SHELL_TAG=$UNIQUE_TAG"
+              fi
+            else
+              echo "⏭️ CLIENT_SHELL_TAG not affected, keeping existing value"
+            fi
+            
+            # Обновляем BE_VENDURE_TAG если сервис был затронут
+            if [ "${{ needs.load-detection-results.outputs.be_vendure_affected }}" = "true" ]; then
+              if grep -q "^BE_VENDURE_TAG=" .env.production; then
+                sed -i "s/^BE_VENDURE_TAG=.*/BE_VENDURE_TAG=$UNIQUE_TAG/" .env.production
+                echo "✅ Updated existing BE_VENDURE_TAG to $UNIQUE_TAG"
+              else
+                echo "BE_VENDURE_TAG=$UNIQUE_TAG" >> .env.production
+                echo "✅ Added BE_VENDURE_TAG=$UNIQUE_TAG"
+              fi
+            else
+              echo "⏭️ BE_VENDURE_TAG not affected, keeping existing value"
+            fi
+            
+            # Обновляем или добавляем ECR_REPOSITORY_PREFIX
+            if grep -q "^ECR_REPOSITORY_PREFIX=" .env.production; then
+              sed -i "s/^ECR_REPOSITORY_PREFIX=.*/ECR_REPOSITORY_PREFIX=${{ env.ECR_REPOSITORY_PREFIX }}/" .env.production
+              echo "✅ Updated existing ECR_REPOSITORY_PREFIX to ${{ env.ECR_REPOSITORY_PREFIX }}"
+            else
+              echo "ECR_REPOSITORY_PREFIX=${{ env.ECR_REPOSITORY_PREFIX }}" >> .env.production
+              echo "✅ Added ECR_REPOSITORY_PREFIX=${{ env.ECR_REPOSITORY_PREFIX }}"
+            fi
+            
+            # Обновляем или добавляем ECR_REGISTRY
+            if grep -q "^ECR_REGISTRY=" .env.production; then
+              sed -i "s/^ECR_REGISTRY=.*/ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/" .env.production
+              echo "✅ Updated existing ECR_REGISTRY"
+            else
+              echo "ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com" >> .env.production
+              echo "✅ Added ECR_REGISTRY"
+            fi
           else
-            echo "⏭️ Keeping CLIENT_SHELL_TAG as $OLD_CLIENT_SHELL_TAG (not affected)"
-          fi
-
-          if [ "${{ needs.load-detection-results.outputs.be_vendure_affected }}" = "true" ]; then
-            BE_VENDURE_TAG="$UNIQUE_TAG"
-            echo "✅ Updating BE_VENDURE_TAG to $UNIQUE_TAG"
-          else
-            echo "⏭️ Keeping BE_VENDURE_TAG as $OLD_BE_VENDURE_TAG (not affected)"
-          fi
-
-          echo "Final tags: CLIENT_SHELL_TAG=$CLIENT_SHELL_TAG, BE_VENDURE_TAG=$BE_VENDURE_TAG"
-
-          # 7) Собираем новый .env.production
-          cat > .env.production <<EOF
+            echo "📋 No existing .env.production found, creating new one"
+            cat > .env.production <<EOF
           # Auto-generated by GitHub Actions
           # PR: #${{ github.event.inputs.pr_number }}
           # Run: #${{ github.run_number }}
@@ -414,18 +431,27 @@ jobs:
 
           ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
           ECR_REPOSITORY_PREFIX=${{ env.ECR_REPOSITORY_PREFIX }}
-
-          CLIENT_SHELL_TAG=${CLIENT_SHELL_TAG}
-          BE_VENDURE_TAG=${BE_VENDURE_TAG}
           EOF
+            
+            # Добавляем теги только для затронутых сервисов
+            if [ "${{ needs.load-detection-results.outputs.client_shell_affected }}" = "true" ]; then
+              echo "CLIENT_SHELL_TAG=$UNIQUE_TAG" >> .env.production
+              echo "✅ Added CLIENT_SHELL_TAG=$UNIQUE_TAG"
+            fi
+            
+            if [ "${{ needs.load-detection-results.outputs.be_vendure_affected }}" = "true" ]; then
+              echo "BE_VENDURE_TAG=$UNIQUE_TAG" >> .env.production
+              echo "✅ Added BE_VENDURE_TAG=$UNIQUE_TAG"
+            fi
+          fi
 
-          # 8) Показываем что изменилось
+          # 4) Показываем что изменилось
           echo ""
-          echo "📋 .env.production content:"
+          echo "📋 Updated .env.production content:"
           cat .env.production
           echo ""
 
-          # 9) Копируем и атомарно меняем конфиг на сервере
+          # 5) Копируем и атомарно меняем конфиг на сервере
           scp -i "$SSH_KEY" .env.production "$REMOTE_USER@$REMOTE_HOST:~/ewandr/.env.production.new"
           ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" <<'ENDSSH'
           set -eo pipefail
