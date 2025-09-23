@@ -1,0 +1,496 @@
+# .github/workflows/deploy-be-vendure-worker.yml
+name: Deploy be-vendure-worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to deploy (required)'
+        required: true
+        type: string
+      force_deploy:
+        description: 'Force deployment even if no changes detected'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+env:
+  NODE_VERSION: '20'
+  NX_NO_CLOUD: true
+  NX_PREFER_TS_NODE: true
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ECR_REPOSITORY_PREFIX: ${{ secrets.ECR_REPOSITORY_PREFIX }}
+
+jobs:
+  load-detection-results:
+    runs-on: ubuntu-latest
+    outputs:
+      be_vendure_worker_affected: ${{ steps.load.outputs.be_vendure_worker_affected }}
+    steps:
+      - name: Download artifact via API
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Searching for artifact: detection-results-pr-${{ github.event.inputs.pr_number }}"
+          
+          # Проверяем, что PR detection workflow запускался для этого PR
+          echo "🔍 Checking PR detection workflow runs for PR #${{ github.event.inputs.pr_number }}:"
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/runs \
+            --jq '.workflow_runs[] | select(.name == "PR Change Detection") | {id, status, conclusion, created_at, head_sha}' | head -5
+          
+          # Получаем список артефактов
+          ARTIFACTS=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/artifacts \
+            --jq '.artifacts[] | select(.name == "detection-results-pr-${{ github.event.inputs.pr_number }}") | {id, name, expired, created_at}')
+
+          if [ -z "$ARTIFACTS" ]; then
+            echo "❌ No artifact found with name: detection-results-pr-${{ github.event.inputs.pr_number }}"
+            echo "Please ensure the PR detection workflow has completed successfully."
+            exit 1
+          fi
+
+          echo "Found artifact:"
+          echo "$ARTIFACTS"
+
+          # Получаем ID последнего артефакта
+          ARTIFACT_ID=$(echo "$ARTIFACTS" | jq -r '.id' | head -n1)
+
+          # Скачиваем артефакт
+          echo "Downloading artifact ID: $ARTIFACT_ID"
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID/zip \
+            > artifact.zip
+
+          # Распаковываем
+          unzip artifact.zip
+          ls -la
+
+      - name: Load and display detection results
+        id: load
+        run: |
+          if [ -f detection-results.json ]; then
+            echo "📋 Deployment Summary for PR #${{ github.event.inputs.pr_number }}:"
+            echo "================================"
+            cat detection-results.json | jq -r '
+              "PR Title: \(.pr_title)",
+              "PR URL: \(.pr_url)",
+              "Detection Time: \(.timestamp)",
+              "",
+              "Affected Applications:",
+              (.affected_apps | map("  - " + .) | join("\n"))
+            '
+            echo "================================"
+
+            # Проверяем, затронут ли be-vendure-worker
+            if jq -e '.affected_apps[] | select(. == "be-vendure")' detection-results.json > /dev/null; then
+              echo "be_vendure_worker_affected=true" >> $GITHUB_OUTPUT
+              echo "✅ be-vendure-worker will be deployed (be-vendure was affected)"
+            else
+              echo "be_vendure_worker_affected=false" >> $GITHUB_OUTPUT
+              echo "⏭️ be-vendure-worker will be skipped (be-vendure was not affected)"
+            fi
+          else
+            echo "❌ No detection results found in artifact!"
+            if [ "${{ github.event.inputs.force_deploy }}" == "true" ]; then
+              echo "🔄 Force deploy enabled, proceeding with deployment"
+              echo "be_vendure_worker_affected=true" >> $GITHUB_OUTPUT
+            else
+              exit 1
+            fi
+          fi
+
+  build-and-push-worker:
+    needs: load-detection-results
+    if: needs.load-detection-results.outputs.be_vendure_worker_affected == 'true' || github.event.inputs.force_deploy == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build be-vendure application
+        env:
+          NX_PREFER_TS_NODE: true
+        run: |
+          echo ">>> Running NX build for be-vendure…"
+          npx nx run be-vendure:build:production
+
+          echo ">>> Listing all dist/apps directories:"
+          ls -R dist/apps
+
+          echo ">>> Contents of the be-vendure build folder:"
+          ls -l dist/apps/backends/be-vendure || echo "Folder not found: dist/apps/backends/be-vendure"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image with unique tag
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          # Уникальный тег с PR номером и timestamp
+          IMAGE_TAG: pr-${{ github.event.inputs.pr_number }}-${{ github.run_number }}-${{ github.sha }}
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECR_REPOSITORY_PREFIX: ${{ env.ECR_REPOSITORY_PREFIX }}
+        run: |
+          echo "Building be-vendure-worker with unique tag: $IMAGE_TAG"
+          echo "ECR_REGISTRY: $ECR_REGISTRY"
+          echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
+          echo "AWS_REGION: $AWS_REGION"
+
+          # ВАЖНО: Экспортируем IMAGE_TAG чтобы скрипт его увидел
+          export IMAGE_TAG=$IMAGE_TAG
+
+          # Запускаем скрипт сборки для worker
+          SCRIPT_NAME="CI_CD/ecr-be-vendure_worker.sh"
+          if [ -f "./$SCRIPT_NAME" ]; then
+            echo "Running $SCRIPT_NAME"
+            chmod +x ./$SCRIPT_NAME
+            ./$SCRIPT_NAME
+          else
+            echo "Script $SCRIPT_NAME not found!"
+            exit 1
+          fi
+
+          # Проверяем что образ создан в ECR
+          echo "🔍 Verifying image in ECR..."
+          if aws ecr describe-images \
+            --repository-name "ewandr/be-vendure_worker" \
+            --image-ids imageTag=$IMAGE_TAG \
+            --region $AWS_REGION 2>/dev/null; then
+            echo "✅ Image successfully pushed to ECR!"
+          else
+            echo "❌ ERROR: Image not found in ECR after push!"
+            exit 1
+          fi
+
+      - name: Clean up old ECR images
+        env:
+          REPO_NAME: ewandr/be-vendure_worker
+        run: |
+          echo "🧹 Cleaning up old ECR images for $REPO_NAME..."
+
+          # Список образов, отсортированный от самых старых к самым новым
+          IMAGES=$(aws ecr describe-images \
+            --repository-name "$REPO_NAME" \
+            --query 'sort_by(imageDetails,&imagePushedAt)[*].[imageDigest, imageTags[0], imagePushedAt]' \
+            --output text)
+
+          IMAGE_COUNT=$(echo "$IMAGES" | wc -l)
+          echo "Found $IMAGE_COUNT images"
+
+          if [ "$IMAGE_COUNT" -gt 5 ]; then
+            # Считаем, сколько надо удалить, чтобы осталось ровно 5
+            DELETE_COUNT=$((IMAGE_COUNT - 5))
+            echo "Will delete $DELETE_COUNT old images"
+
+            # Берём первые DELETE_COUNT строк — это самые старые образы
+            IMAGES_TO_DELETE=$(echo "$IMAGES" | head -n "$DELETE_COUNT")
+
+            echo "$IMAGES_TO_DELETE" | while read -r digest tag pushed_at; do
+              [ -n "$digest" ] || continue
+              echo "Deleting image with digest: $digest (tag: $tag, pushed: $pushed_at)"
+              aws ecr batch-delete-image \
+                --repository-name "$REPO_NAME" \
+                --image-ids imageDigest="$digest" || true
+            done
+          else
+            echo "No cleanup needed, only $IMAGE_COUNT images exist"
+          fi
+
+  update-server-configuration:
+    needs: [ load-detection-results, build-and-push-worker ]
+    if: |
+      needs.build-and-push-worker.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Update .env.production with worker tag
+        env:
+          SSH_KEY: ~/.ssh/lightsail_key
+          REMOTE_USER: ${{ secrets.LIGHTSAIL_USER }}
+          REMOTE_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+        run: |
+          set -eo pipefail
+          echo "📝 Updating server configuration with be-vendure-worker image tag…"
+
+          # 1) Скачиваем старый .env.production
+          ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" \
+            "cat ~/ewandr/.env.production" > old_env_prod 2>/dev/null || true
+
+          # 2) Дефолтные значения
+          OLD_BE_VENDURE_WORKER_TAG="latest"
+
+          # 3) Если скачали непустой файл — парсим из него переменные
+          if [ -s old_env_prod ]; then
+            OLD_BE_VENDURE_WORKER_TAG=$(grep -E '^BE_VENDURE_WORKER_TAG=' old_env_prod | cut -d= -f2- || echo "latest")
+            echo "Existing BE_VENDURE_WORKER_TAG: $OLD_BE_VENDURE_WORKER_TAG"
+          else
+            echo "No remote .env.production found, defaulting BE_VENDURE_WORKER_TAG to 'latest'"
+          fi
+
+          # 4) Генерируем новый tag - ТАКОЙ ЖЕ КАК В build-and-push-worker
+          UNIQUE_TAG="pr-${{ github.event.inputs.pr_number }}-${{ github.run_number }}-${{ github.sha }}"
+
+          # 5) Обновляем BE_VENDURE_WORKER_TAG
+          BE_VENDURE_WORKER_TAG="$UNIQUE_TAG"
+          echo "✅ Updating BE_VENDURE_WORKER_TAG to $UNIQUE_TAG"
+
+          echo "Final BE_VENDURE_WORKER_TAG: $BE_VENDURE_WORKER_TAG"
+
+          # 6) Собираем новый .env.production
+          cat > .env.production <<EOF
+          # Auto-generated by GitHub Actions - be-vendure-worker deployment
+          # PR: #${{ github.event.inputs.pr_number }}
+          # Run: #${{ github.run_number }}
+          # Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          ECR_REPOSITORY_PREFIX=${{ env.ECR_REPOSITORY_PREFIX }}
+
+          BE_VENDURE_WORKER_TAG=${BE_VENDURE_WORKER_TAG}
+          EOF
+
+          # 7) Показываем что изменилось
+          echo ""
+          echo "📋 .env.production content:"
+          cat .env.production
+          echo ""
+
+          # 8) Копируем и атомарно меняем конфиг на сервере
+          scp -i "$SSH_KEY" .env.production "$REMOTE_USER@$REMOTE_HOST:~/ewandr/.env.production.new"
+          ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" <<'ENDSSH'
+          set -eo pipefail
+          cd ~/ewandr
+          cp .env.production .env.production.backup-$(date +%Y%m%d-%H%M%S) || true
+          mv .env.production.new .env.production
+          echo "✅ .env.production successfully updated"
+          cat .env.production
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/lightsail_key ./.env.production
+
+  pull-latest-images:
+    needs: [ load-detection-results, build-and-push-worker, update-server-configuration ]
+    if: |
+      needs.build-and-push-worker.result == 'success' &&
+      needs.update-server-configuration.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Pull latest worker image on server
+        run: |
+          echo "🔄 Pulling latest be-vendure-worker image on Lightsail server..."
+
+          # SSH подключение и выполнение команд
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} << 'ENDSSH'
+            set -e
+            cd ~/ewandr
+
+            echo "📋 Current .env.production:"
+            cat .env.production
+
+            echo "🔐 Logging in to AWS ECR..."
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+              docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+            echo "📦 Pulling be-vendure-worker image"
+            docker-compose --env-file .env.production -f docker-compose.prod.yml pull be-vendure-worker
+
+            echo "✅ be-vendure-worker image pulled successfully!"
+
+            # Проверяем что образ действительно скачался
+            echo "📊 Checking downloaded be-vendure-worker image:"
+            docker images | grep "be-vendure-worker" | head -5
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/lightsail_key
+
+  restart-worker-service:
+    needs: [ load-detection-results, build-and-push-worker, update-server-configuration, pull-latest-images ]
+    if: |
+      needs.build-and-push-worker.result == 'success' &&
+      needs.update-server-configuration.result == 'success' &&
+      needs.pull-latest-images.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Restart be-vendure-worker service
+        run: |
+          echo "🔄 Restarting be-vendure-worker on Lightsail..."
+
+          # SSH подключение и выполнение команд
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} << 'ENDSSH'
+            set -e
+            cd ~/ewandr
+
+            echo "📋 Using .env.production:"
+            cat .env.production | grep "BE_VENDURE_WORKER_TAG="
+
+            # ВАЖНО: Используем --no-deps чтобы не трогать зависимые сервисы
+            echo "🛑 Stopping be-vendure-worker..."
+            docker-compose --env-file .env.production -f docker-compose.prod.yml stop be-vendure-worker
+
+            echo "🗑️ Removing old container..."
+            docker-compose --env-file .env.production -f docker-compose.prod.yml rm -f be-vendure-worker
+
+            echo "🚀 Starting be-vendure-worker with new image..."
+            # Используем --no-deps чтобы запустить ТОЛЬКО указанный сервис
+            docker-compose --env-file .env.production -f docker-compose.prod.yml up -d --no-deps be-vendure-worker
+
+            echo "⏳ Waiting for container to be ready..."
+            sleep 10
+
+            echo "📊 Checking container status..."
+            docker-compose --env-file .env.production -f docker-compose.prod.yml ps be-vendure-worker
+
+            # Проверяем что контейнер запущен
+            if docker-compose --env-file .env.production -f docker-compose.prod.yml ps be-vendure-worker | grep -q "Up"; then
+              echo "✅ be-vendure-worker is running!"
+
+              # Показываем какой образ используется
+              CONTAINER_ID=$(docker-compose --env-file .env.production -f docker-compose.prod.yml ps -q be-vendure-worker)
+              echo "📦 Running image:"
+              docker inspect --format='{{.Config.Image}}' "$CONTAINER_ID"
+
+              # Проверяем логи на наличие ошибок запуска
+              echo "📜 Recent logs:"
+              docker-compose --env-file .env.production -f docker-compose.prod.yml logs --tail=20 be-vendure-worker
+            else
+              echo "❌ be-vendure-worker is not running properly!"
+              docker-compose --env-file .env.production -f docker-compose.prod.yml logs --tail=100 be-vendure-worker
+              exit 1
+            fi
+          ENDSSH
+
+      - name: Health check
+        run: |
+          echo "⏳ Waiting for be-vendure-worker to be fully ready..."
+          sleep 30
+
+          # Финальная проверка через SSH
+          echo "🔍 Final container check..."
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
+            "cd ~/ewandr && docker-compose -f docker-compose.prod.yml ps be-vendure-worker"
+
+      - name: Cleanup SSH
+        if: always()
+        run: |
+          rm -f ~/.ssh/lightsail_key
+
+  deployment-summary:
+    needs: [ load-detection-results, build-and-push-worker, restart-worker-service ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create deployment summary
+        run: |
+          echo "# 🚀 be-vendure-worker Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR Number:** #${{ github.event.inputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Time:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Worker Application Section
+          echo "## ⚙️ be-vendure-worker Application" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Status:** ${{ needs.build-and-push-worker.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Restart Status:** ${{ needs.restart-worker-service.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Детали по worker приложению
+          if [[ "${{ needs.load-detection-results.outputs.be_vendure_worker_affected }}" == "true" ]]; then
+            echo "### be-vendure-worker" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔄 Changes detected in be-vendure" >> $GITHUB_STEP_SUMMARY
+            echo "- 🐳 Docker image updated" >> $GITHUB_STEP_SUMMARY
+            echo "- ♻️ Service restarted" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+            echo "### be-vendure-worker" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔄 Force deployment enabled" >> $GITHUB_STEP_SUMMARY
+            echo "- 🐳 Docker image updated" >> $GITHUB_STEP_SUMMARY
+            echo "- ♻️ Service restarted" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### be-vendure-worker" >> $GITHUB_STEP_SUMMARY
+            echo "- ⏭️ No changes detected, deployment skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Summary Statistics
+          echo "## 📊 Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.build-and-push-worker.result }}" == "success" ]]; then
+            echo "- **be-vendure-worker:** ✅ Updated and deployed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **be-vendure-worker:** ❌ Failed or skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Final Status
+          echo "## 🎯 Final Status" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.build-and-push-worker.result }}" == "success" ]] && \
+             [[ "${{ needs.restart-worker-service.result }}" == "success" ]]; then
+            echo "✅ **be-vendure-worker deployment completed successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **be-vendure-worker deployment failed or partially completed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
