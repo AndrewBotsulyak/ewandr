@@ -44,49 +44,61 @@ services:
     networks:
       - app-network
 
-#  postgres:
-#    image: postgres:15-alpine
-#    container_name: postgres-db
-#    restart: unless-stopped
-#    environment:
-#      POSTGRES_DB: core_service_db
-#      POSTGRES_USER: postgres
-#      POSTGRES_PASSWORD: postgres123
-#      PGDATA: /var/lib/postgresql/data/pgdata
-#    ports:
-#      - "5432:5432"
-#    volumes:
-#      # Персистентное хранение данных
-#      - postgres_data:/var/lib/postgresql/data
-#      # Опционально: скрипты инициализации
-#      - ./init-scripts:/docker-entrypoint-initdb.d
-#    networks:
-#      - app-network
-#    healthcheck:
-#      test: [ "CMD-SHELL", "pg_isready -U postgres -d core_service_db" ]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
-#
-#  be-core-service:
-#    image: ${ECR_REGISTRY}/ewandr/be-core-service:${BE_CORE_SERVICE_TAG}
-#    ports:
-#      - "3000:3000"
-#    environment:
-#      - NODE_ENV=development
-#      # Подключение к PostgreSQL
-#      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/core_service_db
-#      - DATABASE_HOST=postgres
-#      - DATABASE_PORT=5432
-#      - DATABASE_NAME=core_service_db
-#      - DATABASE_USERNAME=postgres
-#      - DATABASE_PASSWORD=postgres123
-#      - DB_SSL=false
-#    depends_on:
-#      postgres:
-#        condition: service_healthy
-#    networks:
-#      - app-network
+  be-vendure-worker:
+    image: ${ECR_REGISTRY}/ewandr/be-vendure_worker:${BE_VENDURE_WORKER_TAG}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-vendure:
+        condition: service_healthy
+    env_file:
+      - ./.env.be-vendure
+    networks:
+      - app-network
+
+  #  postgres:
+  #    image: postgres:15-alpine
+  #    container_name: postgres-db
+  #    restart: unless-stopped
+  #    environment:
+  #      POSTGRES_DB: core_service_db
+  #      POSTGRES_USER: postgres
+  #      POSTGRES_PASSWORD: postgres123
+  #      PGDATA: /var/lib/postgresql/data/pgdata
+  #    ports:
+  #      - "5432:5432"
+  #    volumes:
+  #      # Персистентное хранение данных
+  #      - postgres_data:/var/lib/postgresql/data
+  #      # Опционально: скрипты инициализации
+  #      - ./init-scripts:/docker-entrypoint-initdb.d
+  #    networks:
+  #      - app-network
+  #    healthcheck:
+  #      test: [ "CMD-SHELL", "pg_isready -U postgres -d core_service_db" ]
+  #      interval: 10s
+  #      timeout: 5s
+  #      retries: 5
+  #
+  #  be-core-service:
+  #    image: ${ECR_REGISTRY}/ewandr/be-core-service:${BE_CORE_SERVICE_TAG}
+  #    ports:
+  #      - "3000:3000"
+  #    environment:
+  #      - NODE_ENV=development
+  #      # Подключение к PostgreSQL
+  #      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/core_service_db
+  #      - DATABASE_HOST=postgres
+  #      - DATABASE_PORT=5432
+  #      - DATABASE_NAME=core_service_db
+  #      - DATABASE_USERNAME=postgres
+  #      - DATABASE_PASSWORD=postgres123
+  #      - DB_SSL=false
+  #    depends_on:
+  #      postgres:
+  #        condition: service_healthy
+  #    networks:
+  #      - app-network
 
   client-shell:
     image: ${ECR_REGISTRY}/ewandr/client-shell:${CLIENT_SHELL_TAG}
