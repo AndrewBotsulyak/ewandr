@@ -1,0 +1,397 @@
+# .github/workflows/deploy-nginx.yml
+name: Deploy nginx
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to deploy (required)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+env:
+  NODE_VERSION: '20'
+  NX_NO_CLOUD: true
+  NX_PREFER_TS_NODE: true
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ECR_REPOSITORY_PREFIX: ${{ secrets.ECR_REPOSITORY_PREFIX }}
+
+jobs:
+  build-and-push-nginx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image with unique tag
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          # Уникальный тег с PR номером и timestamp
+          IMAGE_TAG: pr-${{ github.event.inputs.pr_number }}-${{ github.run_number }}-${{ github.sha }}
+          AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECR_REPOSITORY_PREFIX: ${{ env.ECR_REPOSITORY_PREFIX }}
+        run: |
+          echo "Building nginx with unique tag: $IMAGE_TAG"
+          echo "ECR_REGISTRY: $ECR_REGISTRY"
+          echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
+          echo "AWS_REGION: $AWS_REGION"
+
+          # ВАЖНО: Экспортируем IMAGE_TAG чтобы скрипт его увидел
+          export IMAGE_TAG=$IMAGE_TAG
+
+          # Запускаем скрипт сборки для nginx
+          SCRIPT_NAME="CI_CD/ecr-nginx.sh"
+          if [ -f "./$SCRIPT_NAME" ]; then
+            echo "Running $SCRIPT_NAME"
+            chmod +x ./$SCRIPT_NAME
+            ./$SCRIPT_NAME
+          else
+            echo "Script $SCRIPT_NAME not found!"
+            exit 1
+          fi
+
+          # Проверяем что образ создан в ECR
+          echo "🔍 Verifying image in ECR..."
+          if aws ecr describe-images \
+            --repository-name "ewandr/nginx" \
+            --image-ids imageTag=$IMAGE_TAG \
+            --region $AWS_REGION 2>/dev/null; then
+            echo "✅ Image successfully pushed to ECR!"
+          else
+            echo "❌ ERROR: Image not found in ECR after push!"
+            exit 1
+          fi
+
+      - name: Clean up old ECR images
+        env:
+          REPO_NAME: ewandr/nginx
+        run: |
+          echo "🧹 Cleaning up old ECR images for $REPO_NAME..."
+
+          # Список образов, отсортированный от самых старых к самым новым
+          IMAGES=$(aws ecr describe-images \
+            --repository-name "$REPO_NAME" \
+            --query 'sort_by(imageDetails,&imagePushedAt)[*].[imageDigest, imageTags[0], imagePushedAt]' \
+            --output text)
+
+          IMAGE_COUNT=$(echo "$IMAGES" | wc -l)
+          echo "Found $IMAGE_COUNT images"
+
+          if [ "$IMAGE_COUNT" -gt 5 ]; then
+            # Считаем, сколько надо удалить, чтобы осталось ровно 5
+            DELETE_COUNT=$((IMAGE_COUNT - 5))
+            echo "Will delete $DELETE_COUNT old images"
+
+            # Берём первые DELETE_COUNT строк — это самые старые образы
+            IMAGES_TO_DELETE=$(echo "$IMAGES" | head -n "$DELETE_COUNT")
+
+            echo "$IMAGES_TO_DELETE" | while read -r digest tag pushed_at; do
+              [ -n "$digest" ] || continue
+              echo "Deleting image with digest: $digest (tag: $tag, pushed: $pushed_at)"
+              aws ecr batch-delete-image \
+                --repository-name "$REPO_NAME" \
+                --image-ids imageDigest="$digest" || true
+            done
+          else
+            echo "No cleanup needed, only $IMAGE_COUNT images exist"
+          fi
+
+  update-server-configuration:
+    needs: build-and-push-nginx
+    if: needs.build-and-push-nginx.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Update .env.production with nginx tag
+        env:
+          SSH_KEY: ~/.ssh/lightsail_key
+          REMOTE_USER: ${{ secrets.LIGHTSAIL_USER }}
+          REMOTE_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+        run: |
+          set -eo pipefail
+          echo "📝 Updating server configuration with nginx image tag…"
+
+          # 1) Скачиваем старый .env.production
+          ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" \
+            "cat ~/ewandr/.env.production" > old_env_prod 2>/dev/null || true
+
+          # 2) Генерируем новый tag - ТАКОЙ ЖЕ КАК В build-and-push-nginx
+          UNIQUE_TAG="pr-${{ github.event.inputs.pr_number }}-${{ github.run_number }}-${{ github.sha }}"
+
+          # 3) Обновляем .env.production, сохраняя существующие записи
+          if [ -s old_env_prod ]; then
+            echo "📋 Existing .env.production found, updating NGINX_TAG and ECR_REPOSITORY_PREFIX"
+            
+            # Создаем временный файл с обновленными значениями
+            cp old_env_prod .env.production
+            
+            # Обновляем или добавляем NGINX_TAG
+            if grep -q "^NGINX_TAG=" .env.production; then
+              sed -i "s/^NGINX_TAG=.*/NGINX_TAG=$UNIQUE_TAG/" .env.production
+              echo "✅ Updated existing NGINX_TAG to $UNIQUE_TAG"
+            else
+              echo "NGINX_TAG=$UNIQUE_TAG" >> .env.production
+              echo "✅ Added NGINX_TAG=$UNIQUE_TAG"
+            fi
+            
+            # Обновляем или добавляем ECR_REPOSITORY_PREFIX
+            if grep -q "^ECR_REPOSITORY_PREFIX=" .env.production; then
+              sed -i "s/^ECR_REPOSITORY_PREFIX=.*/ECR_REPOSITORY_PREFIX=${{ env.ECR_REPOSITORY_PREFIX }}/" .env.production
+              echo "✅ Updated existing ECR_REPOSITORY_PREFIX to ${{ env.ECR_REPOSITORY_PREFIX }}"
+            else
+              echo "ECR_REPOSITORY_PREFIX=${{ env.ECR_REPOSITORY_PREFIX }}" >> .env.production
+              echo "✅ Added ECR_REPOSITORY_PREFIX to ${{ env.ECR_REPOSITORY_PREFIX }}"
+            fi
+            
+            # Обновляем или добавляем ECR_REGISTRY
+            if grep -q "^ECR_REGISTRY=" .env.production; then
+              sed -i "s/^ECR_REGISTRY=.*/ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/" .env.production
+              echo "✅ Updated existing ECR_REGISTRY"
+            else
+              echo "ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com" >> .env.production
+              echo "✅ Added ECR_REGISTRY"
+            fi
+          else
+            echo "📋 No existing .env.production found, creating new one"
+            cat > .env.production <<EOF
+          # Auto-generated by GitHub Actions - nginx deployment
+          # PR: #${{ github.event.inputs.pr_number }}
+          # Run: #${{ github.run_number }}
+          # Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          ECR_REGISTRY=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          ECR_REPOSITORY_PREFIX=${{ env.ECR_REPOSITORY_PREFIX }}
+          NGINX_TAG=$UNIQUE_TAG
+          EOF
+          fi
+
+          # 4) Показываем что изменилось
+          echo ""
+          echo "📋 Updated .env.production content:"
+          cat .env.production
+          echo ""
+
+          # 5) Копируем и атомарно меняем конфиг на сервере
+          scp -i "$SSH_KEY" .env.production "$REMOTE_USER@$REMOTE_HOST:~/ewandr/.env.production.new"
+          ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" <<'ENDSSH'
+          set -eo pipefail
+          cd ~/ewandr
+          cp .env.production .env.production.backup-$(date +%Y%m%d-%H%M%S) || true
+          mv .env.production.new .env.production
+          echo "✅ .env.production successfully updated"
+          cat .env.production
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/lightsail_key ./.env.production
+
+  pull-latest-images:
+    needs: [ build-and-push-nginx, update-server-configuration ]
+    if: |
+      needs.build-and-push-nginx.result == 'success' &&
+      needs.update-server-configuration.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Pull latest nginx image on server
+        run: |
+          echo "🔄 Pulling latest nginx image on Lightsail server..."
+
+          # SSH подключение и выполнение команд
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} << 'ENDSSH'
+            set -e
+            cd ~/ewandr
+
+            echo "📋 Current .env.production:"
+            cat .env.production
+
+            echo "🔐 Logging in to AWS ECR..."
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+              docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+            echo "📦 Pulling nginx image"
+            docker-compose --env-file .env.production -f docker-compose.prod.yml pull nginx
+
+            echo "✅ nginx image pulled successfully!"
+
+            # Проверяем что образ действительно скачался
+            echo "📊 Checking downloaded nginx image:"
+            docker images | grep "nginx" | head -5
+          ENDSSH
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f ~/.ssh/lightsail_key
+
+  restart-nginx-service:
+    needs: [ build-and-push-nginx, update-server-configuration, pull-latest-images ]
+    if: |
+      needs.build-and-push-nginx.result == 'success' &&
+      needs.update-server-configuration.result == 'success' &&
+      needs.pull-latest-images.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Restart nginx service
+        run: |
+          echo "🔄 Restarting nginx on Lightsail..."
+
+          # SSH подключение и выполнение команд
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} << 'ENDSSH'
+            set -e
+            cd ~/ewandr
+
+            echo "📋 Using .env.production:"
+            cat .env.production | grep "NGINX_TAG="
+
+            # ВАЖНО: Используем --no-deps чтобы не трогать зависимые сервисы
+            echo "🛑 Stopping nginx..."
+            docker-compose --env-file .env.production -f docker-compose.prod.yml stop nginx
+
+            echo "🗑️ Removing old container..."
+            docker-compose --env-file .env.production -f docker-compose.prod.yml rm -f nginx
+
+            echo "🚀 Starting nginx with new image..."
+            # Используем --no-deps чтобы запустить ТОЛЬКО указанный сервис
+            docker-compose --env-file .env.production -f docker-compose.prod.yml up -d --no-deps nginx
+
+            echo "⏳ Waiting for container to be ready..."
+            sleep 10
+
+            echo "📊 Checking container status..."
+            docker-compose --env-file .env.production -f docker-compose.prod.yml ps nginx
+
+            # Проверяем что контейнер запущен
+            if docker-compose --env-file .env.production -f docker-compose.prod.yml ps nginx | grep -q "Up"; then
+              echo "✅ nginx is running!"
+
+              # Показываем какой образ используется
+              CONTAINER_ID=$(docker-compose --env-file .env.production -f docker-compose.prod.yml ps -q nginx)
+              echo "📦 Running image:"
+              docker inspect --format='{{.Config.Image}}' "$CONTAINER_ID"
+
+              # Проверяем логи на наличие ошибок запуска
+              echo "📜 Recent logs:"
+              docker-compose --env-file .env.production -f docker-compose.prod.yml logs --tail=20 nginx
+            else
+              echo "❌ nginx is not running properly!"
+              docker-compose --env-file .env.production -f docker-compose.prod.yml logs --tail=100 nginx
+              exit 1
+            fi
+          ENDSSH
+
+      - name: Health check
+        run: |
+          echo "⏳ Waiting for nginx to be fully ready..."
+          sleep 30
+
+          # Финальная проверка через SSH
+          echo "🔍 Final container check..."
+          ssh -i ~/.ssh/lightsail_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
+            "cd ~/ewandr && docker-compose -f docker-compose.prod.yml ps nginx"
+
+      - name: Cleanup SSH
+        if: always()
+        run: |
+          rm -f ~/.ssh/lightsail_key
+
+  deployment-summary:
+    needs: [ build-and-push-nginx, restart-nginx-service ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create deployment summary
+        run: |
+          echo "# 🚀 nginx Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR Number:** #${{ github.event.inputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Time:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Nginx Application Section
+          echo "## 🌐 nginx Application" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Status:** ${{ needs.build-and-push-nginx.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Restart Status:** ${{ needs.restart-nginx-service.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Детали по nginx приложению
+          echo "### nginx" >> $GITHUB_STEP_SUMMARY
+          echo "- 🐳 Docker image updated" >> $GITHUB_STEP_SUMMARY
+          echo "- ♻️ Service restarted" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Summary Statistics
+          echo "## 📊 Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.build-and-push-nginx.result }}" == "success" ]]; then
+            echo "- **nginx:** ✅ Updated and deployed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **nginx:** ❌ Failed or skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Final Status
+          echo "## 🎯 Final Status" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.build-and-push-nginx.result }}" == "success" ]] && \
+             [[ "${{ needs.restart-nginx-service.result }}" == "success" ]]; then
+            echo "✅ **nginx deployment completed successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **nginx deployment failed or partially completed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
