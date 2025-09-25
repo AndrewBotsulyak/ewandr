@@ -2,5 +2,9 @@
   "client_products": {
     "server": "http://localhost:4201/server/remoteEntry.js",
     "browser": "http://localhost:4201/mf-manifest.json"
+  },
+  "client_product_details": {
+    "server": "http://localhost:4202/server/remoteEntry.js",
+    "browser": "http://localhost:4202/mf-manifest.json"
   }
 }

@@ -4,18 +4,12 @@ import {CollectionItemContainer} from "../collection-item-container/collection-i
 import {
   collectionItemContainerResolver
 } from "../collection-item-container/resolvers/collection-item-container.resolver";
-import {ProductComponent} from "../product/product.component";
 
 export const remoteRoutes: Route[] = [
   {
     path: '',
     component: CollectionsContainerComponent,
     pathMatch: "full",
-  },
-  {
-    path: 'product/:slug',
-    component: ProductComponent,
-    pathMatch: "full"
   },
   {
     path: ':slug',

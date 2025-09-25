@@ -8,7 +8,7 @@ import {map} from "rxjs";
 @Injectable({
   providedIn: "root"
 })
-export class ProductService {
+export class ProductDetailsService {
   store = inject(Store);
   gqlService = inject(GqlDataService);
 

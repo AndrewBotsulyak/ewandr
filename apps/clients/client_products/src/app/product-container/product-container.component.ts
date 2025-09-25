@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   effect,
   inject,
   input,
@@ -13,12 +12,10 @@ import { CommonModule } from '@angular/common';
 import {ProductContainerService} from "./product-container.service";
 import {ProductStatusEnum} from "@ewandr-workspace/core";
 import {ActivatedRoute, Router} from "@angular/router";
-import {map, take, tap} from "rxjs";
-import {toSignal} from "@angular/core/rxjs-interop";
+import {take} from "rxjs";
 import {MatCardModuleUI, MatButtonUI} from "@ewandr-workspace/ui-shared-lib";
 import {ProductCardComponent} from "./product-card/product-card.component";
-import {ProductItemModel} from "./models/product-item.model";
-import {GetCollectionQuery, GetCollectionsQuery, SearchProductsQuery} from "@ewandr-workspace/data-access-graphql";
+import {SearchProductsQuery} from "@ewandr-workspace/data-access-graphql";
 
 @Component({
   selector: 'product-container',
@@ -30,7 +27,6 @@ import {GetCollectionQuery, GetCollectionsQuery, SearchProductsQuery} from "@ewa
 })
 export class ProductContainerComponent implements OnInit {
   private service = inject(ProductContainerService);
-  public activatedRoute = inject(ActivatedRoute);
   public router = inject(Router);
 
   collectionId = input<string>();
@@ -66,7 +62,7 @@ export class ProductContainerComponent implements OnInit {
   }
 
   public handleProductClick(product: SearchProductsQuery['search']['items'][number]) {
-    this.router.navigate([`product/${product.slug}`], {relativeTo: this.activatedRoute.parent})
+    this.router.navigate([`product/${product.slug}`])
   }
 
 }

@@ -5,13 +5,16 @@
   "private": true,
   "scripts": {
     "start:clients": "nx run client-shell:serve:development",
+    "serve-ssr": "nx run client-shell:serve-ssr",
     "start:nginx": "docker-compose -f docker-compose.local.yml up nginx",
     "start:db": "docker-compose -f docker-compose.local.yml up postgres-vendure",
     "start:vendure": "docker-compose -f docker-compose.local.yml up be-vendure",
     "start:worker": "docker-compose -f docker-compose.local.yml up be-vendure-worker",
     "start:be-all": "docker-compose -f docker-compose.local.yml up",
     "down:be": "docker-compose -f docker-compose.local.yml down",
-    "populate_data:be_vendure": "docker exec -it be-vendure npx nx run be-vendure:populate"
+    "populate_data:be_vendure": "docker exec -it be-vendure npx nx run be-vendure:populate",
+    "add:new-remote-app": "nx g @nx/angular:remote apps/clients/client_product_details --host=client-shell --ssr --addTailwind",
+    "remove:remote-app": "nx g @nx/workspace:remove client_product_details"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "20.2.2",

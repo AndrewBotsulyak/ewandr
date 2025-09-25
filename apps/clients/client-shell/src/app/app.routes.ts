@@ -1,22 +1,21 @@
 import { Route } from '@angular/router';
-import { loadRemote } from '@module-federation/enhanced/runtime'
-import {FeatureHomePageComponent} from "@ewandr-workspace/feature-home-page";
-import {RoutesConstants} from "@ewandr-workspace/core";
+import { FeatureHomePageComponent } from '@ewandr-workspace/feature-home-page';
+import { RoutesConstants } from '@ewandr-workspace/core';
 
 export const appRoutes: Route[] = [
   {
     path: '',
-    pathMatch: "full",
-    component: FeatureHomePageComponent
+    pathMatch: 'full',
+    component: FeatureHomePageComponent,
+  },
+  {
+    path: `${RoutesConstants.PRODUCT}/:slug`,
+    loadChildren: () =>
+      import('client_product_details/Routes').then((m) => m!.remoteRoutes),
   },
   {
     path: RoutesConstants.CATEGORY,
-    loadChildren: () => {
-      return loadRemote('client_products/Routes')
-        .then((m) => {
-          // @ts-ignore
-          return m!.remoteRoutes;
-        })
-    }
+    loadChildren: () =>
+      import('client_products/Routes').then((m) => m!.remoteRoutes),
   },
 ];

@@ -31,6 +31,9 @@
       ],
       "@ewandr-workspace/ngrx-store": ["libs/ngrx-store/src/index.ts"],
       "@ewandr-workspace/ui-shared-lib": ["libs/ui-shared-lib/src/index.ts"],
+      "client_product_details/Routes": [
+        "apps/clients/client_product_details/src/app/remote-entry/entry.routes.ts"
+      ],
       "client_products/Routes": [
         "apps/clients/client_products/src/app/remote-entry/entry.routes.ts"
       ]

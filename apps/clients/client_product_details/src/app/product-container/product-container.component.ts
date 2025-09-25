@@ -4,7 +4,7 @@ import {
   OnInit, Signal,
   signal,
 } from '@angular/core';
-import {ProductService} from "./product.service";
+import {ProductContainerService} from "./product-container.service.";
 import {ActivatedRoute} from "@angular/router";
 import {CommonModule} from "@angular/common";
 import {BehaviorSubject, filter, map, Observable, switchMap} from "rxjs";
@@ -81,11 +81,11 @@ class ProductDataSource extends DataSource<OptionData> {
     MatIconModule,
     MatSnackBarModule
   ],
-  templateUrl: './product.component.html',
-  styleUrl: './product.component.scss'
+  templateUrl: './product-container.component.html',
+  styleUrl: './product-container.component.scss'
 })
-export class ProductComponent implements OnInit {
-  private service = inject(ProductService);
+export class ProductContainerComponent implements OnInit {
+  private service = inject(ProductContainerService);
   private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
   private snackBar = inject(MatSnackBar);
