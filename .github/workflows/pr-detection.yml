@@ -135,9 +135,11 @@ jobs:
               # если менялись любые либы — считаем, что затрагивает все клиенты
               [[ " ${affected[*]} " =~ " client-shell " ]] || affected+=("client-shell")
               
-              # Добавляем все client_* приложения при изменении общих библиотек
+              # Добавляем все client_* приложения при изменении общих библиотек (кроме client-shell, так как он уже добавлен выше)
               for client_app in $(find apps/clients -maxdepth 1 -type d -name "client_*" -exec basename {} \;); do
-                [[ " ${affected[*]} " =~ " $client_app " ]] || affected+=("$client_app")
+                if [[ "$client_app" != "client-shell" ]]; then
+                  [[ " ${affected[*]} " =~ " $client_app " ]] || affected+=("$client_app")
+                fi
               done
             else
               echo "❌ No general lib changes found"
@@ -169,13 +171,13 @@ jobs:
             HAS_SERVER_CHANGES=true
           fi
 
-          # 5) Определяем remotes (микрофронтенды) - все client_* приложения
+          # 5) Определяем remotes (микрофронтенды) - только client_* приложения, исключая client-shell и e2e
           REMOTES_JSON='[]'
           REMOTES_ARRAY=()
           
-          # Извлекаем все client_* приложения из affected apps
+          # Извлекаем только client_* приложения из affected apps, исключая client-shell и e2e
           for app in $(echo "$AFFECTED_JSON" | jq -r '.[]' 2>/dev/null); do
-            if [[ "$app" =~ ^client_.* ]]; then
+            if [[ "$app" =~ ^client_.* ]] && [[ "$app" != "client-shell" ]] && [[ ! "$app" =~ -e2e$ ]]; then
               REMOTES_ARRAY+=("$app")
             fi
           done
