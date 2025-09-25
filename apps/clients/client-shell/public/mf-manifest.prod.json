@@ -2,5 +2,9 @@
   "client_products": {
     "server": "https://cdn.ewandr.com/client_products/server/remoteEntry.js",
     "browser": "https://cdn.ewandr.com/client_products/browser/mf-manifest.json"
+  },
+  "client_product_details": {
+    "server": "https://cdn.ewandr.com/client_product_details/server/remoteEntry.js",
+    "browser": "https://cdn.ewandr.com/client_product_details/browser/mf-manifest.json"
   }
 }

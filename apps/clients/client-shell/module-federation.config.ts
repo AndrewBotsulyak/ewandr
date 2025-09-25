@@ -1,5 +1,5 @@
 import { ModuleFederationConfig } from '@nx/module-federation';
-import {sharedFn} from "../../../libs/core/src";
+import { sharedFn } from '../../../libs/core/src';
 
 const config: ModuleFederationConfig = {
   name: 'client-shell',
@@ -15,7 +15,10 @@ const config: ModuleFederationConfig = {
    * declare module 'my-external-remote';
    *
    */
-  remotes: ['client_products'],
+  remotes: [
+    'client_products',
+    'client_product_details',
+  ],
   shared: sharedFn,
 };
 

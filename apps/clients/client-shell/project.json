@@ -78,7 +78,7 @@
         "port": 4200,
         "host": "0.0.0.0",
         "publicHost": "http://localhost:4200",
-        "devRemotes": ["client_products"]
+        "devRemotes": ["client_products", "client_product_details"]
       },
       "configurations": {
         "production": {
@@ -182,7 +182,7 @@
         "publicHost":"localhost",
         "progress": true,
         "verbose": true,
-        "devRemotes": ["client_products"]
+        "devRemotes": ["client_products", "client_product_details"]
       }
     },
     "prerender": {

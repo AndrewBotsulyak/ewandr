@@ -21,7 +21,6 @@ import {GalleryModule} from "ng-gallery";
 export const appConfig: ApplicationConfig = {
   providers: [
     provideClientHydration(withEventReplay()), // withNoHttpTransferCache()
-    // provideZoneChangeDetection({ eventCoalescing: true }),
     provideZonelessChangeDetection(),
     provideRouter(appRoutes),
     provideHttpClient(
