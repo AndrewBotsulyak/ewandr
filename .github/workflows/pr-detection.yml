@@ -109,13 +109,16 @@ jobs:
               echo "❌ No client-shell app changes found"
             fi
 
-            echo "🔍 Checking for client_products changes..."
-            if echo "$CHANGED_FILES" | grep -q '^apps/clients/client_products/'; then
-              echo "✅ Found client_products app changes"
-              affected+=("client_products")
-            else
-              echo "❌ No client_products app changes found"
-            fi
+            # Проверяем все client_* приложения
+            echo "🔍 Checking for client_* app changes..."
+            for client_app in $(find apps/clients -maxdepth 1 -type d -name "client_*" -exec basename {} \;); do
+              if echo "$CHANGED_FILES" | grep -q "^apps/clients/$client_app/"; then
+                echo "✅ Found $client_app app changes"
+                affected+=("$client_app")
+              else
+                echo "❌ No $client_app app changes found"
+              fi
+            done
 
             # простая эвристика по общим либам:
             echo "🔍 Checking for client-shell lib changes..."
@@ -128,10 +131,14 @@ jobs:
 
             echo "🔍 Checking for general lib changes..."
             if echo "$CHANGED_FILES" | grep -q '^libs/'; then
-              echo "✅ Found general lib changes - affecting both clients"
-              # если менялись любые либы — считаем, что затрагивает оба клиента (упростим)
+              echo "✅ Found general lib changes - affecting all clients"
+              # если менялись любые либы — считаем, что затрагивает все клиенты
               [[ " ${affected[*]} " =~ " client-shell " ]] || affected+=("client-shell")
-              [[ " ${affected[*]} " =~ " client_products " ]] || affected+=("client_products")
+              
+              # Добавляем все client_* приложения при изменении общих библиотек
+              for client_app in $(find apps/clients -maxdepth 1 -type d -name "client_*" -exec basename {} \;); do
+                [[ " ${affected[*]} " =~ " $client_app " ]] || affected+=("$client_app")
+              done
             else
               echo "❌ No general lib changes found"
             fi
@@ -162,10 +169,20 @@ jobs:
             HAS_SERVER_CHANGES=true
           fi
 
-          # 5) Определяем remotes (микрофронтенды)
+          # 5) Определяем remotes (микрофронтенды) - все client_* приложения
           REMOTES_JSON='[]'
-          if echo "$AFFECTED_JSON" | jq -e '.[] | select(. == "client_products")' > /dev/null 2>&1; then
-            REMOTES_JSON='["client_products"]'
+          REMOTES_ARRAY=()
+          
+          # Извлекаем все client_* приложения из affected apps
+          for app in $(echo "$AFFECTED_JSON" | jq -r '.[]' 2>/dev/null); do
+            if [[ "$app" =~ ^client_.* ]]; then
+              REMOTES_ARRAY+=("$app")
+            fi
+          done
+          
+          # Создаем JSON массив из remotes
+          if [[ ${#REMOTES_ARRAY[@]} -gt 0 ]]; then
+            REMOTES_JSON="$(printf '%s\n' "${REMOTES_ARRAY[@]}" | jq -Rs 'split("\n") | map(select(length > 0))')"
           fi
 
           # 6) Правильная запись outputs (многострочно — безопаснее)
