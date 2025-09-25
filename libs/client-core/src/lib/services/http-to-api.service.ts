@@ -1,17 +1,16 @@
 import {inject, Injectable} from '@angular/core';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import {GetProductModel} from "@ewandr-workspace/core";
-import {SHOP_ID} from "../../../../../apps/clients/client_products/src/app/common/test.const";
-import {CheckPlatformService} from "./check-platform.service";
-import {environment} from "../../../../../apps/clients/client-shell/src/environments/environment";
+import {API_URL_TOKEN} from "../di-tokens";
 
 @Injectable({ providedIn: 'root' })
 export class HttpToApiService {
   private http = inject(HttpClient);
-  private platformService = inject(CheckPlatformService);
 
   // TODO inject API_URL from provider - remove imports from client-shell and client_products
-  private readonly API_URL = environment.apiUrl;
+  private readonly API_URL = inject(API_URL_TOKEN);
+
+  SHOP_ID = '1';
 
   // organization = {
   //   get: () => {
@@ -39,13 +38,13 @@ export class HttpToApiService {
 
   products = {
     getAll: () => {
-      const params = new HttpParams().set('shopId', SHOP_ID);
+      const params = new HttpParams().set('shopId', this.SHOP_ID);
 
       return this.http.get<GetProductModel[]>(`${this.API_URL}/product`, { params });
     },
 
     getOne: (productId: GetProductModel['id']) => {
-      const params = new HttpParams().set('shopId', SHOP_ID);
+      const params = new HttpParams().set('shopId', this.SHOP_ID);
 
       return this.http.get<GetProductModel>(`${this.API_URL}/product/${productId}`, { params });
     }

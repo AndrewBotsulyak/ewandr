@@ -23,11 +23,11 @@ import {
 } from "@ewandr-workspace/ngrx-store";
 import {ApolloClientModule, GraphQLConfig} from "@ewandr-workspace/data-access-graphql";
 import {environment} from "../environments/environment";
+import {API_URL_TOKEN} from "@ewandr-workspace/client-core";
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideClientHydration(withEventReplay()), // withNoHttpTransferCache()
-    // provideZoneChangeDetection({ eventCoalescing: true }),
     provideZonelessChangeDetection(),
     provideRouter(appRoutes),
     // provideAppInitializer(() => {
@@ -58,5 +58,9 @@ export const appConfig: ApplicationConfig = {
         },
       } as GraphQLConfig)
     ),
+    {
+      provide: API_URL_TOKEN,
+      useValue: environment.apiUrl
+    }
   ],
 };
