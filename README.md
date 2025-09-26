@@ -2,95 +2,247 @@
 
 <a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## Структура проекта
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+Данный проект представляет собой монорепозиторий, построенный на базе **Nx 21.5.3** и использующий микросервисную архитектуру. Проект состоит из следующих основных компонентов:
 
-## Run tasks
+### Backend (Backend Services)
+- **be-vendure** - Основной backend сервис на базе [Vendure](https://www.vendure.io/) (Node.js/NestJS)
+  - Порт: 3000 (API), 3002 (Admin UI)
+  - Использует PostgreSQL как основную базу данных
+  - Включает GraphQL API, Admin UI, и систему управления товарами
+  - Поддерживает миграции базы данных
 
-To run tasks with Nx use:
+- **be-vendure-worker** - Worker процесс для обработки фоновых задач
+  - Порт: 3001
+  - Обрабатывает асинхронные задачи (отправка email, обработка заказов и т.д.)
 
-```sh
-npx nx <target> <project-name>
+### Frontend (Client Applications)
+Frontend построен на **Angular 20** с использованием **Module Federation** для микросервисной архитектуры:
+
+- **client-shell** - Главное приложение (Host)
+  - Порт: 4200
+  - Служит точкой входа и оркестратором для всех микросервисов
+  - Использует Module Federation для загрузки remote приложений
+  - Поддерживает SSR (Server-Side Rendering)
+
+- **client_products** - Микросервис каталога товаров (Remote)
+  - Порт: 4201
+  - Отвечает за отображение каталога товаров
+  - Экспортирует маршруты через Module Federation
+
+- **client_product_details** - Микросервис деталей товара (Remote)
+  - Порт: 4202
+  - Отвечает за отображение детальной информации о товарах
+  - Экспортирует маршруты через Module Federation
+
+### Infrastructure
+- **nginx** - Reverse proxy и статический файловый сервер
+  - Порт: 80
+  - Проксирует запросы к backend сервисам
+  - Обслуживает статические файлы
+  - Поддерживает WebSocket для HMR (Hot Module Replacement)
+
+- **postgres-vendure** - База данных PostgreSQL
+  - Порт: 5432
+  - Основная база данных для Vendure
+  - Поддерживает health checks
+
+### Shared Libraries
+- **core** - Общие утилиты и функции
+- **client-core** - Общие компоненты для клиентских приложений
+- **data-access-graphql** - GraphQL клиент и операции
+- **ngrx-store** - Управление состоянием (NgRx)
+- **ui-shared-lib** - Общие UI компоненты
+
+## Локальная разработка
+
+### Предварительные требования
+- Node.js (версия 18+)
+- Docker и Docker Compose
+- npm
+
+### Архитектура запуска
+Для локальной разработки используется гибридный подход:
+- **Backend сервисы** (be-vendure, be-vendure-worker, postgres-vendure, nginx) запускаются в Docker
+- **Frontend приложения** запускаются локально через npm для лучшей производительности разработки
+
+## Команды Docker и Docker Compose
+
+### Основные команды
+
+```bash
+# Запуск всех backend сервисов
+npm run start:be-all
+
+# Запуск отдельных сервисов
+npm run start:nginx      # Запуск nginx
+npm run start:db         # Запуск PostgreSQL
+npm run start:vendure    # Запуск be-vendure
+npm run start:worker     # Запуск be-vendure-worker
+
+# Остановка всех backend сервисов
+npm run down:be
+
+# Пересборка конкретного сервиса
+npm run build:service --service=be-vendure
 ```
 
-For example:
+### Docker Compose команды
 
-```sh
-npx nx build myproject
+```bash
+# Запуск всех сервисов из docker-compose.local.yml
+docker-compose -f docker-compose.local.yml up
+
+# Запуск в фоновом режиме
+docker-compose -f docker-compose.local.yml up -d
+
+# Остановка всех сервисов
+docker-compose -f docker-compose.local.yml down
+
+# Пересборка и запуск
+docker-compose -f docker-compose.local.yml up --build
+
+# Просмотр логов
+docker-compose -f docker-compose.local.yml logs -f [service_name]
+
+# Остановка и удаление томов
+docker-compose -f docker-compose.local.yml down -v
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## Пошаговый запуск приложений
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 1. Запуск nginx в Docker
 
-## Add new projects
+```bash
+# Запуск nginx
+npm run start:nginx
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
-
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
+# Или напрямую через docker-compose
+docker-compose -f docker-compose.local.yml up nginx
 ```
 
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
+**Особенности nginx:**
+- Проксирует API запросы к be-vendure
+- Обслуживает статические файлы
+- Поддерживает WebSocket для HMR
+- Конфигурация: `nginx/nginx.conf`
 
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
+### 2. Запуск postgres-vendure в Docker
 
-# Generate a library
-npx nx g @nx/react:lib some-lib
+```bash
+# Запуск PostgreSQL
+npm run start:db
+
+# Или напрямую через docker-compose
+docker-compose -f docker-compose.local.yml up postgres-vendure
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+**Особенности PostgreSQL:**
+- База данных: `vendure`
+- Пользователь: `postgres`
+- Пароль: `postgres123`
+- Порт: `5432`
+- Поддерживает health checks
+- Данные сохраняются в Docker volume
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 3. Запуск be-vendure
 
-## Set up CI!
+```bash
+# Запуск основного backend сервиса
+npm run start:vendure
 
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
+# Или напрямую через docker-compose
+docker-compose -f docker-compose.local.yml up be-vendure
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+**Особенности be-vendure:**
+- Основной API сервис на Vendure
+- Порт: 3000 (API), 3002 (Admin UI)
+- Автоматически ждет готовности PostgreSQL
+- Поддерживает hot-reload для разработки
+- Доступен Admin UI по адресу: http://localhost:3002
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 4. Запуск be-vendure-worker
 
-### Step 2
+```bash
+# Запуск worker процесса
+npm run start:worker
 
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+# Или напрямую через docker-compose
+docker-compose -f docker-compose.local.yml up be-vendure-worker
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+**Особенности be-vendure-worker:**
+- Обрабатывает фоновые задачи
+- Порт: 3001
+- Зависит от готовности PostgreSQL
+- Обрабатывает email, уведомления, аналитику
 
-## Install Nx Console
+### 5. Запуск client-shell (Frontend)
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+```bash
+# Запуск главного frontend приложения
+npm run start:clients
+```
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+**Особенности client-shell:**
+- Главное приложение с Module Federation
+- Порт: 4200
+- Загружает remote приложения (client_products, client_product_details)
+- Поддерживает SSR
+- Hot Module Replacement для разработки
 
-## Useful links
+### Полный процесс запуска
 
-Learn more:
+```bash
+# 1. Запуск всех backend сервисов
+npm run start:be-all
 
-- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+# 2. В отдельном терминале - запуск frontend
+npm run start:clients
+```
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Полезные команды
+
+### Работа с базой данных
+
+```bash
+# Заполнение базы тестовыми данными
+npm run populate_data:be_vendure
+
+# Запуск миграций Vendure
+npm run run:vendure:migrations
+```
+
+### Управление микросервисами
+
+```bash
+# Добавление нового remote приложения
+npm run add:new-remote-app
+
+# Удаление remote приложения
+npm run remove:remote-app
+```
+
+### Отладка
+
+```bash
+# Просмотр логов конкретного сервиса
+docker-compose -f docker-compose.local.yml logs -f be-vendure
+
+# Подключение к контейнеру
+docker exec -it be-vendure bash
+
+# Проверка статуса сервисов
+docker-compose -f docker-compose.local.yml ps
+```
+
+## Порты и доступ
+
+- **Frontend**: http://localhost:4200 (client-shell)
+- **Backend API**: http://localhost:3000 (be-vendure API)
+- **Admin UI**: http://localhost:3002 (Vendure Admin)
+- **PostgreSQL**: localhost:5432
+- **Nginx**: http://localhost:80 (проксирует все запросы)
+
