@@ -14,7 +14,9 @@
     "down:be": "docker-compose -f docker-compose.local.yml down",
     "populate_data:be_vendure": "docker exec -it be-vendure npx nx run be-vendure:populate",
     "add:new-remote-app": "nx g @nx/angular:remote apps/clients/client_product_details --host=client-shell --ssr --addTailwind",
-    "remove:remote-app": "nx g @nx/workspace:remove client_product_details"
+    "remove:remote-app": "nx g @nx/workspace:remove client_product_details",
+    "run:vendure:migrations": "NODE_ENV=local npx vendure migrate",
+    "build:service": "docker-compose -f docker-compose.local.yml build ${npm_config_service} --no-cache"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "20.2.2",
@@ -54,6 +56,7 @@
     "@types/jest": "30.0.0",
     "@types/node": "18.16.9",
     "@typescript-eslint/utils": "8.43.0",
+    "@vendure/cli": "^3.4.2",
     "@vendure/create": "^3.4.2",
     "angular-eslint": "20.2.0",
     "autoprefixer": "^10.4.0",

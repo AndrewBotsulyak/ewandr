@@ -2697,6 +2697,7 @@ export type ProductVariantListArgs = {
 export type ProductCustomFields = {
   __typename?: 'ProductCustomFields';
   shortDesc?: Maybe<Scalars['String']['output']>;
+  specifications?: Maybe<Array<ProductSpecificationsStruct>>;
 };
 
 export type ProductFilterParameter = {
@@ -2793,6 +2794,12 @@ export type ProductSortParameter = {
   updatedAt?: InputMaybe<SortOrder>;
 };
 
+export type ProductSpecificationsStruct = {
+  __typename?: 'ProductSpecificationsStruct';
+  name?: Maybe<Scalars['String']['output']>;
+  value?: Maybe<Scalars['String']['output']>;
+};
+
 export type ProductTranslation = {
   __typename?: 'ProductTranslation';
   createdAt: Scalars['DateTime']['output'];
@@ -2809,7 +2816,7 @@ export type ProductVariant = Node & {
   assets: Array<Asset>;
   createdAt: Scalars['DateTime']['output'];
   currencyCode: CurrencyCode;
-  customFields?: Maybe<Scalars['JSON']['output']>;
+  customFields?: Maybe<ProductVariantCustomFields>;
   facetValues: Array<FacetValue>;
   featuredAsset?: Maybe<Asset>;
   id: Scalars['ID']['output'];
@@ -2826,6 +2833,11 @@ export type ProductVariant = Node & {
   taxRateApplied: TaxRate;
   translations: Array<ProductVariantTranslation>;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ProductVariantCustomFields = {
+  __typename?: 'ProductVariantCustomFields';
+  specifications?: Maybe<Array<ProductVariantSpecificationsStruct>>;
 };
 
 export type ProductVariantFilterParameter = {
@@ -2873,6 +2885,12 @@ export type ProductVariantSortParameter = {
   sku?: InputMaybe<SortOrder>;
   stockLevel?: InputMaybe<SortOrder>;
   updatedAt?: InputMaybe<SortOrder>;
+};
+
+export type ProductVariantSpecificationsStruct = {
+  __typename?: 'ProductVariantSpecificationsStruct';
+  name?: Maybe<Scalars['String']['output']>;
+  value?: Maybe<Scalars['String']['output']>;
 };
 
 export type ProductVariantTranslation = {
@@ -3698,7 +3716,7 @@ export type GetProductQueryVariables = Exact<{
 }>;
 
 
-export type GetProductQuery = { __typename?: 'Query', product?: { __typename?: 'Product', id: string, name: string, slug: string, description: string, enabled: boolean, optionGroups: Array<{ __typename?: 'ProductOptionGroup', id: string, name: string, options: Array<{ __typename?: 'ProductOption', id: string, name: string, code: string, customFields?: { __typename?: 'ProductOptionCustomFields', description?: string, isColor?: boolean } }> }>, assets: Array<{ __typename?: 'Asset', id: string, name: string, source: string, preview: string, width: number, height: number }>, featuredAsset?: { __typename?: 'Asset', id: string, name: string, type: AssetType, source: string, customFields?: any, tags: Array<{ __typename?: 'Tag', id: string, value: string }> }, variants: Array<{ __typename?: 'ProductVariant', id: string, productId: string, sku: string, name: string, price: any, currencyCode: CurrencyCode, priceWithTax: any, customFields?: any, assets: Array<{ __typename?: 'Asset', width: number, height: number, preview: string }> }>, customFields?: { __typename?: 'ProductCustomFields', shortDesc?: string } } };
+export type GetProductQuery = { __typename?: 'Query', product?: { __typename?: 'Product', id: string, name: string, slug: string, description: string, enabled: boolean, optionGroups: Array<{ __typename?: 'ProductOptionGroup', id: string, name: string, options: Array<{ __typename?: 'ProductOption', id: string, name: string, code: string, customFields?: { __typename?: 'ProductOptionCustomFields', description?: string, isColor?: boolean } }> }>, assets: Array<{ __typename?: 'Asset', id: string, name: string, source: string, preview: string, width: number, height: number }>, featuredAsset?: { __typename?: 'Asset', id: string, name: string, type: AssetType, source: string, customFields?: any, tags: Array<{ __typename?: 'Tag', id: string, value: string }> }, variants: Array<{ __typename?: 'ProductVariant', id: string, productId: string, sku: string, name: string, price: any, currencyCode: CurrencyCode, priceWithTax: any, customFields?: { __typename?: 'ProductVariantCustomFields', specifications?: Array<{ __typename?: 'ProductVariantSpecificationsStruct', name?: string, value?: string }> }, assets: Array<{ __typename?: 'Asset', id: string, name: string, source: string, preview: string, width: number, height: number }> }>, customFields?: { __typename?: 'ProductCustomFields', shortDesc?: string, specifications?: Array<{ __typename?: 'ProductSpecificationsStruct', name?: string, value?: string }> } } };
 
 export type GetProductsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -3999,15 +4017,27 @@ export const GetProductDocument = gql`
       price
       currencyCode
       priceWithTax
-      customFields
+      customFields {
+        specifications {
+          name
+          value
+        }
+      }
       assets {
+        id
+        name
+        source
+        preview
         width
         height
-        preview
       }
     }
     customFields {
       shortDesc
+      specifications {
+        name
+        value
+      }
     }
   }
 }

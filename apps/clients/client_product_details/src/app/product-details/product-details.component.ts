@@ -299,6 +299,19 @@ export class ProductDetailsComponent implements OnInit {
     }));
   }
 
+  // Computed signals for specifications
+  productSpecifications = computed(() => {
+    const product = this.product();
+    const specifications = product?.customFields?.specifications;
+    return specifications || [];
+  });
+
+  variantSpecifications = computed(() => {
+    const variant = this.currentVariant();
+    const specifications = variant?.customFields?.specifications;
+    return specifications || [];
+  });
+
   getShippingInfo(): string {
     // Get shipping information from product custom fields or use default
     const product = this.product();

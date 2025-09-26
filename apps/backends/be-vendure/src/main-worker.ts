@@ -1,7 +1,7 @@
 import { bootstrapWorker } from '@vendure/core';
-import { workerConfig } from './worker-config';
+import {config} from "./vendure-config";
 
-bootstrapWorker(workerConfig)
+bootstrapWorker(config)
   .then(worker => worker.startJobQueue())
   .catch(err => {
     console.log('Worker bootstrap error:', err);
