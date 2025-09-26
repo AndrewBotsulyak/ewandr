@@ -48,7 +48,12 @@ export const GET_PRODUCT = gql`
         price,
         currencyCode,
         priceWithTax,
-        customFields,
+        customFields {
+          specifications {
+            name,
+            value
+          }
+        },
         assets {
           id,
           name,
@@ -60,7 +65,10 @@ export const GET_PRODUCT = gql`
       },
       customFields {
         shortDesc,
-        shippingInfo
+        specifications {
+          name,
+          value
+        }
       }
     }
   }
