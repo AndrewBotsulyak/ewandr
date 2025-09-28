@@ -7,11 +7,6 @@ const config: ModuleFederationConfig = {
     './Routes': 'apps/clients/client_product_details/src/app/remote-entry/entry.routes.ts',
   },
   shared: sharedFn,
-  // Production optimizations
-  library: {
-    type: 'module',
-    name: 'client_product_details',
-  },
 };
 
 /**
