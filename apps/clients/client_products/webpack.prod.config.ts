@@ -1,6 +1,17 @@
 import { withModuleFederation } from '@nx/module-federation/angular';
 import config from './module-federation.config.prod';
 import { Configuration } from 'webpack';
+import { merge } from 'webpack-merge';
+
+interface WebpackConfigOptions {
+  options?: {
+    configuration?: string;
+    [key: string]: unknown;
+  };
+  context?: {
+    [key: string]: unknown;
+  };
+}
 
 /**
  * Production-optimized webpack configuration for client_products microfrontend
@@ -68,44 +79,8 @@ const prodConfig: Configuration = {
  * The DTS Plugin can be enabled by setting dts: true
  * Learn more about the DTS Plugin here: https://module-federation.io/configure/dts.html
  */
-export default async (baseConfig: Configuration) => {
-  const mfConfigFn = await withModuleFederation(config, { dts: false });
-  const mfConfig = mfConfigFn(baseConfig);
-  
-  // Safely merge configurations without breaking Module Federation
-  return {
-    ...mfConfig,
-    performance: prodConfig.performance,
-    optimization: {
-      ...mfConfig.optimization,
-      // Add safe optimizations that don't conflict with Module Federation
-      concatenateModules: true,
-      removeEmptyChunks: true,
-      mergeDuplicateChunks: true,
-      splitChunks: {
-        ...mfConfig.optimization?.splitChunks,
-        // Add our cache groups to existing Module Federation cache groups
-        cacheGroups: {
-          ...mfConfig.optimization?.splitChunks?.cacheGroups,
-          // Only add non-conflicting cache groups
-          components: {
-            test: /[\\/]src[\\/]app[\\/].*\.component\.[jt]s$/,
-            name: 'components',
-            chunks: 'all',
-            priority: 8,
-            minChunks: 2,
-            minSize: 10000,
-          },
-          services: {
-            test: /[\\/]src[\\/]app[\\/].*\.service\.[jt]s$/,
-            name: 'services',
-            chunks: 'all',
-            priority: 8,
-            minChunks: 2,
-            minSize: 5000,
-          },
-        },
-      },
-    },
-  };
-};
+export default async function (webpackConfigOptions: WebpackConfigOptions) {
+  const federatedModules = await withModuleFederation(config, { dts: false });
+  const baseConfig = federatedModules(webpackConfigOptions);
+  return merge(baseConfig, prodConfig);
+}
