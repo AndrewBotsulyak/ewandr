@@ -6,11 +6,13 @@ export const mfSharedLibs: {[key: string]: SharedLibraryConfig} = {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@angular/core'],
+    eager: true, // Load immediately for better performance
   },
   '@angular/common': {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@angular/common'],
+    eager: true,
   },
   '@angular/router': {
     singleton: true,
@@ -36,6 +38,7 @@ export const mfSharedLibs: {[key: string]: SharedLibraryConfig} = {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@angular/platform-browser'],
+    eager: true,
   },
   'rxjs': {
     singleton: true,
@@ -46,6 +49,27 @@ export const mfSharedLibs: {[key: string]: SharedLibraryConfig} = {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@apollo/client'],
+  },
+  // Add more shared dependencies to reduce duplication
+  'graphql': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['graphql'],
+  },
+  '@ngrx/store': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['@ngrx/store'],
+  },
+  '@ngrx/effects': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['@ngrx/effects'],
+  },
+  'tslib': {
+    singleton: true,
+    strictVersion: false, // More flexible for tslib
+    requiredVersion: deps['tslib'],
   },
 };
 
