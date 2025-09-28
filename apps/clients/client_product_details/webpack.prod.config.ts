@@ -57,8 +57,8 @@ const prodConfig: Configuration = {
   },
   performance: {
     hints: 'warning',
-    maxEntrypointSize: 200000,
-    maxAssetSize: 150000,
+    maxEntrypointSize: 300000, // Increased to accommodate initial load
+    maxAssetSize: 250000, // Increased for larger chunks
   },
 };
 
