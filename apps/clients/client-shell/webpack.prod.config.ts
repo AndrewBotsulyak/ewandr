@@ -94,16 +94,55 @@ export default async (baseConfig: Configuration) => {
   const mfConfigFn = await withModuleFederation(config, { dts: false });
   const mfConfig = mfConfigFn(baseConfig);
   
+  // Safely merge configurations without breaking Module Federation
   return {
     ...mfConfig,
-    ...prodConfig,
+    performance: prodConfig.performance,
     optimization: {
       ...mfConfig.optimization,
-      ...prodConfig.optimization,
-    },
-    performance: {
-      ...mfConfig.performance,
-      ...prodConfig.performance,
+      // Add safe optimizations that don't conflict with Module Federation
+      concatenateModules: true,
+      removeEmptyChunks: true,
+      mergeDuplicateChunks: true,
+      splitChunks: {
+        ...mfConfig.optimization?.splitChunks,
+        // Add our cache groups to existing Module Federation cache groups
+        cacheGroups: {
+          ...mfConfig.optimization?.splitChunks?.cacheGroups,
+          // Host app can have more aggressive vendor splitting
+          angular: {
+            test: /[\\/]node_modules[\\/]@angular[\\/]/,
+            name: 'angular',
+            chunks: 'all',
+            priority: 20,
+            enforce: true,
+            minSize: 20000,
+            maxSize: 200000,
+          },
+          material: {
+            test: /[\\/]node_modules[\\/]@angular[\\/]material[\\/]/,
+            name: 'material',
+            chunks: 'all',
+            priority: 25,
+            enforce: true,
+            minSize: 20000,
+          },
+          rxjs: {
+            test: /[\\/]node_modules[\\/]rxjs[\\/]/,
+            name: 'rxjs',
+            chunks: 'all',
+            priority: 15,
+            enforce: true,
+          },
+          graphql: {
+            test: /[\\/]node_modules[\\/](graphql|@apollo)[\\/]/,
+            name: 'graphql',
+            chunks: 'all',
+            priority: 15,
+            enforce: true,
+          },
+        },
+      },
     },
   };
 };

@@ -72,16 +72,40 @@ export default async (baseConfig: Configuration) => {
   const mfConfigFn = await withModuleFederation(config, { dts: false });
   const mfConfig = mfConfigFn(baseConfig);
   
+  // Safely merge configurations without breaking Module Federation
   return {
     ...mfConfig,
-    ...prodConfig,
+    performance: prodConfig.performance,
     optimization: {
       ...mfConfig.optimization,
-      ...prodConfig.optimization,
-    },
-    performance: {
-      ...mfConfig.performance,
-      ...prodConfig.performance,
+      // Add safe optimizations that don't conflict with Module Federation
+      concatenateModules: true,
+      removeEmptyChunks: true,
+      mergeDuplicateChunks: true,
+      splitChunks: {
+        ...mfConfig.optimization?.splitChunks,
+        // Add our cache groups to existing Module Federation cache groups
+        cacheGroups: {
+          ...mfConfig.optimization?.splitChunks?.cacheGroups,
+          // Only add non-conflicting cache groups
+          components: {
+            test: /[\\/]src[\\/]app[\\/].*\.component\.[jt]s$/,
+            name: 'components',
+            chunks: 'all',
+            priority: 8,
+            minChunks: 2,
+            minSize: 10000,
+          },
+          services: {
+            test: /[\\/]src[\\/]app[\\/].*\.service\.[jt]s$/,
+            name: 'services',
+            chunks: 'all',
+            priority: 8,
+            minChunks: 2,
+            minSize: 5000,
+          },
+        },
+      },
     },
   };
 };
