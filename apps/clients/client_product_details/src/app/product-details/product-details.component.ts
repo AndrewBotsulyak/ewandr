@@ -20,52 +20,11 @@ import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
 import {MatButtonModule} from "@angular/material/button";
 import {MatIconModule} from "@angular/material/icon";
 import {MatSnackBar, MatSnackBarModule} from "@angular/material/snack-bar";
-
-type ProductVariant = NonNullable<GetProductQuery['product']>['variants'][number];
-
-interface ProductOptionsData {
-  id: ProductOptionGroup['id'],
-  title: ProductOptionGroup['name'],
-  options: ProductDataSource,
-}
-
-interface SelectedOptions {
-  [optionGroupId: string]: string;
-}
-
-interface ProductState {
-  selectedVariant: ProductVariant | null;
-  selectedOptions: SelectedOptions;
-  quantity: number;
-  isInWishlist: boolean;
-  activeTab: 'description' | 'specifications' | 'reviews';
-}
-
-interface OptionData {
-  name: string;
-  code: string;
-  description?: string;
-  isColor?: boolean;
-}
-
-class ProductDataSource extends DataSource<OptionData> {
-  /** Stream of data that is provided to the table. */
-  data = new BehaviorSubject<OptionData[]>([]);
-
-  constructor(optionsData: OptionData[]) {
-    super();
-    this.data.next(optionsData)
-  }
-
-  /** Connect function called by the table to retrieve one stream containing the data to render. */
-  connect(): Observable<OptionData[]> {
-    return this.data;
-  }
-
-  disconnect(): void {
-    // Cleanup if needed
-  }
-}
+import {TabSpecificationsComponent} from "../tab-specifications/tab-specifications.component";
+import {ProductVariant} from "../models/details-product-variant.model";
+import {ProductOptionsGroupsComponent} from "../product-options-groups/product-options-groups.component";
+import {ProductOptionsData} from "../models/details-product-option-data.model";
+import {DetailsSelectOptionOutput} from "../models/details-select-option-output.model";
 
 
 @Component({
@@ -79,7 +38,12 @@ class ProductDataSource extends DataSource<OptionData> {
     LightboxModule,
     MatButtonModule,
     MatIconModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    TabSpecificationsComponent,
+    ProductOptionsGroupsComponent
+  ],
+  providers: [
+    ProductDetailsService
   ],
   templateUrl: './product-details.component.html',
   styleUrl: './product-details.component.scss'
@@ -96,13 +60,7 @@ export class ProductDetailsComponent implements OnInit {
   product = signal<GetProductQuery['product'] | null>(null);
 
   // Product state management
-  productState = signal<ProductState>({
-    selectedVariant: null,
-    selectedOptions: {},
-    quantity: 1,
-    isInWishlist: false,
-    activeTab: 'description'
-  });
+  productState = this.service.productState;
 
   images: Signal<GalleryItem[]> = computed(() => {
     const assets = this.product()?.assets ?? [];
@@ -120,13 +78,12 @@ export class ProductDetailsComponent implements OnInit {
         name: option.name,
         code: option.code,
         description: option.customFields?.description,
-        isColor: option.customFields?.isColor || false
       }))
 
       return {
         id: item.id,
         title: item.name,
-        options: new ProductDataSource(optionsData)
+        options: optionsData
       }
     });
   });
@@ -134,7 +91,7 @@ export class ProductDetailsComponent implements OnInit {
   // Computed signals for better UX
   currentVariant = computed(() => {
     const state = this.productState();
-    return state.selectedVariant || this.product()?.variants?.[0] || null;
+    return state.selectedVariant || this.product()?.variants?.[0] || undefined;
   });
 
   currentPrice = computed(() => {
@@ -181,7 +138,7 @@ export class ProductDetailsComponent implements OnInit {
   }
 
   // Product interaction methods
-  selectOption(optionGroupId: string, optionName: string) {
+  selectOption({optionGroupId, optionName}: DetailsSelectOptionOutput) {
     this.productState.update(state => ({
       ...state,
       selectedOptions: {
