@@ -1,23 +1,28 @@
-import {inject, Injectable} from "@angular/core";
+import {computed, inject, Injectable, signal} from "@angular/core";
 import {Store} from "@ngrx/store";
-import {ProductActions, ProductsActions, selectedProduct} from "@ewandr-workspace/ngrx-store";
-import {GetProductModel} from "@ewandr-workspace/core";
 import {GetProductQuery, GetProductQueryVariables, GqlDataService} from "@ewandr-workspace/data-access-graphql";
-import {map} from "rxjs";
+import {ProductState} from "../models/product-state.model";
 
-@Injectable({
-  providedIn: "root"
-})
+@Injectable()
 export class ProductDetailsService {
   store = inject(Store);
   gqlService = inject(GqlDataService);
 
-  selectedProduct$ = this.store.select(selectedProduct);
+  productState = signal<ProductState>({
+    selectedVariant: undefined,
+    selectedOptions: {},
+    quantity: 1,
+    isInWishlist: false,
+    activeTab: 'description'
+  });
 
-  // getProduct(id: GetProductModel['id']) {
-  //   this.store.dispatch(ProductActions.getProduct({id}));
-  // }
-  //
+  isOptionSelected = computed(() => {
+    return (optionGroupId: string, optionName: string) => {
+      const state = this.productState();
+      return state.selectedOptions[optionGroupId] === optionName;
+    };
+  });
+
   getProduct(slug: GetProductQueryVariables['slug']) {
     return this.gqlService.getProduct(slug);
   }

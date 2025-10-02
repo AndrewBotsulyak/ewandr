@@ -1,0 +1,20 @@
+<div class="space-y-6">
+  <h3 class="text-lg font-semibold text-slate-900">Available Options</h3>
+  @for (optionGroup of productOptions(); track optionGroup.id) {
+    <div class="space-y-3">
+      <h4 class="text-sm font-medium text-slate-700">{{ optionGroup.title }}</h4>
+      <div class="flex flex-wrap gap-2">
+        @for (option of optionGroup.options; track option.name) {
+          <button
+            class="option-button"
+            [class.selected]="isOptionSelected()(optionGroup.id, option.name)"
+            [matTooltip]="option.description"
+            (click)="handleSelectOption(optionGroup.id, option.name)"
+          >
+            {{ option.name }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+</div>
