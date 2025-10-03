@@ -1,14 +1,13 @@
 import {ProductVariant} from "./details-product-variant.model";
+import {DetailsTab} from "./details-tab.model";
 
+
+export type SelectedVariantT = ProductVariant | undefined;
 
 export interface ProductState {
-  selectedVariant: ProductVariant | undefined;
-  selectedOptions: SelectedOptions;
+  selectedVariant: SelectedVariantT;
+  selectedOptions: string[];
   quantity: number;
   isInWishlist: boolean;
-  activeTab: 'description' | 'specifications' | 'reviews';
-}
-
-interface SelectedOptions {
-  [optionGroupId: string]: string;
+  activeTab: DetailsTab;
 }

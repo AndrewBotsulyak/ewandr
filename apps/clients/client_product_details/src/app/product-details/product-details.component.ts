@@ -20,11 +20,14 @@ import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
 import {MatButtonModule} from "@angular/material/button";
 import {MatIconModule} from "@angular/material/icon";
 import {MatSnackBar, MatSnackBarModule} from "@angular/material/snack-bar";
-import {TabSpecificationsComponent} from "../tab-specifications/tab-specifications.component";
 import {ProductVariant} from "../models/details-product-variant.model";
 import {ProductOptionsGroupsComponent} from "../product-options-groups/product-options-groups.component";
 import {ProductOptionsData} from "../models/details-product-option-data.model";
 import {DetailsSelectOptionOutput} from "../models/details-select-option-output.model";
+import {TabGroupComponent} from "../tab-group/tab-group.component";
+import {DetailsTab} from "../models/details-tab.model";
+import {ProductVariantsComponent} from "../product-variants/product-variants.component";
+import {SelectedVariantT} from "../models/product-state.model";
 
 
 @Component({
@@ -39,8 +42,9 @@ import {DetailsSelectOptionOutput} from "../models/details-select-option-output.
     MatButtonModule,
     MatIconModule,
     MatSnackBarModule,
-    TabSpecificationsComponent,
-    ProductOptionsGroupsComponent
+    ProductOptionsGroupsComponent,
+    TabGroupComponent,
+    ProductVariantsComponent
   ],
   providers: [
     ProductDetailsService
@@ -50,17 +54,18 @@ import {DetailsSelectOptionOutput} from "../models/details-select-option-output.
 })
 export class ProductDetailsComponent implements OnInit {
   private service = inject(ProductDetailsService);
-  private route = inject(ActivatedRoute);
+  // private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
   private snackBar = inject(MatSnackBar);
 
   displayedColumns: string[] = ['name', 'code'];
 
-  // product = toSignal(this.service.selectedProduct$);
-  product = signal<GetProductQuery['product'] | null>(null);
+  product = this.service.product;
 
   // Product state management
   productState = this.service.productState;
+
+  currentVariant = this.service.currentVariant;
 
   images: Signal<GalleryItem[]> = computed(() => {
     const assets = this.product()?.assets ?? [];
@@ -75,6 +80,7 @@ export class ProductDetailsComponent implements OnInit {
 
     return optionGroups.map((item) => {
       const optionsData = item.options.map(option => ({
+        id: option.id,
         name: option.name,
         code: option.code,
         description: option.customFields?.description,
@@ -89,10 +95,7 @@ export class ProductDetailsComponent implements OnInit {
   });
 
   // Computed signals for better UX
-  currentVariant = computed(() => {
-    const state = this.productState();
-    return state.selectedVariant || this.product()?.variants?.[0] || undefined;
-  });
+
 
   currentPrice = computed(() => {
     const variant = this.currentVariant();
@@ -104,47 +107,21 @@ export class ProductDetailsComponent implements OnInit {
     return variant?.currencyCode || 'USD';
   });
 
-  isOptionSelected = computed(() => {
-    return (optionGroupId: string, optionName: string) => {
-      const state = this.productState();
-      return state.selectedOptions[optionGroupId] === optionName;
-    };
-  });
-
-  private productSlug$ = this.route.paramMap.pipe(
-    map(paramMap => paramMap.get('slug')),
-    filter(notNullOrUndefined),
-  );
-
   ngOnInit() {
     // handle slug
-    this.productSlug$.pipe(
-      switchMap((slug) => {
-        return this.service.getProduct(slug).pipe(
-          map(data => {
-            this.product.set(data);
-            // Initialize with first variant
-            if (data?.variants?.[0]) {
-              this.productState.update(state => ({
-                ...state,
-                selectedVariant: data.variants[0] as ProductVariant
-              }));
-            }
-          })
-        );
-      }),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe()
+    this.service.init();
   }
 
   // Product interaction methods
-  selectOption({optionGroupId, optionName}: DetailsSelectOptionOutput) {
+  selectOption(id: string) {
+
+    // TODO update option base on group - to avoid multiple option selection in one group
     this.productState.update(state => ({
       ...state,
-      selectedOptions: {
+      selectedOptions: [
         ...state.selectedOptions,
-        [optionGroupId]: optionName
-      }
+        id
+      ]
     }));
 
     // Find matching variant based on selected options
@@ -156,25 +133,29 @@ export class ProductDetailsComponent implements OnInit {
 
     if (!product?.variants) return;
 
+    const selectedOptions = this.productState().selectedOptions;
+
     // Find variant that matches selected options
-    const matchingVariant = product.variants.find(() => {
-      // This is a simplified matching logic
-      // In a real app, you'd need more sophisticated variant matching
-      return true; // For now, just return the first variant
+    const matchingVariant = product.variants.find((item) => {
+      return selectedOptions.every(option =>
+        item.options.some(vOption => vOption.id === option));
     });
 
     if (matchingVariant) {
       this.productState.update(state => ({
         ...state,
-        selectedVariant: matchingVariant as ProductVariant
+        selectedVariant: matchingVariant
       }));
     }
   }
 
-  selectVariant(variant: NonNullable<GetProductQuery['product']>['variants'][number]) {
+  selectVariant(variant: SelectedVariantT) {
+    const selectedOptions = variant?.options?.map(item => item.id);
+
     this.productState.update(state => ({
       ...state,
-      selectedVariant: variant
+      selectedVariant: variant,
+      selectedOptions: selectedOptions ?? []
     }));
   }
 
@@ -249,25 +230,12 @@ export class ProductDetailsComponent implements OnInit {
     }
   }
 
-  setActiveTab(tab: 'description' | 'specifications' | 'reviews') {
+  setActiveTab(tab: DetailsTab) {
     this.productState.update(state => ({
       ...state,
       activeTab: tab
     }));
   }
-
-  // Computed signals for specifications
-  productSpecifications = computed(() => {
-    const product = this.product();
-    const specifications = product?.customFields?.specifications;
-    return specifications || [];
-  });
-
-  variantSpecifications = computed(() => {
-    const variant = this.currentVariant();
-    const specifications = variant?.customFields?.specifications;
-    return specifications || [];
-  });
 
   getShippingInfo(): string {
     // Get shipping information from product custom fields or use default

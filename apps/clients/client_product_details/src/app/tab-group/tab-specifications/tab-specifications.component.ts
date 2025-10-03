@@ -4,7 +4,7 @@ import {
   ProductSpecificationsStruct,
   ProductVariantSpecificationsStruct
 } from "@ewandr-workspace/data-access-graphql";
-import {ProductVariant} from "../models/details-product-variant.model";
+import {ProductVariant} from "../../models/details-product-variant.model";
 
 @Component({
   selector: 'tab-specifications',

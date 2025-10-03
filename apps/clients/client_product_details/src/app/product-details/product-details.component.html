@@ -200,105 +200,15 @@
 
       <!-- Product Details Tabs -->
       <div class="mt-16">
-        <div class="border-b border-slate-200">
-          <nav class="tab-nav">
-            <button
-              class="tab-button"
-              [class.active]="productState().activeTab === 'description'"
-              (click)="setActiveTab('description')"
-            >
-              Description
-            </button>
-            <button
-              class="tab-button"
-              [class.active]="productState().activeTab === 'specifications'"
-              (click)="setActiveTab('specifications')"
-            >
-              Specifications
-            </button>
-            <button
-              class="tab-button"
-              [class.active]="productState().activeTab === 'reviews'"
-              (click)="setActiveTab('reviews')"
-            >
-              Reviews
-            </button>
-          </nav>
-        </div>
-
-        <div class="py-8">
-          @switch (productState().activeTab) {
-            @case ('description') {
-              <div class="prose prose-slate max-w-none" [innerHTML]="product()?.description"></div>
-            }
-            @case ('specifications') {
-              <tab-specifications
-                [product]="product()!"
-                [productSpecifications]="productSpecifications()"
-                [variantSpecifications]="variantSpecifications()"
-                [currentVariant]="currentVariant()"
-              ></tab-specifications>
-            }
-            @case ('reviews') {
-              <div class="space-y-6">
-                <h3 class="text-lg font-semibold text-slate-900">Customer Reviews</h3>
-                <div class="text-center py-12">
-                  <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                  </svg>
-                  <h3 class="mt-2 text-sm font-medium text-slate-900">No reviews yet</h3>
-                  <p class="mt-1 text-sm text-slate-500">Be the first to review this product.</p>
-                </div>
-              </div>
-            }
-          }
-        </div>
+        <tab-group
+          (selectedTabChanged)="setActiveTab($event)"
+        ></tab-group>
       </div>
 
       <!-- Product Variants Section -->
-      @if (product()?.variants && product()!.variants!.length > 0) {
-        <div class="mt-16">
-          <h2 class="text-2xl font-bold text-slate-900 mb-8">All Product Variants</h2>
-          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            @for (variant of product()?.variants; track variant.id) {
-              <div
-                class="variant-card"
-                [class.ring-2]="currentVariant()?.id === variant.id"
-                [class.ring-slate-900]="currentVariant()?.id === variant.id"
-              >
-                <div class="space-y-4">
-                  <div class="flex items-start justify-between">
-                    <h3 class="text-lg font-semibold text-slate-900">{{ variant.name }}</h3>
-                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-800">
-                      {{ variant.sku }}
-                    </span>
-                  </div>
-
-                  <div class="space-y-2">
-                    <p class="text-2xl font-bold text-slate-900">
-                      {{ (variant.priceWithTax || 0) / 100 | currency: (variant.currencyCode || 'USD') }}
-                    </p>
-                    @if (variant.price !== variant.priceWithTax) {
-                      <p class="text-sm text-slate-500 line-through">
-                        {{ (variant.price || 0) / 100 | currency: (variant.currencyCode || 'USD') }}
-                      </p>
-                    }
-                  </div>
-
-                  <button
-                    class="w-full btn-primary"
-                    [class.bg-slate-600]="currentVariant()?.id === variant.id"
-                    [class.hover:bg-slate-700]="currentVariant()?.id === variant.id"
-                    (click)="selectVariant(variant)"
-                  >
-                    {{ currentVariant()?.id === variant.id ? 'Selected' : 'Select Variant' }}
-                  </button>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      }
+      <product-variants
+      (selectedVariantChanged)="selectVariant($event)"
+      ></product-variants>
 
       <!-- Related Products Section -->
       <div class="mt-16">

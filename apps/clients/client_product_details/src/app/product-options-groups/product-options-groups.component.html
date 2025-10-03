@@ -7,9 +7,9 @@
         @for (option of optionGroup.options; track option.name) {
           <button
             class="option-button"
-            [class.selected]="isOptionSelected()(optionGroup.id, option.name)"
+            [class.selected]="isOptionSelected()(option.id)"
             [matTooltip]="option.description"
-            (click)="handleSelectOption(optionGroup.id, option.name)"
+            (click)="handleSelectOption(option.id)"
           >
             {{ option.name }}
           </button>
