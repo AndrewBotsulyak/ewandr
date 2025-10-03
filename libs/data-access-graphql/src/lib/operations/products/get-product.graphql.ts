@@ -48,6 +48,9 @@ export const GET_PRODUCT = gql`
         price,
         currencyCode,
         priceWithTax,
+        options {
+          id
+        },
         customFields {
           specifications {
             name,

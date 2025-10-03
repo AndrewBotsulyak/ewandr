@@ -7,6 +7,7 @@ export interface ProductOptionsData {
 }
 
 export interface OptionData {
+  id: string;
   name: string;
   code: string;
   description?: string;
