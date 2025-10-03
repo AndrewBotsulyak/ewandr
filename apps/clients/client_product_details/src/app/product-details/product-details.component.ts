@@ -150,8 +150,7 @@ export class ProductDetailsComponent implements OnInit {
   }
 
   selectVariant(variant: SelectedVariantT) {
-    const selectedOptions = variant?.options
-      .map(item => item.id);
+    const selectedOptions = variant?.options?.map(item => item.id);
 
     this.productState.update(state => ({
       ...state,
