@@ -4,9 +4,11 @@
   </div>
 
   <div class="wrapper">
-    <div class="nav-bar">
-      <lib-navbar></lib-navbar>
-    </div>
+    @if (isHomePage()) {
+      <div class="nav-bar">
+        <lib-navbar></lib-navbar>
+      </div>
+    }
     <div class="content">
       <router-outlet></router-outlet>
     </div>
