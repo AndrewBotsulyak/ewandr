@@ -1,36 +1,75 @@
 @if (collection(); as collectionData) {
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
     <!-- Breadcrumbs -->
-    <nav class="bg-white shadow-sm border-b">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav class="bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-200 sticky top-0 z-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <ui-breadcrumb [breadcrumbs]="collectionData.breadcrumbs"></ui-breadcrumb>
       </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ collectionData.name }}</h1>
+    <!-- Main Content with Sidebar -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <!-- Header with enhanced styling -->
+      <div class="mb-6 lg:mb-8">
+        <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+          {{ collectionData.name }}
+        </h1>
         @if (collectionData.children && collectionData.children.length > 0) {
-          <p class="text-gray-600">{{ collectionData.children.length }} подкатегорий</p>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+              {{ collectionData.children.length }} подкатегорий
+            </span>
+          </div>
         }
       </div>
 
-      <!-- Categories Grid -->
-      <ui-collections-layout [collection]="collectionData"></ui-collections-layout>
+      <!-- Layout with Sidebar -->
+      <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        <!-- Sticky Sidebar -->
+        @if (collectionSlug()) {
+          <aside class="w-full lg:w-64 flex-shrink-0 order-2 lg:order-1">
+            <div class="lg:sticky lg:top-24">
+              <app-product-facets [collectionSlug]="collectionSlug()"></app-product-facets>
+            </div>
+          </aside>
+        }
 
-      <!--   Products list   -->
-      <product-container [collectionId]="collectionData.id"></product-container>
+        <!-- Main Content Area -->
+        <div class="flex-1 min-w-0 order-1 lg:order-2">
+          <!-- Categories Grid with better spacing -->
+          @if (collectionData.children && collectionData.children.length > 0) {
+            <div class="mb-8">
+              <ui-collections-layout [collection]="collectionData"></ui-collections-layout>
+            </div>
+          }
 
+          <!-- Products section with header -->
+          <div class="space-y-4">
+            <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+              <h2 class="text-xl font-semibold text-gray-900">Товары</h2>
+            </div>
+
+            <product-container
+              [collectionId]="collectionData.id"
+              [collectionSlug]="collectionData.slug">
+            </product-container>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 } @else {
-  <!-- Loading State -->
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <!-- Enhanced Loading State -->
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
     <div class="text-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-      <p class="mt-4 text-gray-600">Загрузка категории...</p>
+      <div class="relative">
+        <div class="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="h-8 w-8 bg-blue-50 rounded-full"></div>
+        </div>
+      </div>
+      <p class="mt-6 text-lg font-medium text-gray-700">Загрузка категории...</p>
+      <p class="mt-2 text-sm text-gray-500">Пожалуйста, подождите</p>
     </div>
   </div>
 }
