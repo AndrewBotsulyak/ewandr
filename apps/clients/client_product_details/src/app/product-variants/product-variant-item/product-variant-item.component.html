@@ -1,36 +1,140 @@
 @if (variant() != null) {
   <div
-    class="variant-card"
-    [class.ring-2]="currentVariant()?.id === variant()!.id"
-    [class.ring-slate-900]="currentVariant()?.id === variant()!.id"
+    class="group relative bg-white rounded-2xl border-2 transition-all duration-300 overflow-hidden cursor-pointer h-full flex flex-col"
+    [class.border-blue-500]="currentVariant()?.id === variant()!.id"
+    [class.shadow-xl]="currentVariant()?.id === variant()!.id"
+    [class.shadow-blue-100]="currentVariant()?.id === variant()!.id"
+    [class.border-gray-200]="currentVariant()?.id !== variant()!.id"
+    [class.hover:border-gray-300]="currentVariant()?.id !== variant()!.id"
+    [class.hover:shadow-lg]="currentVariant()?.id !== variant()!.id"
+    (click)="handleSelectVariant(variant())"
   >
-    <div class="space-y-4">
-      <div class="flex items-start justify-between">
-        <h3 class="text-lg font-semibold text-slate-900">{{ variant()!.name }}</h3>
-        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-800">
-                      {{ variant()!.sku }}
-                    </span>
+    <!-- Selected Badge -->
+    @if (currentVariant()?.id === variant()!.id) {
+      <div class="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+        </svg>
+        Selected
       </div>
+    }
 
-      <div class="space-y-2">
-        <p class="text-2xl font-bold text-slate-900">
-          {{ (variant()!.priceWithTax || 0) / 100 | currency: (variant()!.currencyCode || 'USD') }}
-        </p>
-        @if (variant()!.price !== variant()!.priceWithTax) {
-          <p class="text-sm text-slate-500 line-through">
-            {{ (variant()!.price || 0) / 100 | currency: (variant()!.currencyCode || 'USD') }}
-          </p>
+    <!-- Sale Badge -->
+    @if (variant()!.price !== variant()!.priceWithTax) {
+      <div class="absolute top-4 left-4 z-10 bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
+        SALE
+      </div>
+    }
+
+    <!-- Variant Image -->
+    @if (variant()!.assets && variant()!.assets!.length > 0) {
+      <div class="relative h-48 bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+        <img
+          [src]="variant()!.assets![0].preview"
+          [alt]="variant()!.name"
+          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      </div>
+    } @else {
+      <div class="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+        <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+      </div>
+    }
+
+    <!-- Card Content -->
+    <div class="p-5 flex-1 flex flex-col gap-4">
+      <!-- Content wrapper that grows -->
+      <div class="flex-1 flex flex-col gap-4">
+        <!-- Header -->
+        <div class="space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <h3 class="text-lg font-bold text-gray-900 line-clamp-2 flex-1 group-hover:text-blue-600 transition-colors">
+              {{ variant()!.name }}
+            </h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 px-2.5 py-1 rounded-lg text-xs font-medium">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
+              </svg>
+              {{ variant()!.sku }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Price Section -->
+        <div class="space-y-1.5 py-3 border-t border-gray-100">
+          <div class="flex items-baseline gap-2">
+            <span class="text-2xl font-bold text-gray-900">
+              {{ (variant()!.priceWithTax || 0) / 100 | currency: (variant()!.currencyCode || 'USD') }}
+            </span>
+            @if (variant()!.price !== variant()!.priceWithTax) {
+              <span class="text-sm text-gray-500 line-through">
+                {{ (variant()!.price || 0) / 100 | currency: (variant()!.currencyCode || 'USD') }}
+              </span>
+            }
+          </div>
+          @if (variant()!.price !== variant()!.priceWithTax) {
+            <p class="text-xs font-medium text-red-600">
+              Save {{ ((variant()!.price - variant()!.priceWithTax) / 100) | currency: (variant()!.currencyCode || 'USD') }}
+            </p>
+          }
+        </div>
+
+        <!-- Specifications -->
+        @if (variant()!.customFields?.specifications && variant()!.customFields!.specifications!.length > 0) {
+          <div class="space-y-2 pt-2 border-t border-gray-100">
+            <h4 class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Key Specs</h4>
+            <div class="space-y-1.5">
+              @for (spec of variant()!.customFields!.specifications!.slice(0, 3); track spec.name) {
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-gray-600 font-medium">{{ spec.name }}</span>
+                  <span class="text-gray-900 font-semibold">{{ spec.value }}</span>
+                </div>
+              }
+            </div>
+            @if (variant()!.customFields!.specifications!.length > 3) {
+              <p class="text-xs text-gray-500 italic">+{{ variant()!.customFields!.specifications!.length - 3 }} more specs</p>
+            }
+          </div>
         }
       </div>
 
+      <!-- Select Button -->
       <button
-        class="w-full btn-primary"
-        [class.bg-slate-600]="currentVariant()?.id === variant()!.id"
-        [class.hover:bg-slate-700]="currentVariant()?.id === variant()!.id"
-        (click)="handleSelectVariant(variant())"
+        class="w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2"
+        [class.bg-blue-600]="currentVariant()?.id === variant()!.id"
+        [class.text-white]="currentVariant()?.id === variant()!.id"
+        [class.shadow-lg]="currentVariant()?.id === variant()!.id"
+        [class.shadow-blue-600/30]="currentVariant()?.id === variant()!.id"
+        [class.bg-gray-900]="currentVariant()?.id !== variant()!.id"
+        [class.text-white]="currentVariant()?.id !== variant()!.id"
+        [class.hover:bg-gray-800]="currentVariant()?.id !== variant()!.id"
+        [class.group-hover:shadow-lg]="currentVariant()?.id !== variant()!.id"
       >
-        {{ currentVariant()?.id === variant()!.id ? 'Selected' : 'Select Variant' }}
+        @if (currentVariant()?.id === variant()!.id) {
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          Currently Selected
+        } @else {
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
+          </svg>
+          Select This Variant
+        }
       </button>
     </div>
+
+    <!-- Hover Effect Border -->
+    <div
+      class="absolute inset-0 rounded-2xl transition-opacity duration-300 pointer-events-none"
+      [class.opacity-100]="currentVariant()?.id === variant()!.id"
+      [class.opacity-0]="currentVariant()?.id !== variant()!.id"
+      style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);"
+    ></div>
   </div>
 }

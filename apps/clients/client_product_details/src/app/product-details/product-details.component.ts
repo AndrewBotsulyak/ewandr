@@ -113,15 +113,14 @@ export class ProductDetailsComponent implements OnInit {
   }
 
   // Product interaction methods
-  selectOption(id: string) {
+  selectOption({optionGroupId, optionId}: DetailsSelectOptionOutput) {
 
-    // TODO update option base on group - to avoid multiple option selection in one group
     this.productState.update(state => ({
       ...state,
-      selectedOptions: [
+      selectedOptions: {
         ...state.selectedOptions,
-        id
-      ]
+        [optionGroupId]: optionId,
+      }
     }));
 
     // Find matching variant based on selected options
@@ -133,7 +132,7 @@ export class ProductDetailsComponent implements OnInit {
 
     if (!product?.variants) return;
 
-    const selectedOptions = this.productState().selectedOptions;
+    const selectedOptions = Object.values(this.productState().selectedOptions);
 
     // Find variant that matches selected options
     const matchingVariant = product.variants.find((item) => {
@@ -150,12 +149,12 @@ export class ProductDetailsComponent implements OnInit {
   }
 
   selectVariant(variant: SelectedVariantT) {
-    const selectedOptions = variant?.options?.map(item => item.id);
+    const selectedOptions = this.service.syncSelectedOptions(variant);
 
     this.productState.update(state => ({
       ...state,
       selectedVariant: variant,
-      selectedOptions: selectedOptions ?? []
+      selectedOptions: selectedOptions ?? {}
     }));
   }
 

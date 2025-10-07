@@ -30,19 +30,24 @@ export class FacetFilterService {
   // Products from search
   searchResults = signal<SearchProductsQuery['search'] | null>(null);
 
-  loadFacets(collectionSlug: string, selectedFacetIds: string[] = []) {
+  // Sort order
+  sortOrder = signal<string>('');
+
+  searchProducts(collectionSlug: string, selectedFacetIds: string[] = []) {
     const facetFilters = this.buildFacetValueFilters(selectedFacetIds);
+    const sort = this.buildSortParameter(this.sortOrder());
 
     this.gqlService.searchProducts({
       collectionSlug,
       groupByProduct: true,
       take: 100,
-      facetValueFilters: facetFilters.length > 0 ? facetFilters : undefined
+      facetValueFilters: facetFilters.length > 0 ? facetFilters : undefined,
+      sort: sort
     }).pipe(take(1)).subscribe((response) => {
       // Update both products and facets from single query
       this.searchResults.set(response);
 
-      if (response.facetValues) {
+      if (response.facetValues != null) {
         const grouped = this.groupFacetsByFacet(response.facetValues, selectedFacetIds);
         this.facetGroups.set(grouped);
       }
@@ -62,18 +67,24 @@ export class FacetFilterService {
     this.selectedFacetIds.set(newSelected);
 
     // Reload facets with new filters
-    this.loadFacets(collectionSlug, newSelected);
+    this.searchProducts(collectionSlug, newSelected);
   }
 
   clearFilters(collectionSlug: string) {
     this.selectedFacetIds.set([]);
-    this.loadFacets(collectionSlug, []);
+    this.searchProducts(collectionSlug, []);
   }
 
   resetFilters() {
     this.selectedFacetIds.set([]);
     this.facetGroups.set([]);
     this.searchResults.set(null);
+    this.sortOrder.set('');
+  }
+
+  setSortOrder(sortValue: string, collectionSlug: string) {
+    this.sortOrder.set(sortValue);
+    this.searchProducts(collectionSlug, this.selectedFacetIds());
   }
 
   private groupFacetsByFacet(facetValues: SearchProductsQuery['search']['facetValues'], selectedIds: string[]): FacetGroup[] {
@@ -107,5 +118,20 @@ export class FacetFilterService {
 
     // Create AND filters for all selected facets
     return selectedIds.map(id => ({ and: id }));
+  }
+
+  private buildSortParameter(sortValue: string): any {
+    switch (sortValue) {
+      case 'price-asc':
+        return { price: 'ASC' };
+      case 'price-desc':
+        return { price: 'DESC' };
+      case 'name-asc':
+        return { name: 'ASC' };
+      case 'name-desc':
+        return { name: 'DESC' };
+      default:
+        return undefined;
+    }
   }
 }

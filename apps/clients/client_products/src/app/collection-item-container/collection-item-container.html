@@ -1,27 +1,26 @@
 @if (collection(); as collectionData) {
   <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-    <!-- Breadcrumbs -->
-    <nav class="bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-200 sticky top-0 z-10">
+    <!-- Breadcrumbs and Header -->
+    <nav class="bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <ui-breadcrumb [breadcrumbs]="collectionData.breadcrumbs"></ui-breadcrumb>
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <ui-breadcrumb [breadcrumbs]="collectionData.breadcrumbs"></ui-breadcrumb>
+          <div class="flex items-center gap-3">
+            <h1 class="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">
+              {{ collectionData.name }}
+            </h1>
+            @if (collectionData.children && collectionData.children.length > 0) {
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                {{ collectionData.children.length }} subcategories
+              </span>
+            }
+          </div>
+        </div>
       </div>
     </nav>
 
     <!-- Main Content with Sidebar -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-      <!-- Header with enhanced styling -->
-      <div class="mb-6 lg:mb-8">
-        <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
-          {{ collectionData.name }}
-        </h1>
-        @if (collectionData.children && collectionData.children.length > 0) {
-          <div class="flex items-center gap-2">
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-              {{ collectionData.children.length }} подкатегорий
-            </span>
-          </div>
-        }
-      </div>
 
       <!-- Layout with Sidebar -->
       <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
@@ -46,7 +45,21 @@
           <!-- Products section with header -->
           <div class="space-y-4">
             <div class="flex items-center justify-between pb-4 border-b border-gray-200">
-              <h2 class="text-xl font-semibold text-gray-900">Товары</h2>
+              <h2 class="text-xl font-semibold text-gray-900">Products</h2>
+              <div class="flex items-center gap-2">
+                <label for="sort-select" class="text-sm text-gray-600 font-medium">Sort by:</label>
+                <select
+                  id="sort-select"
+                  (change)="handleSortChange($event)"
+                  class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                >
+                  <option value="">Default</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="name-asc">Name: A to Z</option>
+                  <option value="name-desc">Name: Z to A</option>
+                </select>
+              </div>
             </div>
 
             <product-container
@@ -68,8 +81,8 @@
           <div class="h-8 w-8 bg-blue-50 rounded-full"></div>
         </div>
       </div>
-      <p class="mt-6 text-lg font-medium text-gray-700">Загрузка категории...</p>
-      <p class="mt-2 text-sm text-gray-500">Пожалуйста, подождите</p>
+      <p class="mt-6 text-lg font-medium text-gray-700">Loading category...</p>
+      <p class="mt-2 text-sm text-gray-500">Please wait</p>
     </div>
   </div>
 }

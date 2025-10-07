@@ -1,7 +1,7 @@
 import {computed, DestroyRef, inject, Injectable, signal} from "@angular/core";
 import {Store} from "@ngrx/store";
 import {GetProductQuery, GetProductQueryVariables, GqlDataService} from "@ewandr-workspace/data-access-graphql";
-import {ProductState} from "../models/product-state.model";
+import {ProductState, SelectedOptionI, SelectedVariantT} from "../models/product-state.model";
 import {DetailsTab} from "../models/details-tab.model";
 import {filter, map, switchMap} from "rxjs";
 import {notNullOrUndefined} from "@ewandr-workspace/core";
@@ -20,16 +20,16 @@ export class ProductDetailsService {
 
   productState = signal<ProductState>({
     selectedVariant: undefined,
-    selectedOptions: [],
+    selectedOptions: {},
     quantity: 1,
     isInWishlist: false,
     activeTab: DetailsTab.DESCRIPTION
   });
 
   isOptionSelected = computed(() => {
-    return (id: string) => {
+    return (groupId: string, id: string) => {
       const state = this.productState();
-      return state.selectedOptions.includes(id);
+      return state.selectedOptions[groupId]?.includes(id) ?? false;
     };
   });
 
@@ -53,17 +53,41 @@ export class ProductDetailsService {
         return this.getProduct(slug).pipe(
           map(data => {
             this.product.set(data);
-            // Initialize with first variant
-            if (data?.variants?.[0]) {
-              this.productState.update(state => ({
-                ...state,
-                selectedVariant: data.variants[0] as ProductVariant
-              }));
-            }
+            this.initDefaultVariant(data);
           })
         );
       }),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe()
+  }
+
+  syncSelectedOptions(selectedVariant: SelectedVariantT) {
+    if (selectedVariant != null) {
+      const selectedOptions: SelectedOptionI = {};
+
+      selectedVariant?.options?.forEach(item => {
+        selectedOptions[item.groupId] = item.id;
+      });
+
+      return selectedOptions;
+    }
+
+    return null;
+  }
+
+  private initDefaultVariant(data: GetProductQuery['product'] | null) {
+    if (data?.variants != null) {
+      const variants = [...data?.variants];
+      const selectedVariant =
+        variants.sort((a,b) => {
+          return a.price - b.price;
+        })[0];
+
+      this.productState.update(state => ({
+        ...state,
+        selectedOptions: this.syncSelectedOptions(selectedVariant) ?? state.selectedOptions,
+        selectedVariant
+      }));
+    }
   }
 }

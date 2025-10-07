@@ -2,5 +2,5 @@
 
 export interface DetailsSelectOptionOutput {
   optionGroupId: string;
-  optionName: string;
+  optionId: string;
 }
