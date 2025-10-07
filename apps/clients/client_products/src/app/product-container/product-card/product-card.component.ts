@@ -14,10 +14,17 @@ export class ProductCardComponent {
   product = input.required<SearchProductsQuery['search']['items'][number]>();
 
   @Output() productClick = new EventEmitter<void>();
+  @Output() addToCart = new EventEmitter<SearchProductsQuery['search']['items'][number]>();
 
   handleLinkClick(ev: MouseEvent) {
     ev.preventDefault();
     this.productClick.emit();
+  }
+
+  handleAddToCart(ev: MouseEvent) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.addToCart.emit(this.product());
   }
 
   getPrice(): number {

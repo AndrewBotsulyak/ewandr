@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core';
+import { Component, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FacetFilterService } from "../services/facet-filter.service";
 
@@ -19,6 +19,9 @@ export class ProductFacetsComponent {
   facetGroups = this.facetFilterService.facetGroups;
   selectedFacets = this.facetFilterService.selectedFacetIds;
 
+  // Track collapsed state for each group (all expanded by default)
+  collapsedGroups = signal<Set<string>>(new Set());
+
   toggleFacet(facetValueId: string) {
     const slug = this.collectionSlug();
     this.facetFilterService.toggleFacet(facetValueId, slug);
@@ -27,5 +30,28 @@ export class ProductFacetsComponent {
   clearAllFilters() {
     const slug = this.collectionSlug();
     this.facetFilterService.clearFilters(slug);
+  }
+
+  toggleGroup(groupId: string) {
+    const collapsed = this.collapsedGroups();
+    const newCollapsed = new Set(collapsed);
+    if (newCollapsed.has(groupId)) {
+      newCollapsed.delete(groupId);
+    } else {
+      newCollapsed.add(groupId);
+    }
+    this.collapsedGroups.set(newCollapsed);
+  }
+
+  isGroupExpanded(groupId: string): boolean {
+    return !this.collapsedGroups().has(groupId);
+  }
+
+  getSelectedCountInGroup(groupId: string): number {
+    const group = this.facetGroups().find(g => g.id === groupId);
+    if (!group) return 0;
+
+    const selected = this.selectedFacets();
+    return group.values.filter(v => selected.includes(v.id)).length;
   }
 }

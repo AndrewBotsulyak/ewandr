@@ -3716,7 +3716,7 @@ export type GetProductQueryVariables = Exact<{
 }>;
 
 
-export type GetProductQuery = { __typename?: 'Query', product?: { __typename?: 'Product', id: string, name: string, slug: string, description: string, enabled: boolean, optionGroups: Array<{ __typename?: 'ProductOptionGroup', id: string, name: string, options: Array<{ __typename?: 'ProductOption', id: string, name: string, code: string, customFields?: { __typename?: 'ProductOptionCustomFields', description?: string, isColor?: boolean } }> }>, assets: Array<{ __typename?: 'Asset', id: string, name: string, source: string, preview: string, width: number, height: number }>, featuredAsset?: { __typename?: 'Asset', id: string, name: string, type: AssetType, source: string, customFields?: any, tags: Array<{ __typename?: 'Tag', id: string, value: string }> }, variants: Array<{ __typename?: 'ProductVariant', id: string, productId: string, sku: string, name: string, price: any, currencyCode: CurrencyCode, priceWithTax: any, options: Array<{ __typename?: 'ProductOption', id: string }>, customFields?: { __typename?: 'ProductVariantCustomFields', specifications?: Array<{ __typename?: 'ProductVariantSpecificationsStruct', name?: string, value?: string }> }, assets: Array<{ __typename?: 'Asset', id: string, name: string, source: string, preview: string, width: number, height: number }> }>, customFields?: { __typename?: 'ProductCustomFields', shortDesc?: string, specifications?: Array<{ __typename?: 'ProductSpecificationsStruct', name?: string, value?: string }> } } };
+export type GetProductQuery = { __typename?: 'Query', product?: { __typename?: 'Product', id: string, name: string, slug: string, description: string, enabled: boolean, optionGroups: Array<{ __typename?: 'ProductOptionGroup', id: string, name: string, options: Array<{ __typename?: 'ProductOption', id: string, name: string, code: string, customFields?: { __typename?: 'ProductOptionCustomFields', description?: string, isColor?: boolean } }> }>, assets: Array<{ __typename?: 'Asset', id: string, name: string, source: string, preview: string, width: number, height: number }>, featuredAsset?: { __typename?: 'Asset', id: string, name: string, type: AssetType, source: string, customFields?: any, tags: Array<{ __typename?: 'Tag', id: string, value: string }> }, variants: Array<{ __typename?: 'ProductVariant', id: string, productId: string, sku: string, name: string, price: any, currencyCode: CurrencyCode, priceWithTax: any, options: Array<{ __typename?: 'ProductOption', id: string, groupId: string }>, customFields?: { __typename?: 'ProductVariantCustomFields', specifications?: Array<{ __typename?: 'ProductVariantSpecificationsStruct', name?: string, value?: string }> }, assets: Array<{ __typename?: 'Asset', id: string, name: string, source: string, preview: string, width: number, height: number }> }>, customFields?: { __typename?: 'ProductCustomFields', shortDesc?: string, specifications?: Array<{ __typename?: 'ProductSpecificationsStruct', name?: string, value?: string }> } } };
 
 export type GetProductsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -4019,6 +4019,7 @@ export const GetProductDocument = gql`
       priceWithTax
       options {
         id
+        groupId
       }
       customFields {
         specifications {

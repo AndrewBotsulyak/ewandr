@@ -14,10 +14,11 @@ import {MatCardModuleUI, MatButtonUI} from "@ewandr-workspace/ui-shared-lib";
 import {ProductCardComponent} from "./product-card/product-card.component";
 import {SearchProductsQuery} from "@ewandr-workspace/data-access-graphql";
 import {FacetFilterService} from "../services/facet-filter.service";
+import {MatSnackBar, MatSnackBarModule} from "@angular/material/snack-bar";
 
 @Component({
   selector: 'product-container',
-  imports: [CommonModule, MatButtonUI, MatCardModuleUI, ProductCardComponent],
+  imports: [CommonModule, MatButtonUI, MatCardModuleUI, ProductCardComponent, MatSnackBarModule],
   providers: [ProductContainerService],
   templateUrl: './product-container.component.html',
   styleUrl: './product-container.component.scss',
@@ -26,6 +27,7 @@ import {FacetFilterService} from "../services/facet-filter.service";
 export class ProductContainerComponent implements OnInit {
   private service = inject(ProductContainerService);
   private facetFilterService = inject(FacetFilterService);
+  private snackBar = inject(MatSnackBar);
   public router = inject(Router);
 
   collectionId = input<string>();
@@ -45,6 +47,14 @@ export class ProductContainerComponent implements OnInit {
 
   public handleProductClick(product: SearchProductsQuery['search']['items'][number]) {
     this.router.navigate([`product/${product.slug}`])
+  }
+
+  public handleAddToCart(product: SearchProductsQuery['search']['items'][number]) {
+    this.snackBar.open(`"${product.productName}" added to cart`, 'Close', {
+      duration: 3000,
+      horizontalPosition: 'right',
+      verticalPosition: 'top'
+    });
   }
 
 }

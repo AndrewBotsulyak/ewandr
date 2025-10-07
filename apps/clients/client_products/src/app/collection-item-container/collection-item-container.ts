@@ -50,9 +50,20 @@ export class CollectionItemContainer {
       if (slug) {
         // Reset and reload facets for new collection
         this.facetFilterService.resetFilters();
-        this.facetFilterService.loadFacets(slug);
+        // load products and facets
+        this.facetFilterService.searchProducts(slug);
       }
     }, { allowSignalWrites: true });
+  }
+
+  handleSortChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    const sortValue = select.value;
+    const slug = this.collectionSlug();
+
+    if (slug) {
+      this.facetFilterService.setSortOrder(sortValue, slug);
+    }
   }
 
   protected readonly last = last;

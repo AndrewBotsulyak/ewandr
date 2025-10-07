@@ -19,6 +19,7 @@
       <product-card
         [product]="product"
         (productClick)="handleProductClick(product)"
+        (addToCart)="handleAddToCart($event)"
         class="h-full"
       />
     }
@@ -28,8 +29,8 @@
   @if (products()?.totalItems) {
     <div class="mt-8 flex items-center justify-center">
       <p class="text-sm text-gray-600">
-        Показано <span class="font-semibold text-gray-900">{{ products()!.items.length }}</span> из
-        <span class="font-semibold text-gray-900">{{ products()!.totalItems }}</span> товаров
+        Showing <span class="font-semibold text-gray-900">{{ products()!.items.length }}</span> of
+        <span class="font-semibold text-gray-900">{{ products()!.totalItems }}</span> products
       </p>
     </div>
   }
@@ -41,9 +42,9 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
       </svg>
     </div>
-    <h3 class="text-lg font-semibold text-gray-900 mb-2">Товары не найдены</h3>
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">No products found</h3>
     <p class="text-sm text-gray-600 text-center max-w-sm">
-      Попробуйте изменить фильтры или выбрать другую категорию
+      Try adjusting your filters or selecting a different category
     </p>
   </div>
 }
