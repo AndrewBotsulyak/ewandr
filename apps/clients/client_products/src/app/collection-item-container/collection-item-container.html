@@ -44,6 +44,7 @@
 
           <!-- Products section with header -->
           <div class="space-y-4">
+
             <div class="flex items-center justify-between pb-4 border-b border-gray-200">
               <h2 class="text-xl font-semibold text-gray-900">Products</h2>
               <div class="flex items-center gap-2">
@@ -63,9 +64,8 @@
             </div>
 
             <product-container
-              [collectionId]="collectionData.id"
-              [collectionSlug]="collectionData.slug">
-            </product-container>
+              [products]="products()"
+            ></product-container>
           </div>
         </div>
       </div>

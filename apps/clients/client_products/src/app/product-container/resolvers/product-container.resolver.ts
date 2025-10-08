@@ -9,10 +9,10 @@ export function productContainerResolver(): Observable<any> {
 
   if (platformService.isServer()) {
 
-    service.getGqlProducts().pipe(
-      filter((value) => value != null),
-      take(1)
-    ).subscribe();
+    // service.getGqlProducts().pipe(
+    //   filter((value) => value != null),
+    //   take(1)
+    // ).subscribe();
   }
 
   return of(true);
