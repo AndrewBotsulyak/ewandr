@@ -27,6 +27,8 @@ export class CollectionItemContainer {
   private activatedRoute = inject(ActivatedRoute);
   private facetFilterService = inject(FacetFilterService);
 
+  products = this.facetFilterService.searchResults;
+
   collection = toSignal(this.activatedRoute.data.pipe(
     switchMap(({collection}) => {
       if (collection == null) {

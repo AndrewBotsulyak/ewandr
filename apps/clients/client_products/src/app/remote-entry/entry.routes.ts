@@ -4,15 +4,20 @@ import {CollectionItemContainer} from "../collection-item-container/collection-i
 import {
   collectionItemContainerResolver
 } from "../collection-item-container/resolvers/collection-item-container.resolver";
+import {RoutesConstants} from "@ewandr-workspace/core";
 
 export const remoteRoutes: Route[] = [
   {
     path: '',
     component: CollectionsContainerComponent,
-    pathMatch: "full",
   },
   {
-    path: ':slug',
+    path: RoutesConstants.CATEGORY,
+    pathMatch: "full",
+    redirectTo: ''
+  },
+  {
+    path: `${RoutesConstants.CATEGORY}/:slug` ,
     component: CollectionItemContainer,
     resolve: { collection: collectionItemContainerResolver},
   },
