@@ -1,0 +1,143 @@
+.custom-snackbar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #323232;
+  color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 344px;
+  max-width: 568px;
+  animation: slideIn 0.3s ease-out;
+
+  @media (max-width: 600px) {
+    min-width: 100%;
+    border-radius: 0;
+  }
+
+  &.snackbar-error {
+    background: #d32f2f;
+
+    .snackbar-icon {
+      color: #ffcdd2;
+    }
+
+    .snackbar-action {
+      color: #ffebee;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      &:focus {
+        outline-color: #ffcdd2;
+      }
+    }
+  }
+
+  &.snackbar-warning {
+    background: #f57c00;
+
+    .snackbar-icon {
+      color: #fff3e0;
+    }
+
+    .snackbar-action {
+      color: #fff8e1;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      &:focus {
+        outline-color: #ffe0b2;
+      }
+    }
+  }
+
+  &.snackbar-success {
+    background: #388e3c;
+
+    .snackbar-icon {
+      color: #c8e6c9;
+    }
+
+    .snackbar-action {
+      color: #e8f5e9;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      &:focus {
+        outline-color: #a5d6a7;
+      }
+    }
+  }
+}
+
+.snackbar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffa726;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.snackbar-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.snackbar-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: #ffffff;
+  word-wrap: break-word;
+}
+
+.snackbar-action {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: #90caf9;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  &:active {
+    background-color: rgba(255, 255, 255, 0.16);
+  }
+
+  &:focus {
+    outline: 2px solid #90caf9;
+    outline-offset: 2px;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

@@ -1,0 +1,13 @@
+<div class="custom-snackbar-container" [ngClass]="'snackbar-' + notificationType">
+  <div class="snackbar-icon">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path [attr.d]="iconPath" fill="currentColor"/>
+    </svg>
+  </div>
+  <div class="snackbar-content">
+    <p class="snackbar-message">{{ data.message }}</p>
+  </div>
+  <button class="snackbar-action" (click)="dismiss()">
+    {{ data.action }}
+  </button>
+</div>
