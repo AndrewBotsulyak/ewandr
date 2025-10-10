@@ -1,29 +1,29 @@
 import {
-  APP_INITIALIZER,
-  ApplicationConfig, importProvidersFrom,
-  inject,
-  PLATFORM_ID,
-  provideAppInitializer,
-  provideZoneChangeDetection, provideZonelessChangeDetection
+  ApplicationConfig, ErrorHandler, importProvidersFrom,
+  provideZonelessChangeDetection
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { appRoutes } from './app.routes';
 import {
   provideClientHydration,
-  withEventReplay, withNoHttpTransferCache,
+  withEventReplay,
 } from '@angular/platform-browser';
 import {provideHttpClient, withFetch, withInterceptors} from "@angular/common/http";
 import {provideState, provideStore} from "@ngrx/store";
 import {provideEffects} from "@ngrx/effects";
 import {
   hydrationMetaReducer,
-  NgRxTransferStateService,
   ProductsEffects,
   productsFeatureStore
 } from "@ewandr-workspace/ngrx-store";
 import {ApolloClientModule, GraphQLConfig} from "@ewandr-workspace/data-access-graphql";
 import {environment} from "../environments/environment";
-import {API_URL_TOKEN} from "@ewandr-workspace/client-core";
+import {
+  API_URL_TOKEN,
+  authInterceptor,
+  errorInterceptor,
+  GlobalErrorHandlerService
+} from "@ewandr-workspace/client-core";
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -36,7 +36,11 @@ export const appConfig: ApplicationConfig = {
     //   hydrationService.restoreState();
     // }),
     provideHttpClient(
-      withFetch()
+      withFetch(),
+      withInterceptors([
+        authInterceptor,
+        errorInterceptor
+      ])
     ),
     provideStore({},
       {
@@ -56,11 +60,15 @@ export const appConfig: ApplicationConfig = {
         errorHandler: (error) => {
           console.error('GraphQL Error:', error);
         },
-      } as GraphQLConfig)
+      } as GraphQLConfig),
     ),
     {
       provide: API_URL_TOKEN,
       useValue: environment.apiUrl
+    },
+    {
+      provide: ErrorHandler,
+      useClass: GlobalErrorHandlerService
     }
   ],
 };
