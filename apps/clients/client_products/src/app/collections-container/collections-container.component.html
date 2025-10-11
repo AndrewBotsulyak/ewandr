@@ -20,9 +20,9 @@
     }
 
     <!-- Collections Grid -->
-    @if (collections()?.children) {
+    @if (collections()) {
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-10">
-        @for (collection of collections()!.children; track collection.id) {
+        @for (collection of collections(); track collection.id) {
           <button
             (click)="navigateToCollection(collection.slug)"
             class="group relative bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-1 hover:border-indigo-300 overflow-hidden focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -60,7 +60,7 @@
       </div>
 
       <!-- Empty State -->
-      @if (collections()!.children.length === 0) {
+      @if (collections()!.length === 0) {
         <div class="text-center py-20">
           <svg class="w-24 h-24 text-gray-300 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>

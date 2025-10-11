@@ -1,0 +1,106 @@
+@if (isOpen()) {
+  <div class="mobile-nav">
+    <!-- Mobile Search -->
+    <div class="mobile-search">
+      <form (ngSubmit)="handleSearch()" class="search-form">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="search"
+          placeholder="Search products..."
+          class="search-input"
+          [(ngModel)]="searchQuery"
+          name="mobileSearch"
+        />
+      </form>
+    </div>
+
+    <!-- Mobile Categories -->
+    <div class="mobile-section">
+      <button class="mobile-section-header" (click)="toggleCategories()">
+        <div class="mobile-section-title">
+          <mat-icon>category</mat-icon>
+          <span>Categories</span>
+        </div>
+        <mat-icon class="dropdown-icon">{{
+          isCategoriesOpen() ? 'expand_less' : 'expand_more'
+        }}</mat-icon>
+      </button>
+
+      @if (isCategoriesOpen()) {
+        <div class="mobile-categories-list">
+          @for (category of categories(); track category.id) {
+            <button
+              class="mobile-category-item"
+              (click)="categorySelect.emit(category.slug)"
+            >
+              <mat-icon>shopping_bag</mat-icon>
+              <span>{{ category.name }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- Mobile Theme Toggle -->
+    <button class="mobile-nav-item" (click)="themeToggle.emit()">
+      <mat-icon>{{ currentTheme() === 'light' ? 'dark_mode' : 'light_mode' }}</mat-icon>
+      <span>{{ currentTheme() === 'light' ? 'Dark Mode' : 'Light Mode' }}</span>
+    </button>
+
+    <!-- Mobile Cart -->
+    <button class="mobile-nav-item" (click)="cartClick.emit()">
+      <mat-icon [matBadge]="cartItemCount()" [matBadgeHidden]="cartItemCount() === 0" matBadgeColor="warn">
+        shopping_cart
+      </mat-icon>
+      <span>Cart</span>
+      @if (cartItemCount() > 0) {
+        <span class="mobile-cart-count">({{ cartItemCount() }})</span>
+      }
+    </button>
+
+    <mat-divider></mat-divider>
+
+    <!-- Mobile User Menu -->
+    @if (user()) {
+      <div class="mobile-user-section">
+        <div class="mobile-user-info">
+          @if (user()!.avatar) {
+            <img [src]="user()!.avatar" alt="User avatar" class="mobile-user-avatar" />
+          } @else {
+            <div class="mobile-user-avatar-placeholder">
+              {{ getInitials(user()!.name) }}
+            </div>
+          }
+          <div class="mobile-user-details">
+            <p class="mobile-user-name">{{ user()!.name }}</p>
+            <p class="mobile-user-email">{{ user()!.email }}</p>
+          </div>
+        </div>
+
+        <button class="mobile-nav-item" (click)="profileClick.emit()">
+          <mat-icon>person</mat-icon>
+          <span>Profile</span>
+        </button>
+        <button class="mobile-nav-item" (click)="ordersClick.emit()">
+          <mat-icon>receipt_long</mat-icon>
+          <span>Orders</span>
+        </button>
+        <button class="mobile-nav-item" (click)="settingsClick.emit()">
+          <mat-icon>settings</mat-icon>
+          <span>Settings</span>
+        </button>
+        <button class="mobile-nav-item logout-button" (click)="logoutClick.emit()">
+          <mat-icon>logout</mat-icon>
+          <span>Logout</span>
+        </button>
+      </div>
+    } @else {
+      <div class="mobile-auth-buttons">
+        <a [routerLink]="['/login']" class="mobile-auth-link" (click)="close.emit()">Login</a>
+        <a [routerLink]="['/signup']" class="mobile-auth-button" (click)="close.emit()">Sign Up</a>
+      </div>
+    }
+  </div>
+}

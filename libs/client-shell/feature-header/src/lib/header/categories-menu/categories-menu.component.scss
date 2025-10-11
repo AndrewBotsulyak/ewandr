@@ -1,0 +1,31 @@
+// Minimal Material Menu overrides
+::ng-deep {
+  .categories-mat-menu {
+    .mat-mdc-menu-panel {
+      background: white !important;
+      min-width: 240px;
+      max-width: 320px;
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e5e7eb;
+    }
+
+    .mat-mdc-menu-content {
+      padding: 0.5rem 0;
+      background: white;
+    }
+  }
+
+  // All menu panels
+  .mat-mdc-menu-panel {
+    background: white !important;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+
+    .mat-mdc-menu-content {
+      background: white;
+      padding: 0.5rem 0;
+    }
+  }
+}

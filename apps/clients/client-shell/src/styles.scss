@@ -61,36 +61,39 @@ body {
 }
 
 // Custom Snackbar Overrides
-.mat-mdc-snack-bar-container {
-  --mat-snack-bar-button-color: inherit;
-  --mdc-snackbar-container-color: transparent !important;
+.notification-action {
+  &.mat-mdc-snack-bar-container {
+    --mat-snack-bar-button-color: inherit;
+    --mdc-snackbar-container-color: transparent !important;
 
-  margin: 0 !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
-
-  // Disable Material's animations to prevent flickering
-  animation: none !important;
-  transition: none !important;
-
-  .mdc-snackbar__surface {
-    background: transparent !important;
-    box-shadow: none !important;
+    margin: 0 !important;
     padding: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+
+    // Disable Material's animations to prevent flickering
+    animation: none !important;
+    transition: none !important;
+
+    .mdc-snackbar__surface {
+      background: transparent !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      animation: none !important;
+      transition: none !important;
+    }
+
+    .mat-mdc-snack-bar-label {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+  }
+
+  // Disable Material's animation classes
+  &.mat-snack-bar-container-enter,
+  &.mat-snack-bar-container-animations-enabled {
     animation: none !important;
     transition: none !important;
   }
 
-  .mat-mdc-snack-bar-label {
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-}
-
-// Disable Material's animation classes
-.mat-snack-bar-container-enter,
-.mat-snack-bar-container-animations-enabled {
-  animation: none !important;
-  transition: none !important;
 }

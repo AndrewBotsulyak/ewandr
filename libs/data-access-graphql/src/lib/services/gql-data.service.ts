@@ -8,15 +8,11 @@ import {
   GetCollectionsQueryVariables,
   GetProductDocument,
   GetProductQuery,
-  GetProductsDocument,
-  GetProductsQuery, GetProductsQueryVariables,
-  ProductListOptions, SearchInput, SearchProductsGQL, SearchProductsQuery, SearchProductsQueryVariables, SearchResult,
+  SearchInput, SearchProductsQuery, SearchProductsQueryVariables,
 } from '../generated/graphql';
 import {DataService} from "./data.service";
-import {arrayToTree, RootNode} from "../utils/array-to-tree";
 import {GET_COLLECTION, GET_COLLECTIONS} from "../operations/collections/collections.graphql";
 import {SEARCH_PRODUCTS} from "../operations/products/search-products.graphql";
-import {GET_PRODUCTS} from "../operations/products/get-products.graphql";
 
 type CollectionItem = GetCollectionsQuery['collections']['items'][number];
 
@@ -56,13 +52,14 @@ export class GqlDataService {
 
   // region Collections
 
-  getCollections(): Observable<RootNode<CollectionItem>> {
+  getCollections(): Observable<CollectionItem[]> {
     return this.dataService.query<GetCollectionsQuery, GetCollectionsQueryVariables>(GET_COLLECTIONS, {
       options: {
+        topLevelOnly: true,
         take: 50
       },
     }).pipe(
-      map(data => arrayToTree(data.collections.items)),
+      map(data => data.collections.items),
     );
   }
 
