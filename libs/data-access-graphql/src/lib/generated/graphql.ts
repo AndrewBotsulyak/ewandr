@@ -3615,7 +3615,7 @@ export type GetCollectionsQueryVariables = Exact<{
 }>;
 
 
-export type GetCollectionsQuery = { __typename?: 'Query', collections: { __typename?: 'CollectionList', items: Array<{ __typename?: 'Collection', id: string, name: string, slug: string, parent?: { __typename?: 'Collection', id: string, name: string, slug: string }, featuredAsset?: { __typename?: 'Asset', id: string, width: number, height: number, name: string, preview: string, focalPoint?: { __typename?: 'Coordinate', x: number, y: number } } }> } };
+export type GetCollectionsQuery = { __typename?: 'Query', collections: { __typename?: 'CollectionList', items: Array<{ __typename?: 'Collection', id: string, name: string, slug: string, parent?: { __typename?: 'Collection', id: string, name: string, slug: string }, children?: Array<{ __typename?: 'Collection', id: string, slug: string, name: string }>, featuredAsset?: { __typename?: 'Asset', id: string, width: number, height: number, name: string, preview: string, focalPoint?: { __typename?: 'Coordinate', x: number, y: number } } }> } };
 
 export type GetCollectionQueryVariables = Exact<{
   slug?: InputMaybe<Scalars['String']['input']>;
@@ -3858,6 +3858,11 @@ export const GetCollectionsDocument = gql`
         id
         name
         slug
+      }
+      children {
+        id
+        slug
+        name
       }
       featuredAsset {
         ...Asset

@@ -1,5 +1,5 @@
 import {inject, Injectable, PLATFORM_ID} from "@angular/core";
-import {isPlatformServer} from "@angular/common";
+import {isPlatformBrowser, isPlatformServer} from "@angular/common";
 
 @Injectable({providedIn: 'root'})
 export class CheckPlatformService {
@@ -7,5 +7,9 @@ export class CheckPlatformService {
 
   isServer(): boolean {
     return isPlatformServer(this.platformId) === true;
+  }
+
+  isBrowser(): boolean {
+    return isPlatformBrowser(this.platformId) === true;
   }
 }

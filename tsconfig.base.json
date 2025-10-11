@@ -20,14 +20,8 @@
       "@ewandr-workspace/data-access-graphql": [
         "libs/data-access-graphql/src/index.ts"
       ],
-      "@ewandr-workspace/feature-home-page": [
-        "libs/client-shell/feature-home-page/src/index.ts"
-      ],
       "@ewandr-workspace/header": [
         "libs/client-shell/feature-header/src/index.ts"
-      ],
-      "@ewandr-workspace/navbar": [
-        "libs/client-shell/feature-navbar/src/index.ts"
       ],
       "@ewandr-workspace/ngrx-store": ["libs/ngrx-store/src/index.ts"],
       "@ewandr-workspace/ui-shared-lib": ["libs/ui-shared-lib/src/index.ts"],

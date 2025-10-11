@@ -75,6 +75,26 @@
       }
     }
   }
+
+  &.snackbar-info {
+    background: #1976d2;
+
+    .snackbar-icon {
+      color: #bbdefb;
+    }
+
+    .snackbar-action {
+      color: #e3f2fd;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      &:focus {
+        outline-color: #90caf9;
+      }
+    }
+  }
 }
 
 .snackbar-icon {

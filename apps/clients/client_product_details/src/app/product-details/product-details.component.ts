@@ -1,26 +1,13 @@
-import {
-  Component, computed, DestroyRef,
-  inject,
-  OnInit, Signal,
-  signal,
-} from '@angular/core';
+import {Component, computed, DestroyRef, inject, OnInit, Signal,} from '@angular/core';
 import {ProductDetailsService} from "./product-details.service";
-import {ActivatedRoute} from "@angular/router";
 import {CommonModule} from "@angular/common";
-import {BehaviorSubject, filter, map, Observable, switchMap} from "rxjs";
-import {GetProductQuery, ProductOptionGroup} from "@ewandr-workspace/data-access-graphql";
 import {MatCardModuleUI} from "@ewandr-workspace/ui-shared-lib";
 import {GalleryItem, GalleryModule, ImageItem} from "ng-gallery";
-import {DataSource} from "@angular/cdk/collections";
 import {CdkTableModule} from "@angular/cdk/table";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {LightboxModule} from "ng-gallery/lightbox";
-import {notNullOrUndefined} from "@ewandr-workspace/core";
-import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
 import {MatButtonModule} from "@angular/material/button";
 import {MatIconModule} from "@angular/material/icon";
-import {MatSnackBar, MatSnackBarModule} from "@angular/material/snack-bar";
-import {ProductVariant} from "../models/details-product-variant.model";
 import {ProductOptionsGroupsComponent} from "../product-options-groups/product-options-groups.component";
 import {ProductOptionsData} from "../models/details-product-option-data.model";
 import {DetailsSelectOptionOutput} from "../models/details-select-option-output.model";
@@ -28,6 +15,7 @@ import {TabGroupComponent} from "../tab-group/tab-group.component";
 import {DetailsTab} from "../models/details-tab.model";
 import {ProductVariantsComponent} from "../product-variants/product-variants.component";
 import {SelectedVariantT} from "../models/product-state.model";
+import {NotificationService, NotificationType} from "@ewandr-workspace/client-core";
 
 
 @Component({
@@ -41,7 +29,6 @@ import {SelectedVariantT} from "../models/product-state.model";
     LightboxModule,
     MatButtonModule,
     MatIconModule,
-    MatSnackBarModule,
     ProductOptionsGroupsComponent,
     TabGroupComponent,
     ProductVariantsComponent
@@ -54,9 +41,8 @@ import {SelectedVariantT} from "../models/product-state.model";
 })
 export class ProductDetailsComponent implements OnInit {
   private service = inject(ProductDetailsService);
-  // private route = inject(ActivatedRoute);
+  private notificationService = inject(NotificationService);
   private destroyRef = inject(DestroyRef);
-  private snackBar = inject(MatSnackBar);
 
   displayedColumns: string[] = ['name', 'code'];
 
@@ -171,32 +157,22 @@ export class ProductDetailsComponent implements OnInit {
     const variant = this.currentVariant();
 
     if (!variant) {
-      this.snackBar.open('Please select a product variant', 'Close', {
-        duration: 3000
-      });
+      this.notificationService.showInfo('Please select a product variant');
       return;
     }
 
-    // Here you would typically call a cart service
-    this.snackBar.open(`Product "${variant.name}" added to cart`, 'Close', {
-      duration: 3000
-    });
+    this.notificationService.showInfo(`Product "${variant.name}" added to cart`);
   }
 
   buyNow() {
     const variant = this.currentVariant();
 
     if (!variant) {
-      this.snackBar.open('Please select a product variant', 'Close', {
-        duration: 3000
-      });
+      this.notificationService.showInfo('Please select a product variant');
       return;
     }
 
-    // Here you would typically navigate to checkout
-    this.snackBar.open('Redirecting to checkout...', 'Close', {
-      duration: 2000
-    });
+    this.notificationService.showInfo('Redirecting to checkout...');
   }
 
   toggleWishlist() {
@@ -208,7 +184,8 @@ export class ProductDetailsComponent implements OnInit {
     const isInWishlist = this.productState().isInWishlist;
     const message = isInWishlist ? 'Product added to wishlist' : 'Product removed from wishlist';
 
-    this.snackBar.open(message, 'Close', {
+    this.notificationService.showNotification(NotificationType.INFO, {
+      message,
       duration: 2000
     });
   }
@@ -223,8 +200,10 @@ export class ProductDetailsComponent implements OnInit {
     } else {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
-      this.snackBar.open('Link copied to clipboard', 'Close', {
-        duration: 2000
+      this.notificationService.showNotification(NotificationType.INFO, {
+        message: 'Link copied to clipboard',
+        duration: 2000,
+        action: 'Close'
       });
     }
   }

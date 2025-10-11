@@ -1,0 +1,10 @@
+<button
+  class="icon-button cart-button"
+  (click)="cartClick.emit()"
+  matTooltip="Shopping Cart"
+  [matBadge]="itemCount()"
+  [matBadgeHidden]="itemCount() === 0"
+  matBadgeColor="warn"
+>
+  <mat-icon>shopping_cart</mat-icon>
+</button>

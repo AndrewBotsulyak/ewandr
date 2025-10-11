@@ -13,6 +13,11 @@ export const GET_COLLECTIONS = gql`
                     name
                     slug
                 }
+                children {
+                  id,
+                  slug,
+                  name
+                },
                 featuredAsset {
                     ...Asset
                 }

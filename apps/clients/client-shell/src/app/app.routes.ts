@@ -1,5 +1,4 @@
 import { Route } from '@angular/router';
-import { FeatureHomePageComponent } from '@ewandr-workspace/feature-home-page';
 import { RoutesConstants } from '@ewandr-workspace/core';
 import {remoteRoutes as categoryRoutes} from "client_products/Routes";
 
