@@ -55,7 +55,7 @@ export class CollectionItemContainer {
         // load products and facets
         this.facetFilterService.searchProducts(slug);
       }
-    }, { allowSignalWrites: true });
+    });
   }
 
   handleSortChange(event: Event) {

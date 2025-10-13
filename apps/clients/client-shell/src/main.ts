@@ -18,6 +18,7 @@ fetch(environment.mfManifestURL)
     });
 
     // Create the Module Federation instance with remotes
+    // Note: shared config is handled by webpack build config for browser
     createInstance({
       name: 'client-shell',
       remotes,

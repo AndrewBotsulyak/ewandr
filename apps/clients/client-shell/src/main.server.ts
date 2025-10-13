@@ -1,5 +1,3 @@
-// import 'zone.js/node';
-
 import { APP_BASE_HREF } from '@angular/common';
 import { CommonEngine } from '@angular/ssr/node';
 import * as express from 'express';
@@ -8,9 +6,8 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import bootstrap from './bootstrap.server';
 import { environment } from './environments/environment';
-import { init } from '@module-federation/enhanced/runtime';
+import { createInstance } from '@module-federation/enhanced/runtime';
 import * as fs from "node:fs";
-import {createProxyMiddleware} from "http-proxy-middleware";
 import {loadDevMessages, loadErrorMessages} from "@apollo/client/dev";
 
 if (!environment.production) {
@@ -93,7 +90,7 @@ async function initModuleFederation() {
 
     console.log('mfManifest = ', mfManifest);
   } else {
-    const response = await fetch(manifestPath)
+    const response = await fetch(manifestPath);
     mfManifest = await response.json();
   }
 
@@ -108,7 +105,7 @@ async function initModuleFederation() {
     });
   });
 
-  init({
+  createInstance({
     name: 'client-shell',
     remotes,
   });

@@ -1,11 +1,11 @@
 import { Route } from '@angular/router';
 import { RoutesConstants } from '@ewandr-workspace/core';
-import {remoteRoutes as categoryRoutes} from "client_products/Routes";
 
 export const appRoutes: Route[] = [
   {
     path: '',
-    children: categoryRoutes
+    loadChildren: () =>
+      import('client_products/Routes').then((m) => m!.remoteRoutes),
   },
   {
     path: `${RoutesConstants.PRODUCT}/:slug`,
