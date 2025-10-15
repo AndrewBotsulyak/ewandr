@@ -30,20 +30,31 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        timeout-minutes: 5
-        run: npm ci --legacy-peer-deps --prefer-offline
+        run: npm ci --legacy-peer-deps --loglevel verbose
 
       - name: Validate configuration files
         timeout-minutes: 2
         run: |
-          # Validate config files to prevent NX graph errors
-          for file in $(find . -name "playwright.config.ts" -o -name "webpack.config.ts" 2>/dev/null); do
+          echo "Checking for syntax errors in config files..."
+
+          # Проверка playwright.config.ts файлов
+          find . -name "playwright.config.ts" -type f | while read -r file; do
+            echo "Validating $file"
             if ! npx tsc --noEmit --skipLibCheck "$file" 2>/dev/null; then
-              echo "::warning::Syntax error in $file - creating backup"
-              mv "$file" "$file.original"
+              echo "::warning::Syntax error in $file - skipping from NX analysis"
+              mv "$file" "$file.backup"
+              echo "export default {};" > "$file"
+            fi
+          done
+
+          # Проверка webpack.config.ts файлов
+          find . -name "webpack.config.ts" -type f | while read -r file; do
+            echo "Validating $file"
+            if ! npx tsc --noEmit --skipLibCheck "$file" 2>/dev/null; then
+              echo "::warning::Syntax error in $file - skipping from NX analysis"
+              mv "$file" "$file.backup"
               echo "export default {};" > "$file"
             fi
           done
@@ -59,21 +70,11 @@ jobs:
 
           # 1) Find BASE/HEAD commits
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BASE_REF="${{ github.event.pull_request.base.ref }}"
-            echo "Fetching base branch: $BASE_REF"
-
-            if ! git fetch --no-tags --prune --depth=1 origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}" 2>/dev/null; then
-              echo "⚠️ Shallow fetch failed, attempting unshallow..."
-              if ! git fetch --no-tags --prune --unshallow 2>/dev/null; then
-                echo "❌ Failed to fetch git history. Using current HEAD~1 as fallback."
-                BASE="$(git rev-parse HEAD~1 2>/dev/null || echo "${{ github.event.pull_request.base.sha }}")"
-              else
-                BASE="$(git merge-base "${{ github.sha }}" "origin/${BASE_REF}")"
-              fi
-            else
-              BASE="$(git merge-base "${{ github.sha }}" "origin/${BASE_REF}")"
-            fi
+            BASE_REF="main"
+            git fetch --no-tags --prune --depth=1 origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}" \
+              || git fetch --no-tags --prune --unshallow
             HEAD="${{ github.sha }}"
+            BASE="$(git merge-base "$HEAD" "origin/${BASE_REF}")"
           else
             BASE="$(git rev-parse HEAD~1)"
             HEAD="$(git rev-parse HEAD)"
@@ -82,10 +83,7 @@ jobs:
           echo "BASE=$BASE"
           echo "HEAD=$HEAD"
 
-          # Track which detection method we use
-          DETECTION_METHOD="unknown"
-
-          # 2) Try Nx affected detection (may fail due to graph errors)
+          # 2) Пробуем Nx (может упасть из-за graph)
           echo "🚀 Trying Nx affected detection..."
           set +e
           AFFECTED_JSON="$(npx -y nx show projects --affected --base="$BASE" --head="$HEAD" --select=projects 2>/dev/null)"
@@ -98,8 +96,6 @@ jobs:
           # 3) Fallback to git diff if Nx failed or returned empty
           if [[ $NX_RC -ne 0 || -z "$AFFECTED_JSON" ]]; then
             echo "🔄 Nx failed (RC=$NX_RC) or returned empty. Falling back to git diff analysis..."
-            DETECTION_METHOD="git_diff_fallback"
-
             CHANGED_FILES="$(git diff --name-only "$BASE" "$HEAD")"
             echo "📁 Changed files:"
             echo "$CHANGED_FILES"
@@ -117,16 +113,14 @@ jobs:
 
             # Check all client_* applications
             echo "🔍 Checking for client_* app changes..."
-            if [ -d "apps/clients" ]; then
-              for client_app in $(find apps/clients -maxdepth 1 -type d -name "client_*" 2>/dev/null -exec basename {} \;); do
-                if echo "$CHANGED_FILES" | grep -q "^apps/clients/$client_app/"; then
-                  echo "✅ Found $client_app app changes"
-                  affected+=("$client_app")
-                else
-                  echo "❌ No $client_app app changes found"
-                fi
-              done
-            fi
+            for client_app in $(find apps/clients -maxdepth 1 -type d -name "client_*" -exec basename {} \;); do
+              if echo "$CHANGED_FILES" | grep -q "^apps/clients/$client_app/"; then
+                echo "✅ Found $client_app app changes"
+                affected+=("$client_app")
+              else
+                echo "❌ No $client_app app changes found"
+              fi
+            done
 
             # Simple heuristic for common libs
             echo "🔍 Checking for client-shell lib changes..."
@@ -143,14 +137,12 @@ jobs:
               # If any libs changed, consider all clients affected
               [[ " ${affected[*]} " =~ " client-shell " ]] || affected+=("client-shell")
 
-              # Add all client_* apps when common libs change (except client-shell, already added above)
-              if [ -d "apps/clients" ]; then
-                for client_app in $(find apps/clients -maxdepth 1 -type d -name "client_*" 2>/dev/null -exec basename {} \;); do
-                  if [[ "$client_app" != "client-shell" ]]; then
-                    [[ " ${affected[*]} " =~ " $client_app " ]] || affected+=("$client_app")
-                  fi
-                done
-              fi
+              # Добавляем все client_* приложения при изменении общих библиотек (кроме client-shell, так как он уже добавлен выше)
+              for client_app in $(find apps/clients -maxdepth 1 -type d -name "client_*" -exec basename {} \;); do
+                if [[ "$client_app" != "client-shell" ]]; then
+                  [[ " ${affected[*]} " =~ " $client_app " ]] || affected+=("$client_app")
+                fi
+              done
             else
               echo "❌ No general lib changes found"
             fi
@@ -165,9 +157,7 @@ jobs:
             fi
           else
             echo "✅ Nx detection successful!"
-            DETECTION_METHOD="nx"
-
-            # Convert Nx output to JSON array if it's not already JSON
+            # Преобразуем вывод Nx в JSON массив, если это не JSON
             if ! echo "$AFFECTED_JSON" | jq empty 2>/dev/null; then
               echo "🔄 Converting Nx output to JSON array..."
               # Nx may return project list separated by spaces or newlines
@@ -176,7 +166,6 @@ jobs:
           fi
 
           echo "📋 Final Affected (JSON): $AFFECTED_JSON"
-          echo "🔍 Detection method: $DETECTION_METHOD"
 
           # 4) Additional flags (example: server changes)
           HAS_SERVER_CHANGES=false
@@ -209,7 +198,6 @@ jobs:
             echo "$REMOTES_JSON"
             echo "EOF"
             echo "has_server_changes=$HAS_SERVER_CHANGES"
-            echo "detection_method=$DETECTION_METHOD"
           } >> "$GITHUB_OUTPUT"
 
       - name: Restore configuration files
@@ -271,15 +259,15 @@ jobs:
         run: |
           # Check each application separately
           if echo '${{ steps.detect.outputs.affected_apps }}' | jq -e '.[] | select(. == "client-shell")' > /dev/null 2>&1; then
-            echo "client-shell-affected=true" >> $GITHUB_OUTPUT
+            echo "client_shell_affected=true" >> $GITHUB_OUTPUT
           else
-            echo "client-shell-affected=false" >> $GITHUB_OUTPUT
+            echo "client_shell_affected=false" >> $GITHUB_OUTPUT
           fi
 
           if echo '${{ steps.detect.outputs.affected_apps }}' | jq -e '.[] | select(. == "be-vendure")' > /dev/null 2>&1; then
-            echo "be-vendure-affected=true" >> $GITHUB_OUTPUT
+            echo "be_vendure_affected=true" >> $GITHUB_OUTPUT
           else
-            echo "be-vendure-affected=false" >> $GITHUB_OUTPUT
+            echo "be_vendure_affected=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Save detection results
@@ -288,52 +276,75 @@ jobs:
           APPS_JSON='${{ steps.detect.outputs.affected_apps }}'
           REMOTES_JSON='${{ steps.detect.outputs.remotes }}'
           HAS_SERVER_CHANGES='${{ steps.check-server.outputs.has-changes }}'
-          CLIENT_SHELL_AFFECTED='${{ steps.check-apps.outputs.client-shell-affected }}'
-          BE_VENDURE_AFFECTED='${{ steps.check-apps.outputs.be-vendure-affected }}'
-          DETECTION_METHOD='${{ steps.detect.outputs.detection_method }}'
+          CLIENT_SHELL_AFFECTED='${{ steps.check-apps.outputs.client_shell_affected }}'
+          BE_VENDURE_AFFECTED='${{ steps.check-apps.outputs.be_vendure_affected }}'
 
-          # Validate and fix JSON if needed
-          [[ -z "$APPS_JSON" || "$APPS_JSON" == "null" ]] && APPS_JSON='[]'
-          [[ -z "$REMOTES_JSON" || "$REMOTES_JSON" == "null" ]] && REMOTES_JSON='[]'
-          [[ -z "$DETECTION_METHOD" || "$DETECTION_METHOD" == "null" ]] && DETECTION_METHOD='unknown'
+          # Проверяем и исправляем JSON если нужно
+          if [[ -z "$APPS_JSON" ]] || [[ "$APPS_JSON" == "null" ]]; then
+            APPS_JSON="[]"
+          fi
 
-          # Validate JSON arrays
-          echo "$APPS_JSON" | jq empty 2>/dev/null || APPS_JSON='[]'
-          echo "$REMOTES_JSON" | jq empty 2>/dev/null || REMOTES_JSON='[]'
+          if [[ -z "$REMOTES_JSON" ]] || [[ "$REMOTES_JSON" == "null" ]]; then
+            REMOTES_JSON="[]"
+          fi
 
-          # Debug variables before creating JSON
+          # Конвертируем булевые значения в правильный JSON формат
+          [[ "$HAS_SERVER_CHANGES" == "true" ]] && HAS_SERVER_CHANGES="true" || HAS_SERVER_CHANGES="false"
+          [[ "$CLIENT_SHELL_AFFECTED" == "true" ]] && CLIENT_SHELL_AFFECTED="true" || CLIENT_SHELL_AFFECTED="false"
+          [[ "$BE_VENDURE_AFFECTED" == "true" ]] && BE_VENDURE_AFFECTED="true" || BE_VENDURE_AFFECTED="false"
+
+          # Безопасно экранируем PR title
+          PR_TITLE=$(echo '${{ github.event.pull_request.title }}' | jq -R . 2>/dev/null || echo '"Unknown"')
+
+          # Отладка переменных перед созданием JSON
           echo "=== DEBUG VARIABLES ==="
           echo "APPS_JSON: '$APPS_JSON'"
           echo "REMOTES_JSON: '$REMOTES_JSON'"
           echo "HAS_SERVER_CHANGES: '$HAS_SERVER_CHANGES'"
           echo "CLIENT_SHELL_AFFECTED: '$CLIENT_SHELL_AFFECTED'"
           echo "BE_VENDURE_AFFECTED: '$BE_VENDURE_AFFECTED'"
-          echo "DETECTION_METHOD: '$DETECTION_METHOD'"
+          echo "PR_TITLE: '$PR_TITLE'"
           echo "========================"
 
-          # Create JSON using jq for safety - pass PR title directly as arg
+          # Валидируем JSON переменные перед использованием
+          if ! echo "$APPS_JSON" | jq empty 2>/dev/null; then
+            echo "Invalid APPS_JSON, setting to []"
+            APPS_JSON='[]'
+          fi
+
+          if ! echo "$REMOTES_JSON" | jq empty 2>/dev/null; then
+            echo "Invalid REMOTES_JSON, setting to []"
+            REMOTES_JSON='[]'
+          fi
+
+          if ! echo "$PR_TITLE" | jq empty 2>/dev/null; then
+            echo "Invalid PR_TITLE, setting to default"
+            PR_TITLE='"Unknown"'
+          fi
+
+          # Создаем JSON с помощью jq для безопасности
           jq -n \
             --arg pr_number "${{ github.event.pull_request.number }}" \
-            --arg pr_title "${{ github.event.pull_request.title }}" \
+            --arg pr_title_raw "$PR_TITLE" \
             --arg pr_url "${{ github.event.pull_request.html_url }}" \
             --arg base_sha "${{ github.event.pull_request.base.sha }}" \
             --arg head_sha "${{ github.event.pull_request.head.sha }}" \
             --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --argjson affected_apps "$APPS_JSON" \
-            --argjson affected_remotes "$REMOTES_JSON" \
+            --arg affected_apps_raw "$APPS_JSON" \
+            --arg affected_remotes_raw "$REMOTES_JSON" \
             --arg has_server_changes "$HAS_SERVER_CHANGES" \
             --arg client_shell_affected "$CLIENT_SHELL_AFFECTED" \
             --arg be_vendure_affected "$BE_VENDURE_AFFECTED" \
-            --arg detection_method "$DETECTION_METHOD" \
+            --arg detection_method "git_diff_fallback" \
             '{
               pr_number: ($pr_number | tonumber),
-              pr_title: $pr_title,
+              pr_title: (try ($pr_title_raw | fromjson) catch "Unknown"),
               pr_url: $pr_url,
               base_sha: $base_sha,
               head_sha: $head_sha,
               timestamp: $timestamp,
-              affected_apps: $affected_apps,
-              affected_remotes: $affected_remotes,
+              affected_apps: (try ($affected_apps_raw | fromjson) catch []),
+              affected_remotes: (try ($affected_remotes_raw | fromjson) catch []),
               has_server_changes: ($has_server_changes == "true"),
               client_shell_affected: ($client_shell_affected == "true"),
               be_vendure_affected: ($be_vendure_affected == "true"),
@@ -357,11 +368,11 @@ jobs:
             ls -la
             exit 1
           fi
-          
+
           echo "✅ detection-results.json exists, size: $(wc -c < detection-results.json) bytes"
           echo "📄 File content preview:"
           head -20 detection-results.json
-          
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -375,7 +386,7 @@ jobs:
           script: |
             const fs = require('fs');
             let results;
-            
+
             try {
               const rawData = fs.readFileSync('detection-results.json', 'utf8');
               console.log('Raw JSON data:', rawData);
