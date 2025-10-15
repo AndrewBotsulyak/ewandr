@@ -457,7 +457,22 @@ jobs:
           ssh -i "$SSH_KEY" "$REMOTE_USER@$REMOTE_HOST" <<'ENDSSH'
           set -eo pipefail
           cd ~/ewandr
-          cp .env.production .env.production.backup-$(date +%Y%m%d-%H%M%S) || true
+
+          # Create env-backups directory if it doesn't exist
+          mkdir -p env-backups
+
+          # Create new backup in env-backups directory
+          cp .env.production env-backups/.env.production.backup-$(date +%Y-%m-%d_%H:%M:%S) || true
+
+          # Clean up old backups, keep only 5 most recent
+          BACKUP_COUNT=$(ls -1 env-backups/.env.production.backup-* 2>/dev/null | wc -l)
+          if [ "$BACKUP_COUNT" -gt 5 ]; then
+            echo "🧹 Cleaning up old backups, keeping 5 most recent..."
+            ls -1t env-backups/.env.production.backup-* | tail -n +6 | xargs rm -f
+            echo "✅ Removed $((BACKUP_COUNT - 5)) old backup(s)"
+          fi
+
+          # Update current .env.production
           mv .env.production.new .env.production
           echo "✅ .env.production successfully updated"
           cat .env.production
