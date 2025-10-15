@@ -18,7 +18,8 @@
     "run:vendure:migrations": "NODE_ENV=local npx vendure migrate",
     "build:service": "docker-compose -f docker-compose.local.yml build ${npm_config_service} --no-cache",
     "build:optimized": "nx run-many --target=build --configuration=production --parallel=3",
-    "nx:update:latest": "npx nx@latest migrate latest"
+    "nx:update:latest": "npx nx@latest migrate latest",
+    "prod:local": "./scripts/start-prod-local.sh"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "20.3.5",

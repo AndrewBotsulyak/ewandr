@@ -46,11 +46,12 @@ export async function app(): Promise<express.Express> {
 
     commonEngine
       .render({
-        bootstrap,
+        bootstrap: (context) => bootstrap(context, {
+          providers: [{ provide: APP_BASE_HREF, useValue: baseUrl }]
+        }),
         documentFilePath: indexHtml,
         url: `${protocol}://${headers.host}${originalUrl}`,
         publicPath: distFolder,
-        providers: [{ provide: APP_BASE_HREF, useValue: baseUrl }],
       })
       .then((html) => res.send(html))
       .catch((err) => next(err));

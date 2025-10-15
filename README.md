@@ -110,6 +110,70 @@ docker-compose -f docker-compose.local.yml logs -f [service_name]
 docker-compose -f docker-compose.local.yml down -v
 ```
 
+### Тестирование продакшн окружения локально (docker-compose.prod.local.yml)
+
+**Файл:** `docker-compose.prod.local.yml`
+
+**Назначение:** Воспроизведение production окружения локально с использованием production Docker образов из ECR, но с локальной базой данных PostgreSQL.
+
+**Что включает:**
+- Production образы из ECR (nginx, client-shell, be-vendure, be-vendure-worker)
+- Локальная база данных PostgreSQL 15 (вместо облачной RDS)
+- Полный стек на локальной машине
+- Идентичная production конфигурация сети
+
+**Сценарии использования:**
+- Тестирование production сборок перед деплоем на Lightsail
+- Отладка production-специфичных проблем локально
+- Проверка корректности работы Docker образов
+- Тестирование миграций базы данных в production-подобном окружении
+
+**Как использовать:**
+Добавить файл "./env/.env.docker-compose.context.prod.yml" с следующим содержимым
+```bash
+# 1. Настройка переменных окружения
+export ECR_REGISTRY="123456789.dkr.ecr.us-east-1.amazonaws.com"
+export NGINX_TAG="pr-123-42-abc123"
+export CLIENT_SHELL_TAG="pr-123-42-abc123"
+export BE_VENDURE_TAG="pr-123-42-abc123"
+export BE_VENDURE_WORKER_TAG="pr-123-42-abc123"
+
+# 2. Логин в ECR
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin $ECR_REGISTRY
+
+# 3. Запуск сервисов
+docker-compose -f docker-compose.prod.local.yml up -d
+
+# 4. Проверка статуса
+docker-compose -f docker-compose.prod.local.yml ps
+
+# 5. Просмотр логов
+docker-compose -f docker-compose.prod.local.yml logs -f
+
+# 6. Остановка сервисов
+docker-compose -f docker-compose.prod.local.yml down
+```
+
+**Открытые сервисы:**
+- `nginx` → http://localhost:80
+- `client-shell` → http://localhost:4200
+- `be-vendure` → http://localhost:3000 (API), http://localhost:3002 (Admin)
+- `be-vendure-worker` → http://localhost:3001
+- `postgres-vendure` → localhost:5432
+
+**Ключевые отличия от production:**
+- Использует локальную PostgreSQL вместо AWS RDS
+- Все сервисы на одной машине (не распределенная архитектура)
+- Нет SSL/HTTPS (используется обычный HTTP)
+- Локальная bridge сеть вместо облачной сети
+
+**Преимущества:**
+- Быстрая итерация - не нужно деплоить в облако
+- Полный контроль над окружением
+- Можно тестировать production образы перед релизом
+- Данные БД сохраняются в локальных volumes
+
 ## Пошаговый запуск приложений
 
 ### 1. Запуск nginx в Docker

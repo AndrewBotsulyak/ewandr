@@ -45,7 +45,7 @@ services:
       postgres-vendure:
         condition: service_healthy
     env_file:
-      - apps/backends/be-vendure/.env.docker
+      - env/.env.be-vendure
     volumes:
       - .:/app
       # Исключаем node_modules из синхронизации для производительности
@@ -65,7 +65,7 @@ services:
       postgres-vendure:
         condition: service_healthy
     env_file:
-      - apps/backends/be-vendure/.env.docker
+      - env/.env.be-vendure
     volumes:
       - .:/app
       # Исключаем node_modules из синхронизации для производительности
