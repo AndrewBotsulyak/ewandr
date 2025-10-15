@@ -205,6 +205,54 @@ jobs:
             --distribution-id $CDN_DISTRIBUTION_ID \
             --paths "/$MF_MANIFEST_PATH/$MF_MANIFEST_FILE_NAME" "/${{ matrix.app }}/latest/*"
 
+      - name: Clean up old S3 versions
+        run: |
+          APP_NAME="${{ matrix.app }}"
+          echo "🧹 Cleaning up old S3 versions for $APP_NAME..."
+
+          # List all version directories (exclude latest/)
+          VERSIONS=$(aws s3 ls $CDN_BUCKET/$APP_NAME/ | grep PRE | grep -v latest | awk '{print $2}' | sed 's/\///')
+
+          # Count versions
+          VERSION_COUNT=$(echo "$VERSIONS" | grep -v '^$' | wc -l)
+          echo "Found $VERSION_COUNT versions for $APP_NAME"
+
+          if [ "$VERSION_COUNT" -gt 5 ]; then
+            # Get version details with last modified date
+            echo "Getting version details..."
+            VERSION_DETAILS=""
+
+            for VERSION in $VERSIONS; do
+              # Get the last modified date of the first object in this version directory
+              LAST_MODIFIED=$(aws s3api list-objects-v2 \
+                --bucket ${CDN_BUCKET#s3://} \
+                --prefix "$APP_NAME/$VERSION/" \
+                --max-items 1 \
+                --query 'Contents[0].LastModified' \
+                --output text)
+
+              if [ -n "$LAST_MODIFIED" ]; then
+                VERSION_DETAILS="${VERSION_DETAILS}${LAST_MODIFIED} ${VERSION}\n"
+              fi
+            done
+
+            # Sort by date (oldest first) and get versions to delete
+            DELETE_COUNT=$((VERSION_COUNT - 5))
+            echo "Will delete $DELETE_COUNT old versions"
+
+            VERSIONS_TO_DELETE=$(echo -e "$VERSION_DETAILS" | sort | head -n "$DELETE_COUNT" | awk '{print $2}')
+
+            # Delete old versions
+            for VERSION in $VERSIONS_TO_DELETE; do
+              echo "Deleting version: $VERSION"
+              aws s3 rm $CDN_BUCKET/$APP_NAME/$VERSION/ --recursive
+            done
+
+            echo "✅ Cleaned up $DELETE_COUNT old version(s)"
+          else
+            echo "No cleanup needed, only $VERSION_COUNT versions exist"
+          fi
+
   build-and-push-server:
     needs: load-detection-results
     if: github.event.inputs.deploy_server == 'true' && needs.load-detection-results.outputs.has-server-changes == 'true'

@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: ${ECR_REGISTRY}/ewandr/nginx:${NGINX_TAG}
+    container_name: my-nginx
+    ports:
+      - "80:80"         # прокидываем порт 80 на локалку (можно "8080:80", если 80 занят)
+    networks:
+      - app-network
+
+  postgres-vendure:
+    image: postgres:15-alpine
+    container_name: postgres-vendure-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vendure
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_vendure_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  be-vendure:
+    image: ${ECR_REGISTRY}/ewandr/be-vendure:${BE_VENDURE_TAG}
+    ports:
+      - "3000:3000"
+      - "3002:3002"  # Admin UI
+    depends_on:
+      postgres-vendure:
+        condition: service_healthy
+    env_file:
+      - ./env/.env.be-vendure
+    networks:
+      - app-network
+
+  be-vendure-worker:
+    image: ${ECR_REGISTRY}/ewandr/be-vendure-worker:${BE_VENDURE_WORKER_TAG}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-vendure:
+        condition: service_healthy
+    env_file:
+      - ./env/.env.be-vendure
+    networks:
+      - app-network
+
+  client-shell:
+    image: ${ECR_REGISTRY}/ewandr/client-shell:${CLIENT_SHELL_TAG}
+    ports:
+      - "4200:4200"
+    depends_on:
+      - be-vendure
+    environment:
+      - NODE_ENV=development
+    networks:
+      - app-network
+
+
+networks:
+  app-network:
+    driver: bridge
+
+# Именованные тома для персистентности данных
+volumes:
+  postgres_data:
+    driver: local
+  postgres_vendure_data:
+    driver: local
+  dist_volume:
+#  pgadmin_data:
+#    driver: local
