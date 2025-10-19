@@ -13,9 +13,9 @@
 
       <!-- Search Bar -->
       <lib-search-bar
-        [(searchQuery)]="searchQuery"
+        [searchQuery]="searchQuery()"
         [(isFocused)]="isSearchFocused"
-        (search)="onSearch($event)"
+        (searchChange)="onSearch($event)"
       />
     </nav>
 

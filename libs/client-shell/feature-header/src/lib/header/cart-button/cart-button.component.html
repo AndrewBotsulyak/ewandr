@@ -1,7 +1,7 @@
 <button
   class="icon-button cart-button"
   (click)="cartClick.emit()"
-  matTooltip="Shopping Cart"
+  uiTooltip="Shopping Cart"
   [matBadge]="itemCount()"
   [matBadgeHidden]="itemCount() === 0"
   matBadgeColor="warn"

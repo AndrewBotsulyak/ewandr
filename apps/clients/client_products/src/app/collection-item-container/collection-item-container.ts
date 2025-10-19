@@ -52,8 +52,8 @@ export class CollectionItemContainer {
       if (slug) {
         // Reset and reload facets for new collection
         this.facetFilterService.resetFilters();
-        // load products and facets
-        this.facetFilterService.searchProducts(slug);
+        // Set search context (collection slug)
+        this.facetFilterService.setSearchContext({ collectionSlug: slug });
       }
     });
   }
@@ -61,11 +61,7 @@ export class CollectionItemContainer {
   handleSortChange(event: Event) {
     const select = event.target as HTMLSelectElement;
     const sortValue = select.value;
-    const slug = this.collectionSlug();
-
-    if (slug) {
-      this.facetFilterService.setSortOrder(sortValue, slug);
-    }
+    this.facetFilterService.setSortOrder(sortValue);
   }
 
   protected readonly last = last;

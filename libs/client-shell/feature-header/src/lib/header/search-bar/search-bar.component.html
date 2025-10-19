@@ -1,11 +1,11 @@
 <div class="search-section" [class.focused]="isFocused()">
-  <form (ngSubmit)="handleSubmit()" class="search-form">
+  <form (ngSubmit)="handleSubmit($event)" class="search-form">
     <mat-icon class="search-icon">search</mat-icon>
     <input
-      type="search"
+      [formControl]="searchControl"
+      type="text"
       [placeholder]="placeholder()"
       class="search-input"
-      [(ngModel)]="searchQuery"
       name="search"
       (focus)="onFocus()"
       (blur)="onBlur()"
@@ -14,8 +14,8 @@
       <button
         type="button"
         class="clear-search"
-        (click)="searchQuery.set('')"
-        matTooltip="Clear search"
+        (click)="handleRemoveSearch()"
+        uiTooltip="Clear search"
       >
         <mat-icon>close</mat-icon>
       </button>

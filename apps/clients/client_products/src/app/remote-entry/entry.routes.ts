@@ -21,4 +21,9 @@ export const remoteRoutes: Route[] = [
     component: CollectionItemContainer,
     resolve: { collection: collectionItemContainerResolver},
   },
+  {
+    path: RoutesConstants.SEARCH,
+    loadComponent: () =>
+      import('../search-container/search-container.component').then(m => m.SearchContainerComponent),
+  },
 ];

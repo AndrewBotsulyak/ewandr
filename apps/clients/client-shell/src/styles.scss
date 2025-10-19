@@ -97,3 +97,28 @@ body {
   }
 
 }
+
+// Custom Tooltip Styles
+.ui-custom-tooltip {
+  &.mat-mdc-tooltip {
+    --mdc-plain-tooltip-container-color: #1f2937;
+    --mdc-plain-tooltip-supporting-text-color: #ffffff;
+    --mdc-plain-tooltip-supporting-text-font: 'Inter', 'Helvetica Neue', sans-serif;
+    --mdc-plain-tooltip-supporting-text-size: 13px;
+    --mdc-plain-tooltip-supporting-text-weight: 500;
+    --mdc-plain-tooltip-supporting-text-line-height: 1.4;
+
+    .mdc-tooltip__surface {
+      background-color: #1f2937;
+      color: #ffffff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.4;
+      max-width: 320px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                  0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+  }
+}

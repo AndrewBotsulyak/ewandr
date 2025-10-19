@@ -1,4 +1,4 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FacetFilterService } from "../services/facet-filter.service";
 
@@ -12,9 +12,6 @@ import { FacetFilterService } from "../services/facet-filter.service";
 export class ProductFacetsComponent {
   private facetFilterService = inject(FacetFilterService);
 
-  // Inputs
-  collectionSlug = input.required<string>();
-
   // Facet groups and selected facets from service
   facetGroups = this.facetFilterService.facetGroups;
   selectedFacets = this.facetFilterService.selectedFacetIds;
@@ -23,13 +20,11 @@ export class ProductFacetsComponent {
   collapsedGroups = signal<Set<string>>(new Set());
 
   toggleFacet(facetValueId: string) {
-    const slug = this.collectionSlug();
-    this.facetFilterService.toggleFacet(facetValueId, slug);
+    this.facetFilterService.toggleFacet(facetValueId);
   }
 
   clearAllFilters() {
-    const slug = this.collectionSlug();
-    this.facetFilterService.clearFilters(slug);
+    this.facetFilterService.clearFilters();
   }
 
   toggleGroup(groupId: string) {
