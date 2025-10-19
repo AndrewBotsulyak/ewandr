@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { GqlDataService, SearchProductsQuery } from "@ewandr-workspace/data-access-graphql";
+import {GqlDataService, SearchInput, SearchProductsQuery} from "@ewandr-workspace/data-access-graphql";
 import { take } from 'rxjs';
 
 export interface FacetGroup {
@@ -21,6 +21,9 @@ export interface FacetValue {
 export class FacetFilterService {
   private gqlService = inject(GqlDataService);
 
+  // Current search context (collection slug OR search term)
+  private searchContext = signal<SearchInput | null>(null);
+
   // Selected facet value IDs
   selectedFacetIds = signal<string[]>([]);
 
@@ -33,16 +36,23 @@ export class FacetFilterService {
   // Sort order
   sortOrder = signal<string>('');
 
-  searchProducts(collectionSlug: string, selectedFacetIds: string[] = []) {
+  // Set the search context (collection slug OR search term)
+  setSearchContext(context: SearchInput) {
+    this.searchContext.set(context);
+    // Automatically trigger initial search
+    this.searchProducts(context);
+  }
+
+  searchProducts(data: SearchInput, selectedFacetIds: string[] = []) {
     const facetFilters = this.buildFacetValueFilters(selectedFacetIds);
     const sort = this.buildSortParameter(this.sortOrder());
 
     this.gqlService.searchProducts({
-      collectionSlug,
       groupByProduct: true,
       take: 100,
       facetValueFilters: facetFilters.length > 0 ? facetFilters : undefined,
-      sort: sort
+      sort: sort,
+      ...data,
     }).pipe(take(1)).subscribe((response) => {
       // Update both products and facets from single query
       this.searchResults.set(response);
@@ -54,7 +64,10 @@ export class FacetFilterService {
     });
   }
 
-  toggleFacet(facetValueId: string, collectionSlug: string) {
+  toggleFacet(facetValueId: string) {
+    const context = this.searchContext();
+    if (!context) return;
+
     const currentSelected = this.selectedFacetIds();
     const isSelected = currentSelected.includes(facetValueId);
 
@@ -67,12 +80,15 @@ export class FacetFilterService {
     this.selectedFacetIds.set(newSelected);
 
     // Reload facets with new filters
-    this.searchProducts(collectionSlug, newSelected);
+    this.searchProducts(context, newSelected);
   }
 
-  clearFilters(collectionSlug: string) {
+  clearFilters() {
+    const context = this.searchContext();
+    if (!context) return;
+
     this.selectedFacetIds.set([]);
-    this.searchProducts(collectionSlug, []);
+    this.searchProducts(context, []);
   }
 
   resetFilters() {
@@ -80,11 +96,15 @@ export class FacetFilterService {
     this.facetGroups.set([]);
     this.searchResults.set(null);
     this.sortOrder.set('');
+    this.searchContext.set(null);
   }
 
-  setSortOrder(sortValue: string, collectionSlug: string) {
+  setSortOrder(sortValue: string) {
+    const context = this.searchContext();
+    if (!context) return;
+
     this.sortOrder.set(sortValue);
-    this.searchProducts(collectionSlug, this.selectedFacetIds());
+    this.searchProducts(context, this.selectedFacetIds());
   }
 
   private groupFacetsByFacet(facetValues: SearchProductsQuery['search']['facetValues'], selectedIds: string[]): FacetGroup[] {

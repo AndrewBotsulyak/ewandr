@@ -14,7 +14,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { CheckPlatformService } from '@ewandr-workspace/client-core';
+import {CheckPlatformService, HeaderService} from '@ewandr-workspace/client-core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { GqlDataService } from '@ewandr-workspace/data-access-graphql';
 
@@ -51,6 +51,7 @@ export class HeaderComponent implements OnInit {
   private gqlService = inject(GqlDataService);
   private router = inject(Router);
   private injector = inject(Injector);
+  private headerService = inject(HeaderService);
 
   // Collections from GraphQL
   public collections = toSignal(this.gqlService.getCollections());
@@ -81,7 +82,8 @@ export class HeaderComponent implements OnInit {
   public isMobileMenuOpen = signal(false);
 
   // Search
-  public searchQuery = signal('');
+  public searchQuery = this.headerService.searchTerm;
+
   public isSearchFocused = signal(false);
 
   // User state (mock - replace with actual auth service)
@@ -148,8 +150,7 @@ export class HeaderComponent implements OnInit {
   }
 
   onSearch(query: string) {
-    this.router.navigate(['/search'], { queryParams: { q: query } });
-    this.searchQuery.set('');
+    this.router.navigate(['/search'], { queryParams: { text: query } });
     this.closeMobileMenu();
   }
 

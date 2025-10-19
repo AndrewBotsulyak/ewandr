@@ -1,0 +1,123 @@
+
+@if (products(); as productsData) {
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <!-- Search Header -->
+    <div class="bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex flex-col gap-2">
+          <nav class="text-sm text-gray-600">
+            <a href="/" class="hover:text-blue-600 transition-colors">Home</a>
+            <span class="mx-2">/</span>
+            <span class="text-gray-900">Search Results</span>
+          </nav>
+          <div class="flex items-baseline gap-3">
+            <h1 class="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">
+              Search Results
+            </h1>
+            @if (searchTerm()) {
+              <span class="text-lg text-gray-600">
+                for "<span class="font-semibold text-gray-900">{{ searchTerm() }}</span>"
+              </span>
+            }
+          </div>
+          @if (productsData?.items) {
+            <p class="text-sm text-gray-600">
+              Found {{ productsData.items.length }} {{ productsData.items.length === 1 ? 'product' : 'products' }}
+            </p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content with Sidebar -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+
+      @if (productsData?.items && productsData.items.length > 0) {
+        <!-- Layout with Sidebar -->
+        <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          <!-- Sticky Sidebar -->
+          <aside class="w-full lg:w-64 flex-shrink-0 order-2 lg:order-1">
+            <div class="lg:sticky lg:top-24">
+              <app-product-facets></app-product-facets>
+            </div>
+          </aside>
+
+          <!-- Main Content Area -->
+          <div class="flex-1 min-w-0 order-1 lg:order-2">
+            <!-- Products section with header -->
+            <div class="space-y-4">
+
+              <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">Products</h2>
+                <div class="flex items-center gap-2">
+                  <label for="sort-select" class="text-sm text-gray-600 font-medium">Sort by:</label>
+                  <select
+                    id="sort-select"
+                    (change)="handleSortChange($event)"
+                    class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  >
+                    <option value="">Default</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="name-asc">Name: A to Z</option>
+                    <option value="name-desc">Name: Z to A</option>
+                  </select>
+                </div>
+              </div>
+
+              <product-container
+                [products]="products()"
+              ></product-container>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <!-- Empty State -->
+        <div class="text-center py-16">
+          <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-semibold text-gray-900 mb-2">No products found</h3>
+          @if (searchTerm()) {
+            <p class="text-gray-600 mb-6">
+              We couldn't find any products matching "<span class="font-semibold">{{ searchTerm() }}</span>"
+            </p>
+          }
+          <div class="space-y-2 text-sm text-gray-600">
+            <p>Try searching with different keywords or:</p>
+            <ul class="space-y-1">
+              <li>Check your spelling</li>
+              <li>Use more general terms</li>
+              <li>Try different keywords</li>
+            </ul>
+          </div>
+          <button
+            (click)="clearSearch()"
+            class="mt-8 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+          >
+            Browse All Products
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+} @else {
+  <!-- Enhanced Loading State -->
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+    <div class="text-center">
+      <div class="relative">
+        <div class="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600 mx-auto"></div>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="h-8 w-8 bg-blue-50 rounded-full"></div>
+        </div>
+      </div>
+      <p class="mt-6 text-lg font-medium text-gray-700">Searching products...</p>
+      @if (searchTerm()) {
+        <p class="mt-2 text-sm text-gray-500">Looking for "{{ searchTerm() }}"</p>
+      }
+    </div>
+  </div>
+}
+
