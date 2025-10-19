@@ -14,6 +14,11 @@
       background-color: var(--color-background);
     }
 
+    .content {
+      flex: 1 1 100%;
+      border: black solid 1px;
+    }
+
     .header {
       position: sticky;
       top: 0;
