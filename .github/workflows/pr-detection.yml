@@ -31,7 +31,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      - name: Configure npm
+        run: |
+          npm config set fetch-timeout 60000
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm config set fetch-retries 3
+
       - name: Install dependencies
+        timeout-minutes: 10
         run: npm ci --legacy-peer-deps --loglevel verbose
 
       - name: Validate configuration files
