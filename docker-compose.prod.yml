@@ -5,7 +5,11 @@ services:
     image: ${ECR_REGISTRY}/ewandr/nginx:${NGINX_TAG}
     container_name: my-nginx
     ports:
-      - "80:80"         # прокидываем порт 80 на локалку (можно "8080:80", если 80 занят)
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
     networks:
       - app-network
 
