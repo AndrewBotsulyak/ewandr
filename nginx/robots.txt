@@ -1,0 +1,11 @@
+# robots.txt for ewandr.com
+# Allow all search engines to index the entire site
+
+User-agent: *
+Disallow: /admin/
+Disallow: /admin-api/
+Disallow: /graphiql/
+Allow: /
+
+# Sitemap location (update this URL when you add a sitemap)
+# Sitemap: https://ewandr.com/sitemap.xml
