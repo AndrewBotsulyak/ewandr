@@ -9,13 +9,13 @@ import {
   computed,
   effect,
   afterNextRender,
-  Injector
+  Injector, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import {ActivatedRoute, Router} from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import {CheckPlatformService, HeaderService} from '@ewandr-workspace/client-core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import {takeUntilDestroyed, toSignal} from '@angular/core/rxjs-interop';
 import { GqlDataService } from '@ewandr-workspace/data-access-graphql';
 
 // Import child components
@@ -27,6 +27,7 @@ import { CartButtonComponent } from './cart-button/cart-button.component';
 import { ThemeToggleComponent } from './theme-toggle/theme-toggle.component';
 import { MobileMenuComponent } from './mobile-menu/mobile-menu.component';
 import {RoutesConstants} from "@ewandr-workspace/core";
+import {filter, map} from "rxjs";
 
 @Component({
   selector: 'lib-header',
@@ -50,8 +51,10 @@ export class HeaderComponent implements OnInit {
   private renderer = inject(Renderer2);
   private gqlService = inject(GqlDataService);
   private router = inject(Router);
+  private activatedRoute = inject(ActivatedRoute);
   private injector = inject(Injector);
   private headerService = inject(HeaderService);
+  private destroyRef = inject(DestroyRef);
 
   // Collections from GraphQL
   public collections = toSignal(this.gqlService.getCollections());
@@ -111,6 +114,14 @@ export class HeaderComponent implements OnInit {
       return;
     }
 
+    // Get search term from route queries
+    this.activatedRoute.queryParams.pipe(
+      map(params => params['text'] ?? ''),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(term => {
+      this.headerService.setSearchTerm(term);
+    });
+
     // Load theme from localStorage
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
     if (savedTheme) {
@@ -150,7 +161,10 @@ export class HeaderComponent implements OnInit {
   }
 
   onSearch(query: string) {
-    this.router.navigate(['/search'], { queryParams: { text: query } });
+    if (query !== '') {
+      this.router.navigate(['/search'], { queryParams: { text: query } });
+    }
+
     this.closeMobileMenu();
   }
 

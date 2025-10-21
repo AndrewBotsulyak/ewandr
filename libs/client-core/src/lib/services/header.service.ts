@@ -22,13 +22,7 @@ export class HeaderService {
   public readonly hasSearchTerm = computed(() => this._searchTerm().trim().length > 0);
 
   constructor() {
-    // Get search term from route queries
-    this.route.queryParams.pipe(
-      filter(params => params['text'] != null),
-      map(params => params['text']),
-    ).subscribe(term => {
-      this.setSearchTerm(term);
-    });
+
   }
 
   /**
