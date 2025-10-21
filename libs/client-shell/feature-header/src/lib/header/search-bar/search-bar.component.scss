@@ -76,3 +76,41 @@
     color: var(--icon-color, #6b7280);
   }
 }
+
+.search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  background: var(--primary-color, #3b82f6);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  height: 36px;
+  min-width: 60px;
+
+  &:hover {
+    background: var(--primary-color-dark, #2563eb);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+  }
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 4px rgba(59, 130, 246, 0.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, #3b82f6);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
