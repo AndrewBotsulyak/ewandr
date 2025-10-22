@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start:clients": "nx run client-shell:serve:development",
-    "serve-ssr": "nx run client-shell:serve-ssr",
+    "serve-ssr": "NODE_OPTIONS='--max-old-space-size=8192' nx run client-shell:serve-ssr",
     "start:nginx": "docker-compose -f docker-compose.local.yml up nginx",
     "start:db": "docker-compose -f docker-compose.local.yml up postgres-vendure",
     "start:vendure": "docker-compose -f docker-compose.local.yml up be-vendure",

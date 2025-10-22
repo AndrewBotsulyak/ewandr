@@ -49,6 +49,24 @@
           "customWebpackConfig": {
             "path": "apps/clients/client-shell/webpack.prod.config.ts"
           },
+          "optimization": {
+            "scripts": true,
+            "styles": {
+              "minify": true,
+              "inlineCritical": true
+            },
+            "fonts": {
+              "inline": true
+            }
+          },
+          "buildOptimizer": true,
+          "aot": true,
+          "sourceMap": false,
+          "extractLicenses": true,
+          "namedChunks": false,
+          "vendorChunk": false,
+          "commonChunk": true,
+          "subresourceIntegrity": true,
           "fileReplacements": [
             {
               "replace": "apps/clients/client-shell/src/environments/environment.ts",
@@ -140,6 +158,9 @@
             "path": "apps/clients/client-shell/webpack.server.config.prod.ts"
           },
           "outputHashing": "media",
+          "optimization": true,
+          "buildOptimizer": true,
+          "sourceMap": false,
           "fileReplacements": [
             {
               "replace": "apps/clients/client-shell/src/environments/environment.ts",

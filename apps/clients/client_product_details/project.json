@@ -44,7 +44,25 @@
           "outputHashing": "all",
           "customWebpackConfig": {
             "path": "apps/clients/client_product_details/webpack.prod.config.ts"
-          }
+          },
+          "optimization": {
+            "scripts": true,
+            "styles": {
+              "minify": true,
+              "inlineCritical": true
+            },
+            "fonts": {
+              "inline": true
+            }
+          },
+          "buildOptimizer": true,
+          "aot": true,
+          "sourceMap": false,
+          "extractLicenses": true,
+          "namedChunks": false,
+          "vendorChunk": false,
+          "commonChunk": true,
+          "subresourceIntegrity": true
         },
         "development": {
           "buildOptimizer": false,
@@ -123,7 +141,10 @@
       },
       "configurations": {
         "production": {
-          "outputHashing": "media"
+          "outputHashing": "media",
+          "optimization": true,
+          "buildOptimizer": true,
+          "sourceMap": false
         },
         "development": {
           "buildOptimizer": false,
