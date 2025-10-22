@@ -61,8 +61,7 @@
           "extractLicenses": true,
           "namedChunks": false,
           "vendorChunk": false,
-          "commonChunk": true,
-          "subresourceIntegrity": true
+          "commonChunk": true
         },
         "development": {
           "buildOptimizer": false,
