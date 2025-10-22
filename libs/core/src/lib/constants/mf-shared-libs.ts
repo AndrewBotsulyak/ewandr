@@ -1,51 +1,66 @@
 import {SharedFunction, SharedLibraryConfig} from "@nx/module-federation/src/utils/models";
 const deps = require('../../../../../package.json').dependencies;
 
-export const mfSharedLibs: {[key: string]: SharedLibraryConfig} = {
+type SharedLibsT = {[key: string]: SharedLibraryConfig};
+
+const criticalForBootstrapping: SharedLibsT = {
   '@angular/core': {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@angular/core'],
+    eager: true
   },
   '@angular/common': {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@angular/common'],
+    eager: true
   },
   '@angular/router': {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@angular/router'],
-  },
-  '@angular/animations': {
-    singleton: true,
-    strictVersion: true,
-    requiredVersion: deps['@angular/animations'],
-  },
-  '@angular/cdk': {
-    singleton: true,
-    strictVersion: true,
-    requiredVersion: deps['@angular/cdk'],
-  },
-  '@angular/material': {
-    singleton: true,
-    strictVersion: true,
-    requiredVersion: deps['@angular/material'],
+    eager: true
   },
   '@angular/platform-browser': {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@angular/platform-browser'],
+    eager: true
   },
   'rxjs': {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['rxjs'],
+    eager: true
+  },
+};
+
+export const mfSharedLibs: SharedLibsT = {
+  ...criticalForBootstrapping,
+  '@angular/animations': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['@angular/animations'],
+    eager: false
+  },
+  '@angular/cdk': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['@angular/cdk'],
+    eager: false // Material utilities
+  },
+  '@angular/material': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['@angular/material'],
+    eager: false // SSR already rendered the UI
   },
   '@apollo/client': {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@apollo/client'],
+    eager: false
   },
 };
 
