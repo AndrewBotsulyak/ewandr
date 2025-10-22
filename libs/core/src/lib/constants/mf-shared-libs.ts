@@ -34,16 +34,16 @@ const criticalForBootstrapping: SharedLibsT = {
     requiredVersion: deps['rxjs'],
     eager: true
   },
-};
-
-export const mfSharedLibs: SharedLibsT = {
-  ...criticalForBootstrapping,
   '@angular/animations': {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@angular/animations'],
-    eager: false
+    eager: true
   },
+};
+
+export const mfSharedLibs: SharedLibsT = {
+  ...criticalForBootstrapping,
   '@angular/cdk': {
     singleton: true,
     strictVersion: true,
@@ -68,13 +68,21 @@ export const sharedKeys = Object.keys(mfSharedLibs);
 
 export const sharedFn: SharedFunction = (libraryName: string, defaultConfig: SharedLibraryConfig) => {
   if (libraryName != null) {
-    const libName = sharedKeys.find(key => libraryName === key || libraryName.startsWith(key + '/'));
-
+    // Special handling: @apollo/client sub-modules should not be shared
     if (libraryName.startsWith('@apollo/client/')) {
       return false;
     }
 
-    return libName != null ? mfSharedLibs[libName] : defaultConfig;
+    // Find parent package config (e.g., @angular/animations for @angular/animations/browser)
+    // This ensures sub-packages inherit the parent's config (including eager setting)
+    const libName = sharedKeys.find(key => libraryName === key || libraryName.startsWith(key + '/'));
+
+    if (libName != null) {
+      // Return parent package config - applies to all sub-packages
+      return mfSharedLibs[libName];
+    }
+
+    return defaultConfig;
   }
   return defaultConfig;
 };
