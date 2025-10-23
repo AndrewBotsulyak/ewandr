@@ -191,7 +191,7 @@ jobs:
           # Update manifest with new version
           jq --arg app "$APP_NAME" \
              --arg server "https://cdn.ewandr.com/$APP_NAME/$VERSION/server/remoteEntry.js" \
-             --arg browser "https://cdn.ewandr.com/$APP_NAME/$VERSION/browser/mf-manifest.json" \
+             --arg browser "https://cdn.ewandr.com/$APP_NAME/$VERSION/browser/remoteEntry.mjs" \
              '.[$app] = {server: $server, browser: $browser}' \
              ./$MF_MANIFEST_FILE_NAME > ./mf-manifest-updated.json
 
