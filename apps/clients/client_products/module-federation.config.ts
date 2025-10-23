@@ -1,12 +1,12 @@
 import { ModuleFederationConfig } from '@nx/module-federation';
-import {sharedFn} from "../../../libs/core/src";
+import {remoteSharedFn} from "../../../libs/core/src";
 
 const config: ModuleFederationConfig = {
   name: 'client_products',
   exposes: {
     './Routes': 'apps/clients/client_products/src/app/remote-entry/entry.routes.ts',
   },
-  shared: sharedFn,
+  shared: remoteSharedFn,
 };
 
 /**

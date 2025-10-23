@@ -1,5 +1,5 @@
 import { ModuleFederationConfig } from '@nx/module-federation';
-import {sharedFn} from "@ewandr-workspace/core";
+import {remoteSharedFn} from "@ewandr-workspace/core";
 
 const config: ModuleFederationConfig = {
   name: 'client_product_details',
@@ -7,7 +7,7 @@ const config: ModuleFederationConfig = {
     './Routes':
       'apps/clients/client_product_details/src/app/remote-entry/entry.routes.ts',
   },
-  shared: sharedFn,
+  shared: remoteSharedFn,
 };
 
 /**
