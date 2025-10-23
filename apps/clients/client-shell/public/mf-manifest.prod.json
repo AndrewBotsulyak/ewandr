@@ -1,10 +1,10 @@
 {
   "client_products": {
     "server": "https://cdn.ewandr.com/client_products/server/remoteEntry.js",
-    "browser": "https://cdn.ewandr.com/client_products/browser/mf-manifest.json"
+    "browser": "https://cdn.ewandr.com/client_products/remoteEntry.mjs"
   },
   "client_product_details": {
     "server": "https://cdn.ewandr.com/client_product_details/server/remoteEntry.js",
-    "browser": "https://cdn.ewandr.com/client_product_details/browser/mf-manifest.json"
+    "browser": "https://cdn.ewandr.com/client_product_details/remoteEntry.mjs"
   }
 }

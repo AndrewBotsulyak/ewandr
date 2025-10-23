@@ -40,27 +40,66 @@ const criticalForBootstrapping: SharedLibsT = {
     requiredVersion: deps['@angular/animations'],
     eager: true
   },
+  '@angular/common/http': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['@angular/common'],
+    eager: true // Used immediately
+  },
+  '@angular/forms': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['@angular/forms'],
+    eager: true // Used in header
+  },
 };
 
 export const mfSharedLibs: SharedLibsT = {
   ...criticalForBootstrapping,
-  '@angular/cdk': {
+
+  // Strategy: Make most things eager to bundle them in main.js
+  // Only keep truly optional/heavy libraries as lazy
+  '@ngrx/store': {
     singleton: true,
     strictVersion: true,
-    requiredVersion: deps['@angular/cdk'],
-    eager: false // Material utilities
+    requiredVersion: deps['@ngrx/store'],
+    eager: true // State management is critical
   },
-  '@angular/material': {
+  '@ngrx/effects': {
     singleton: true,
     strictVersion: true,
-    requiredVersion: deps['@angular/material'],
-    eager: false // SSR already rendered the UI
+    requiredVersion: deps['@ngrx/effects'],
+    eager: true
+  },
+  'apollo-angular': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['apollo-angular'],
+    eager: true // Data fetching is critical
   },
   '@apollo/client': {
     singleton: true,
     strictVersion: true,
     requiredVersion: deps['@apollo/client'],
-    eager: false
+    eager: true
+  },
+  'graphql': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['graphql'],
+    eager: true
+  },
+  '@angular/cdk': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['@angular/cdk'],
+    eager: true // Used frequently enough to be eager
+  },
+  '@angular/material': {
+    singleton: true,
+    strictVersion: true,
+    requiredVersion: deps['@angular/material'],
+    eager: true // Used in shell and remotes
   },
 };
 

@@ -4,21 +4,14 @@ import { sharedFn } from '../../../libs/core/src';
 const config: ModuleFederationConfig = {
   name: 'client-shell',
   /**
-   * To use a remote that does not exist in your current Nx Workspace
-   * You can use the tuple-syntax to define your remote
+   * Remotes are loaded dynamically at runtime via main.ts
+   * to enable truly asynchronous loading on-demand.
    *
-   * remotes: [['my-external-remote', 'https://nx-angular-remote.netlify.app']]
-   *
-   * You _may_ need to add a `remotes.d.ts` file to your `src/` folder declaring the external remote for tsc, with the
-   * following content:
-   *
-   * declare module 'my-external-remote';
-   *
+   * Static remotes would be bundled at build time, defeating the purpose
+   * of lazy loading. The runtime configuration in main.ts fetches the
+   * manifest and registers remotes with Module Federation Enhanced.
    */
-  remotes: [
-    'client_products',
-    'client_product_details',
-  ],
+  remotes: [],
   shared: sharedFn,
 };
 

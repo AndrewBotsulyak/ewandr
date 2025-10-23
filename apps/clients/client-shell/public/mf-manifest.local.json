@@ -1,10 +1,10 @@
 {
   "client_products": {
     "server": "http://localhost:4201/server/remoteEntry.js",
-    "browser": "http://localhost:4201/mf-manifest.json"
+    "browser": "http://localhost:4201/remoteEntry.mjs"
   },
   "client_product_details": {
     "server": "http://localhost:4202/server/remoteEntry.js",
-    "browser": "http://localhost:4202/mf-manifest.json"
+    "browser": "http://localhost:4202/remoteEntry.mjs"
   }
 }
