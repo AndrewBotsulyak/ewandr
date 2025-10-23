@@ -1,5 +1,5 @@
 import { ModuleFederationConfig } from '@nx/module-federation';
-import {remoteSharedFn} from "../../../libs/core/src";
+import {remoteSharedFn} from "@ewandr-workspace/core";
 
 const config: ModuleFederationConfig = {
   name: 'client_products',

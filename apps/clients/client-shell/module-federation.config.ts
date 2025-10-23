@@ -1,5 +1,5 @@
 import { ModuleFederationConfig } from '@nx/module-federation';
-import { sharedFn } from '../../../libs/core/src';
+import {sharedFn} from "@ewandr-workspace/core";
 
 const config: ModuleFederationConfig = {
   name: 'client-shell',
