@@ -6,14 +6,17 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import bootstrap from './bootstrap.server';
 import { environment } from './environments/environment';
-import { createInstance } from '@module-federation/enhanced/runtime';
 import * as fs from "node:fs";
 import {loadDevMessages, loadErrorMessages} from "@apollo/client/dev";
+import { registerRemotes } from "@module-federation/enhanced/runtime";
 
 if (!environment.production) {
   loadDevMessages();
   loadErrorMessages();
 }
+
+// Store manifest globally for SSR injection
+let globalManifest: any = null;
 
 // The Express app is exported so that it can be used by serverless Functions.
 export async function app(): Promise<express.Express> {
@@ -32,6 +35,47 @@ export async function app(): Promise<express.Express> {
 
   // Example Express Rest API endpoints
   // server.get('/api/**', (req, res) => { });
+
+  // Serve remote apps from dist folder only in local-production mode
+  if (environment.isLocalProd === true) {
+    const clientProductsBrowserDistFolder = join(process.cwd(), 'dist/apps/clients/client_products/browser');
+    const clientProductsServerDistFolder = join(process.cwd(), 'dist/apps/clients/client_products/server');
+    const clientProductDetailsBrowserDistFolder = join(process.cwd(), 'dist/apps/clients/client_product_details/browser');
+    const clientProductDetailsServerDistFolder = join(process.cwd(), 'dist/apps/clients/client_product_details/server');
+
+    // Serve browser build for client_products
+    server.use(
+      '/client_products',
+      express.static(clientProductsBrowserDistFolder, {
+        maxAge: '1y',
+      })
+    );
+
+    // Serve server build for client_products (for SSR remoteEntry)
+    server.use(
+      '/client_products/server',
+      express.static(clientProductsServerDistFolder, {
+        maxAge: '1y',
+      })
+    );
+
+    // Serve browser build for client_product_details
+    server.use(
+      '/client_product_details',
+      express.static(clientProductDetailsBrowserDistFolder, {
+        maxAge: '1y',
+      })
+    );
+
+    // Serve server build for client_product_details (for SSR remoteEntry)
+    server.use(
+      '/client_product_details/server',
+      express.static(clientProductDetailsServerDistFolder, {
+        maxAge: '1y',
+      })
+    );
+  }
+
   // Serve static files from /browser
   server.get(
     '*.*',
@@ -53,7 +97,14 @@ export async function app(): Promise<express.Express> {
         url: `${protocol}://${headers.host}${originalUrl}`,
         publicPath: distFolder,
       })
-      .then((html) => res.send(html))
+      .then((html) => {
+        // Inject the manifest into the HTML before </head>
+        if (globalManifest) {
+          const manifestScript = `<script>window.__MF_MANIFEST__ = ${JSON.stringify(globalManifest)};</script>`;
+          html = html.replace('</head>', `${manifestScript}</head>`);
+        }
+        res.send(html);
+      })
       .catch((err) => next(err));
   });
 
@@ -63,12 +114,13 @@ export async function app(): Promise<express.Express> {
 async function run(): Promise<void> {
   const port = process.env['PORT'] || 4200;
 
+  // Load manifest BEFORE starting the server
+  await initModuleFederation();
+
   // Start up the Node server
   const server = await app();
-  server.listen(port, async () => {
+  server.listen(port, () => {
     console.log(`Node Express server listening on http://localhost:${port}`);
-
-    await initModuleFederation();
   });
 }
 
@@ -95,6 +147,9 @@ async function initModuleFederation() {
     mfManifest = await response.json();
   }
 
+  // Store manifest globally for SSR injection
+  globalManifest = mfManifest;
+
   const remotes: any[] = [];
 
   console.log('mfManifest = ', mfManifest);
@@ -103,13 +158,11 @@ async function initModuleFederation() {
     remotes.push({
       name: remoteName,
       entry: mfManifest[remoteName].server,
+      type: 'commonjs-module'
     });
   });
 
-  createInstance({
-    name: 'client-shell',
-    remotes,
-  });
+  registerRemotes(remotes);
 }
 
 run();

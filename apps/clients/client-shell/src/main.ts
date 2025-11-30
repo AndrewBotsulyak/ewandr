@@ -1,28 +1,20 @@
-import {createInstance} from "@module-federation/enhanced/runtime";
-import {environment} from "./environments/environment";
-import {Remote} from "@module-federation/runtime-core/dist/src/type/config";
+import {setManifest} from "./manifest-operations";
 
 console.log('Bootstrapp');
 
-fetch(environment.mfManifestURL)
-  .then(r => r.json())
-  .then((manifest) => {
-    console.log('fetch(environment.manifestUrl) = ', manifest);
-    const remotes: Remote[] = [];
+// Get the manifest that was inlined by SSR
+const manifest = (window as any).__MF_MANIFEST__;
 
-    Object.keys(manifest).forEach((remoteName) => {
-      remotes.push({
-        name: remoteName,
-        entry: manifest[remoteName].browser,
-      });
-    });
+if (!manifest) {
+  console.error('Manifest not found in window.__MF_MANIFEST__');
+  throw new Error('Manifest not available');
+}
 
-    // Create the Module Federation instance with remotes
-    // Note: shared config is handled by webpack build config for browser
-    createInstance({
-      name: 'client-shell',
-      remotes,
-    });
-  })
-  .then(() => import('./bootstrap'))
-  .catch((err) => console.error(err));
+console.log('Using inlined manifest:', manifest);
+
+// Set the manifest before bootstrapping
+setManifest(manifest);
+
+// Bootstrap the app
+import('./bootstrap').catch((err) => console.error(err));
+
