@@ -64,6 +64,19 @@
           "vendorChunk": false,
           "commonChunk": true
         },
+        "local-production": {
+          "outputHashing": "none",
+          "customWebpackConfig": {
+            "path": "apps/clients/client_products/webpack.prod.config.ts"
+          },
+          "buildOptimizer": true,
+          "aot": true,
+          "sourceMap": true,
+          "extractLicenses": true,
+          "namedChunks": true,
+          "vendorChunk": false,
+          "commonChunk": true
+        },
         "development": {
           "buildOptimizer": false,
           "optimization": false,
@@ -146,6 +159,12 @@
           "optimization": true,
           "buildOptimizer": true,
           "sourceMap": false
+        },
+        "local-production": {
+          "outputHashing": "media",
+          "optimization": true,
+          "buildOptimizer": true,
+          "sourceMap": true
         },
         "development": {
           "buildOptimizer": false,

@@ -9,6 +9,7 @@
     "build": {
       "executor": "@nx/angular:webpack-browser",
       "outputs": ["{options.outputPath}"],
+      "dependsOn": [],
       "options": {
         "outputPath": "dist/apps/clients/client-shell/browser",
         "index": "apps/clients/client-shell/src/index.html",
@@ -70,6 +71,29 @@
             {
               "replace": "apps/clients/client-shell/src/environments/environment.ts",
               "with":    "apps/clients/client-shell/src/environments/environment.browser.prod.ts"
+            },
+            {
+              "replace": "apps/clients/client-shell/module-federation.config.ts",
+              "with":    "apps/clients/client-shell/module-federation.config.prod.ts"
+            }
+          ]
+        },
+        "local-production": {
+          "outputHashing": "all",
+          "customWebpackConfig": {
+            "path": "apps/clients/client-shell/webpack.prod.config.ts"
+          },
+          "buildOptimizer": true,
+          "aot": true,
+          "sourceMap": true,
+          "extractLicenses": true,
+          "namedChunks": true,
+          "vendorChunk": false,
+          "commonChunk": true,
+          "fileReplacements": [
+            {
+              "replace": "apps/clients/client-shell/src/environments/environment.ts",
+              "with":    "apps/clients/client-shell/src/environments/environment.browser.local-prod.ts"
             },
             {
               "replace": "apps/clients/client-shell/module-federation.config.ts",
@@ -172,6 +196,25 @@
             }
           ]
       },
+        "local-production": {
+          "customWebpackConfig": {
+            "path": "apps/clients/client-shell/webpack.server.config.prod.ts"
+          },
+          "outputHashing": "media",
+          "optimization": true,
+          "buildOptimizer": true,
+          "sourceMap": true,
+          "fileReplacements": [
+            {
+              "replace": "apps/clients/client-shell/src/environments/environment.ts",
+              "with":    "apps/clients/client-shell/src/environments/environment.server.local-prod.ts"
+            },
+            {
+              "replace": "apps/clients/client-shell/module-federation.config.ts",
+              "with":    "apps/clients/client-shell/module-federation.config.prod.ts"
+            }
+          ]
+        },
         "development": {
           "buildOptimizer": false,
           "optimization": false,
@@ -189,11 +232,18 @@
           "browserTarget": "client-shell:build:development",
           "serverTarget": "client-shell:server:development",
           "verbose": true,
-          "progress": true
+          "progress": true,
+          "devRemotes": ["client_products", "client_product_details"]
         },
         "production": {
           "browserTarget": "client-shell:build:production",
-          "serverTarget": "client-shell:server:production"
+          "serverTarget": "client-shell:server:production",
+          "devRemotes": []
+        },
+        "local-production": {
+          "browserTarget": "client-shell:build:local-production",
+          "serverTarget": "client-shell:server:local-production",
+          "devRemotes": []
         }
       },
       "defaultConfiguration": "development",
@@ -204,6 +254,36 @@
         "progress": true,
         "verbose": true,
         "devRemotes": ["client_products", "client_product_details"]
+      }
+    },
+    "serve-ssr-local-prod": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "build-all-local-prod"
+      ],
+      "options": {
+        "command": "nx serve-ssr client-shell -c local-production"
+      }
+    },
+    "build-all-local-prod": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "build-remotes-local-prod",
+        "server:local-production"
+      ],
+      "options": {
+        "commands": [],
+        "parallel": false
+      }
+    },
+    "build-remotes-local-prod": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx server client_products -c local-production",
+          "nx server client_product_details -c local-production"
+        ],
+        "parallel": false
       }
     },
     "prerender": {

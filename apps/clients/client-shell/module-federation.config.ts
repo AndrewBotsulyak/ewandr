@@ -4,14 +4,11 @@ import {sharedFn} from "@ewandr-workspace/core";
 const config: ModuleFederationConfig = {
   name: 'client-shell',
   /**
-   * Remotes are loaded dynamically at runtime via main.ts
-   * to enable truly asynchronous loading on-demand.
-   *
-   * Static remotes would be bundled at build time, defeating the purpose
-   * of lazy loading. The runtime configuration in main.ts fetches the
-   * manifest and registers remotes with Module Federation Enhanced.
+   * Remotes must be listed here for the dev server to work correctly.
+   * In production, they are loaded dynamically via main.ts using the manifest.
+   * The dev server needs to know about them at build time to start dev servers.
    */
-  remotes: [],
+  remotes: ['client_products', 'client_product_details'],
   shared: sharedFn,
 };
 
