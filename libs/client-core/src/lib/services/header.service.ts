@@ -1,6 +1,5 @@
 import {Injectable, signal, computed, inject} from '@angular/core';
 import {ActivatedRoute} from "@angular/router";
-import {filter, map} from "rxjs";
 
 /**
  * Header service for managing header-related state using signals.

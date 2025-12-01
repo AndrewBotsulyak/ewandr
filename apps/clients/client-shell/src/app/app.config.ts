@@ -2,7 +2,7 @@ import {
   ApplicationConfig, ErrorHandler, importProvidersFrom,
   provideZonelessChangeDetection
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withPreloading } from '@angular/router';
 import { appRoutes } from './app.routes';
 import {
   provideClientHydration,
@@ -22,14 +22,14 @@ import {
   API_URL_TOKEN,
   authInterceptor,
   errorInterceptor,
-  GlobalErrorHandlerService
+  GlobalErrorHandlerService, SmartIdlePreloadingStrategy
 } from "@ewandr-workspace/client-core";
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideClientHydration(withEventReplay()), // withNoHttpTransferCache()
     provideZonelessChangeDetection(),
-    provideRouter(appRoutes),
+    provideRouter(appRoutes, withPreloading(SmartIdlePreloadingStrategy)),
     // provideAppInitializer(() => {
     //   const hydrationService = inject(NgRxTransferStateService);
     //
