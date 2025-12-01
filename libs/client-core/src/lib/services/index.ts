@@ -4,3 +4,4 @@ export * from './global-error-handler.service';
 export * from './notification.service';
 export * from './header.service';
 export * from './interceptors';
+export * from './custom-preloading-strategy.service';

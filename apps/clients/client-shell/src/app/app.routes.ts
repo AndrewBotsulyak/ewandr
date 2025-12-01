@@ -29,5 +29,12 @@ export const appRoutes: Route[] = [
         (m) => m!.remoteRoutes
       )
     },
+    data: {
+      preload: {
+        preload: 'high',
+        delay: 2000,           // Wait 2 seconds before preloading
+        networkAware: true     // Only preload on good network (4G+)
+      }
+    }
   },
 ];

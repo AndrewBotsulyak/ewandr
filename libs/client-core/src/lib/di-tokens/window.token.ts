@@ -1,5 +1,5 @@
 import {inject, InjectionToken} from "@angular/core";
-import {CheckPlatformService} from "@ewandr-workspace/client-core";
+import {CheckPlatformService} from "../services";
 
 export const WINDOW_TOKEN = new InjectionToken<Window | null>(
   'Global window object',
