@@ -162,7 +162,13 @@ async function initModuleFederation() {
     });
   });
 
-  registerRemotes(remotes);
+  // Only register if the runtime is initialized (may not be with empty remotes config)
+  try {
+    registerRemotes(remotes);
+    console.log('SSR: Successfully registered remotes');
+  } catch (error: any) {
+    console.log('SSR: Skipping registerRemotes, will load dynamically:', error?.message || error);
+  }
 }
 
 run();
